@@ -59,31 +59,27 @@ jobs:
   build-for-windows:
     runs-on: windows-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
     
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: 1.22
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.22
     
-    - name: Set up MinGW
-      uses: egor-tensin/setup-mingw@v2
-      with:
-        platform: x64
+      - name: Build for Windows (64-bit)
+        run: |
+          cd go
+          $env:CGO_ENABLED = "1"
+          $env:CC = "gcc"
+          $env:GOARCH = "amd64"
+          go build -buildmode=c-shared -ldflags="-s -w -extldflags=-Wl,--allow-multiple-definition" -trimpath -o libmtorrentserver.dll ./binding/desktop
     
-    - name: Build for Windows
-      run: |
-        cd go
-        $env:CGO_ENABLED = "1"
-        $env:CC = "gcc"
-        go build -buildmode=c-shared -ldflags="-s -w -extldflags=-Wl,--allow-multiple-definition" -trimpath -o libmtorrentserver.dll ./binding/desktop
-    
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with: 
-        name: libmtorrentserver-windows
-        path: go/libmtorrentserver.*
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with: 
+          name: libmtorrentserver-windows-64bit
+          path: go/libmtorrentserver.*
    
   # build-for-android:
   #   runs-on: ubuntu-latest
