@@ -3,10 +3,10 @@ name: Build Go
 on:
   # push:
   #   branches:
-  #     - cn
+  #     - dev
   # pull_request:
   #   branches:
-  #     - cn
+  #     - dev
   workflow_dispatch:
     inputs:
       reason:

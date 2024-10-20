@@ -412,14 +412,28 @@ class QuarkUcExtractor {
     List<Video> videos = [];
 
     if (type == "uc") {
-      var downloadinfo =
-          await getDownload(shareId, stoken, fileId, fileToken, true);
-
-      if (downloadinfo != null) {
-        var url = downloadinfo['downloadInfo']['download_url'];
-        var headers = downloadinfo['headers'];
-        videos.add(Video(url, "原画", url, headers: headers));
+      if (!saveFileIdCaches.containsKey(fileId)) {
+        final saveFileId = await save(shareId, stoken, fileId, fileToken, true);
+        if (saveFileId != null) {
+          saveFileIdCaches[fileId] = saveFileId;
+          var headers = getHeaders();
+          headers.remove('Content-Type');
+          final baseUrl = MTorrentServer().getBaseUrl();
+          String url =
+              "$baseUrl/?thread=8&url=&ucfids=${saveFileIdCaches[fileId]}&header=$headers";
+          videos.add(Video(url, "原画Go", url));
+        }
       }
+      // var headers = getHeaders();
+      // headers.remove('Content-Type');
+      // var downloadinfo =
+      //     await getDownload(shareId, stoken, fileId, fileToken, true);
+
+      // if (downloadinfo != null) {
+      //   var url = downloadinfo['downloadInfo']['download_url'];
+      //   var headers = downloadinfo['headers'];
+      //   videos.add(Video(url, "原画", url, headers: headers));
+      // }
     } else {
       String? originalUrl;
       List<Map<String, String>>? qualityOptions =

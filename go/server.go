@@ -1038,6 +1038,7 @@ func handleGetMethod(w http.ResponseWriter, req *http.Request) {
 	strThread := req.URL.Query().Get("thread")
 	strSplitSize := req.URL.Query().Get("size")
 	quarkFids := query.Get("quarkfids")
+	ucFids := query.Get("ucfids")
 
 	if strHeader != "" {
 		if strForm == "base64" {
@@ -1095,12 +1096,37 @@ func handleGetMethod(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		urlStr = apiResponse.Data[0].DownloadUrl
-		// for key, value := range resp.Header() {
-		// 	if !shouldFilterHeaderName(key) {
-		// 		newHeader[key] = value
-		// 	}
-		// }
-		// req.Header = newHeader
+	}
+	if urlStr == "" && ucFids != "" {
+		data := map[string]interface{}{
+			"fids": []string{ucFids},
+		}
+		var apiResponse struct {
+			Data []struct {
+				DownloadUrl string `json:"download_url"`
+			} `json:"data"`
+		}
+		resp, err := RestyClient.
+			SetRetryCount(3).
+			R().
+			SetHeaderMultiValues(newHeader).
+			SetBody(data).
+			Post("https://pc-api.uc.cn/1/clouddrive/file/download?pr=UCBrowser&fr=pc&uc_param_str=")
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to download %v link: %v", urlStr, err), http.StatusInternalServerError)
+			return
+		}
+		err = json.Unmarshal(resp.Body(), &apiResponse)
+		if err != nil {
+			http.Error(w, "Failed to parse API response", http.StatusInternalServerError)
+			return
+		}
+
+		if len(apiResponse.Data) == 0 {
+			http.Error(w, "No download URL found", http.StatusNotFound)
+			return
+		}
+		urlStr = apiResponse.Data[0].DownloadUrl
 	}
 	if urlStr != "" {
 		if strForm == "base64" {
