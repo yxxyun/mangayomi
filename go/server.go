@@ -55,7 +55,7 @@ func Start(config *Config) (int, error) {
 	if isWorkPool == nil {
 		isWorkPool = new(bool)
 	}
-	*isWorkPool = true
+	*isWorkPool = false
 
 	torrentcliCfg = torrent.NewDefaultClientConfig()
 
@@ -1066,9 +1066,19 @@ func handleGetMethod(w http.ResponseWriter, req *http.Request) {
 			newHeader[key] = value
 		}
 	}
-	if urlStr == "" && quarkFids != "" {
+	if urlStr == "" && (quarkFids != "" || ucFids != "") {
+		var apiUrl string
+		var fid string
+		if quarkFids != "" {
+			apiUrl = "https://drive-pc.quark.cn/1/clouddrive/file/download?pr=ucpro&fr=pc&uc_param_str="
+			fid = quarkFids
+		} else {
+			apiUrl = "https://pc-api.uc.cn/1/clouddrive/file/download?pr=UCBrowser&fr=pc&uc_param_str="
+			fid = ucFids
+		}
+
 		data := map[string]interface{}{
-			"fids": []string{quarkFids},
+			"fids": []string{fid},
 		}
 		var apiResponse struct {
 			Data []struct {
@@ -1080,53 +1090,26 @@ func handleGetMethod(w http.ResponseWriter, req *http.Request) {
 			R().
 			SetHeaderMultiValues(newHeader).
 			SetBody(data).
-			Post("https://drive-pc.quark.cn/1/clouddrive/file/download?pr=ucpro&fr=pc&uc_param_str=")
+			Post(apiUrl)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to download %v link: %v", urlStr, err), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("Get download link failed: %v", err), http.StatusInternalServerError)
+			log.Printf("[Error] Get download link failed: %v", err)
 			return
 		}
 		err = json.Unmarshal(resp.Body(), &apiResponse)
 		if err != nil {
-			http.Error(w, "Failed to parse API response", http.StatusInternalServerError)
+			http.Error(w, "Parse API response failed", http.StatusInternalServerError)
+			log.Printf("[Error] Parse API response failed: %v", err)
 			return
 		}
 
 		if len(apiResponse.Data) == 0 {
-			http.Error(w, "No download URL found", http.StatusNotFound)
+			http.Error(w, "No download link found", http.StatusNotFound)
+			log.Printf("[Error] No download link found")
 			return
 		}
 		urlStr = apiResponse.Data[0].DownloadUrl
-	}
-	if urlStr == "" && ucFids != "" {
-		data := map[string]interface{}{
-			"fids": []string{ucFids},
-		}
-		var apiResponse struct {
-			Data []struct {
-				DownloadUrl string `json:"download_url"`
-			} `json:"data"`
-		}
-		resp, err := RestyClient.
-			SetRetryCount(3).
-			R().
-			SetHeaderMultiValues(newHeader).
-			SetBody(data).
-			Post("https://pc-api.uc.cn/1/clouddrive/file/download?pr=UCBrowser&fr=pc&uc_param_str=")
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to download %v link: %v", urlStr, err), http.StatusInternalServerError)
-			return
-		}
-		err = json.Unmarshal(resp.Body(), &apiResponse)
-		if err != nil {
-			http.Error(w, "Failed to parse API response", http.StatusInternalServerError)
-			return
-		}
-
-		if len(apiResponse.Data) == 0 {
-			http.Error(w, "No download URL found", http.StatusNotFound)
-			return
-		}
-		urlStr = apiResponse.Data[0].DownloadUrl
+		log.Printf("[Debug] urlStr: %v", urlStr)
 	}
 	if urlStr != "" {
 		if strForm == "base64" {
@@ -1143,7 +1126,7 @@ func handleGetMethod(w http.ResponseWriter, req *http.Request) {
 	}
 
 	for parameterName := range query {
-		if parameterName == "url" || parameterName == "form" || parameterName == "thread" || parameterName == "size" || parameterName == "header" || parameterName == "quarkfids" {
+		if parameterName == "url" || parameterName == "form" || parameterName == "thread" || parameterName == "size" || parameterName == "header" || parameterName == "quarkfids" || parameterName == "ucfids" {
 			continue
 		}
 		urlStr = urlStr + "&" + parameterName + "=" + query.Get(parameterName)
@@ -1192,10 +1175,12 @@ func handleGetMethod(w http.ResponseWriter, req *http.Request) {
 			Get(urlStr)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to download %v link: %v", urlStr, err), http.StatusInternalServerError)
+			log.Printf("[Error] Failed to download %v link: %v", urlStr, err)
 			return
 		}
 		if resp.StatusCode() < 200 || resp.StatusCode() >= 400 {
 			http.Error(w, resp.Status(), resp.StatusCode())
+			log.Printf("[Error] Failed to download %v link: %v", urlStr, resp.Status())
 			return
 		}
 		responseHeaders = resp.Header()
@@ -1220,7 +1205,7 @@ func handleGetMethod(w http.ResponseWriter, req *http.Request) {
 				fileName = urlStr[lastSlashIndex+1 : queryIndex]
 			}
 		}
-
+		log.Printf("[Debug] fileName: %v", fileName)
 		contentType := responseHeaders.(http.Header).Get("Content-Type")
 		if contentType == "" || contentType == "application/octet-stream" {
 			if strings.HasSuffix(fileName, ".webm") {
