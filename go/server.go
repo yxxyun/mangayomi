@@ -94,6 +94,7 @@ func Start(config *Config) (int, error) {
 	mux.HandleFunc("/torrent/torrents", listTorrents)
 	mux.HandleFunc("/torrent/play", playTorrent)
 	mux.HandleFunc("/torrent/add", AddTorrent)
+	mux.HandleFunc("/proxy", handleProxy)
 	mux.HandleFunc("/", handleMethod)
 
 	c := cors.New(cors.Options{
@@ -117,6 +118,140 @@ func Start(config *Config) (int, error) {
 	}()
 
 	return addr.Port, nil
+}
+
+func handleProxy(w http.ResponseWriter, r *http.Request) {
+	urlStr := r.URL.Query().Get("url")
+	if urlStr == "" {
+		http.Error(w, "Missing url parameter", http.StatusBadRequest)
+		return
+	}
+
+	m3u8Content, err := fetchM3U8(urlStr)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to fetch M3U8: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	fixedM3U8 := fixAdM3u8Ai(urlStr, m3u8Content)
+
+	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
+	w.Write([]byte(fixedM3U8))
+}
+
+func fetchM3U8(url string) (string, error) {
+	resp, err := RestyClient.R().Get(url)
+	if err != nil {
+		return "", err
+	}
+	return resp.String(), nil
+}
+
+func fixAdM3u8Ai(m3u8Url string, m3u8Content string) string {
+	startTime := time.Now()
+
+	m3u8Lines := strings.Split(strings.TrimSpace(m3u8Content), "\n")
+	m3u8Lines = processM3U8Lines(m3u8Url, m3u8Lines)
+
+	// 处理嵌套m3u8
+	lastUrl := m3u8Lines[len(m3u8Lines)-1]
+	if strings.Contains(lastUrl, ".m3u8") && lastUrl != m3u8Url {
+		nestedM3u8Url := urljoin(m3u8Url, lastUrl)
+		log.Printf("[Debug] 嵌套的m3u8_url: %s", nestedM3u8Url)
+		nestedContent, err := fetchM3U8(nestedM3u8Url)
+		if err == nil {
+			m3u8Lines = strings.Split(strings.TrimSpace(nestedContent), "\n")
+			m3u8Lines = processM3U8Lines(nestedM3u8Url, m3u8Lines)
+		}
+	}
+
+	firstStr, lastStr, maxCommonLen := findFirstAndLastSegments(m3u8Lines)
+	log.Printf("[Debug] 最后一条切片: %s", lastStr)
+
+	adUrls := []string{}
+	processedLines := []string{}
+
+	for i := 0; i < len(m3u8Lines); i++ {
+		line := m3u8Lines[i]
+		if !strings.HasPrefix(line, "#") {
+			if commonPrefixLen(firstStr, line) < maxCommonLen {
+				adUrls = append(adUrls, line)
+				i++ // Skip the next line (usually duration)
+			} else {
+				processedLines = append(processedLines, urljoin(m3u8Url, line))
+			}
+		} else {
+			processedLines = append(processedLines, replaceURIInLine(m3u8Url, line))
+		}
+	}
+
+	log.Printf("[Debug] 处理的m3u8地址: %s", m3u8Url)
+	log.Printf("[Debug] 广告地址: %v", adUrls)
+	log.Printf("[Debug] 处理耗时: %v", time.Since(startTime))
+
+	return strings.Join(processedLines, "\n")
+}
+
+func processM3U8Lines(baseUrl string, lines []string) []string {
+	processed := make([]string, len(lines))
+	for i, line := range lines {
+		if strings.HasPrefix(line, "#") {
+			processed[i] = line
+		} else {
+			processed[i] = urljoin(baseUrl, line)
+		}
+	}
+	return processed
+}
+
+func findFirstAndLastSegments(lines []string) (string, string, int) {
+	var firstStr, lastStr string
+	maxCommonLen := 0
+	segmentCount := 0
+
+	for _, line := range lines {
+		if !strings.HasPrefix(line, "#") {
+			if firstStr == "" {
+				firstStr = line
+			} else if segmentCount < 20 {
+				commonLen := commonPrefixLen(firstStr, line)
+				if commonLen > maxCommonLen {
+					maxCommonLen = commonLen
+				}
+			}
+			lastStr = line
+			segmentCount++
+		}
+	}
+
+	return firstStr, lastStr, maxCommonLen
+}
+
+func commonPrefixLen(s1, s2 string) int {
+	i := 0
+	for i < len(s1) && i < len(s2) && s1[i] == s2[i] {
+		i++
+	}
+	return i
+}
+
+func replaceURIInLine(baseUrl, line string) string {
+	return regexp.MustCompile(`URI="(.*?)"`).ReplaceAllStringFunc(line, func(match string) string {
+		uri := regexp.MustCompile(`URI="(.*?)"`).FindStringSubmatch(match)[1]
+		return fmt.Sprintf(`URI="%s"`, urljoin(baseUrl, uri))
+	})
+}
+
+func urljoin(base, rel string) string {
+	baseUrl, err := url.Parse(base)
+	if err != nil {
+		return rel
+	}
+	relUrl, err := url.Parse(rel)
+	if err != nil {
+		return rel
+	}
+	return baseUrl.ResolveReference(relUrl).String()
 }
 
 func safenDisplayPath(displayPath string) string {

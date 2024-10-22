@@ -17,7 +17,7 @@ class MTorrentServer {
   MTorrentServer._internal();
 
   bool _isRunning = false;
-  int? _serverPort;
+  // int? _serverPort;
 
   final http = MClient.init();
   Future<bool> removeTorrent(String? inforHash) async {
@@ -35,9 +35,9 @@ class MTorrentServer {
   }
 
   Future<bool> check() async {
-    if (!_isRunning || _serverPort == null) return false;
+    if (!_isRunning) return false;
     try {
-      final res = await http.get(Uri.parse("http://127.0.0.1:$_serverPort/"));
+      final res = await http.get(Uri.parse("http://127.0.0.1:13479/"));
       return res.statusCode == 200;
     } catch (_) {
       return false;
@@ -65,22 +65,22 @@ class MTorrentServer {
     if (_isRunning) return;
     if (!_isRunning) {
       final path = (await StorageProvider().getBtDirectory())!.path;
-      final config = jsonEncode({"path": path, "address": "127.0.0.1:0"});
+      final config = jsonEncode({"path": path, "address": "127.0.0.1:13479"});
       try {
         if (Platform.isAndroid || Platform.isIOS) {
           const channel =
               MethodChannel('com.kodjodevf.mangayomi.libmtorrentserver');
-          _serverPort = await channel.invokeMethod('start', {"config": config});
+          await channel.invokeMethod('start', {"config": config});
         } else {
-          _serverPort = await Isolate.run(() async {
+          await Isolate.run(() async {
             return libmtorrentserver_ffi.start(config);
           });
         }
-        _setBtServerPort(_serverPort!);
+        // _setBtServerPort(_serverPort!);
         _isRunning = true;
       } catch (e) {
         _isRunning = false;
-        _serverPort = null;
+        // _serverPort = null;
       }
     }
   }
@@ -95,7 +95,7 @@ class MTorrentServer {
       String? url, String? archivePath) async {
     try {
       final isFilePath = archivePath?.isNotEmpty ?? false;
-      await ensureRunning();
+      // ensureRunning();
       url = isFilePath ? archivePath! : url!;
       bool isMagnet = url.startsWith("magnet:?");
       String finalUrl = "";

@@ -43,7 +43,6 @@ class QuarkUcExtractor {
     if (this.cookie.isEmpty) {
       this.cookie = cookie;
     }
-    MTorrentServer().ensureRunning();
   }
 
   Map<String, String> getHeaders() {
@@ -391,7 +390,7 @@ class QuarkUcExtractor {
 // 获取可用的质量列表
     //List<String> qualities = getPlayFormtList();
     List<Video> videos = [];
-    final baseUrl = MTorrentServer().getBaseUrl();
+    // final baseUrl = MTorrentServer().getBaseUrl();
     if (type == "uc") {
       var headers = getHeaders();
       headers.remove('Content-Type');
@@ -432,7 +431,7 @@ class QuarkUcExtractor {
       // for quark, cookies changed every time and download url is not allowed to be cached
       // so we need to use quarkfids to get the download url with the same cookies on server side
       String playUrl =
-          "$baseUrl/?thread=8&url=&quarkfids=${saveFileIdCaches[fileId]}&header=${Uri.encodeComponent(jsonEncode(headers))}";
+          "http://127.0.0.1:13479/?thread=8&url=&quarkfids=${saveFileIdCaches[fileId]}&header=${Uri.encodeComponent(jsonEncode(headers))}";
       videos.add(Video(playUrl, "原画Go", originalUrl ?? ''));
     }
 

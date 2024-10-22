@@ -22,6 +22,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:mangayomi/src/rust/frb_generated.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:mangayomi/services/torrent_server.dart';
 
 late Isar isar;
 
@@ -60,6 +61,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   void initState() {
     iniDateFormatting();
     super.initState();
+    MTorrentServer().ensureRunning();
   }
 
   @override
