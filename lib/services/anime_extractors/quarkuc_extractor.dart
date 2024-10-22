@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:http_interceptor/http_interceptor.dart';
 import 'package:mangayomi/models/video.dart';
 import 'package:mangayomi/services/http/m_client.dart';
+import 'package:mangayomi/services/torrent_server.dart';
 
 enum CloudDriveType {
   quark,
@@ -389,7 +390,7 @@ class QuarkUcExtractor {
 // 获取可用的质量列表
     //List<String> qualities = getPlayFormtList();
     List<Video> videos = [];
-    // final baseUrl = MTorrentServer().getBaseUrl();
+    final baseUrl = MTorrentServer().getBaseUrl();
     if (type == "uc") {
       var headers = getHeaders();
       headers.remove('Content-Type');
@@ -430,7 +431,7 @@ class QuarkUcExtractor {
       // for quark, cookies changed every time and download url is not allowed to be cached
       // so we need to use quarkfids to get the download url with the same cookies on server side
       String playUrl =
-          "http://127.0.0.1:13479/?thread=8&url=&quarkfids=${saveFileIdCaches[fileId]}&header=${Uri.encodeComponent(jsonEncode(headers))}";
+          "$baseUrl/?thread=8&url=&quarkfids=${saveFileIdCaches[fileId]}&header=${Uri.encodeComponent(jsonEncode(headers))}";
       videos.add(Video(playUrl, "原画Go", originalUrl ?? ''));
     }
 
