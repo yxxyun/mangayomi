@@ -37,6 +37,7 @@ import 'package:mangayomi/utils/reg_exp_matcher.dart';
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:mangayomi/services/anime_extractors/quarkuc_extractor.dart';
+import 'package:mangayomi/services/torrent_server.dart';
 
 class WordSet {
   final List<String> words;
@@ -381,6 +382,10 @@ class MBridge {
       String url, String cookie) async {
     var uc = _getExtractor(cookie, CloudDriveType.uc);
     return await uc.videosFromUrl(url);
+  }
+
+  static String getProxyUrl() {
+    return MTorrentServer().getBaseUrl();
   }
 
   static Future<List<Video>> streamTapeExtractor(

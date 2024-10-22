@@ -140,7 +140,8 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchM3U8(url string) (string, error) {
-	resp, err := RestyClient.R().Get(url)
+	log.Printf("Fetching M3U8 from %s", url)
+	resp, err := RestyClient.SetRetryCount(3).R().Get(url)
 	if err != nil {
 		return "", err
 	}
@@ -148,98 +149,117 @@ func fetchM3U8(url string) (string, error) {
 }
 
 func fixAdM3u8Ai(m3u8Url string, m3u8Content string) string {
-	startTime := time.Now()
-
-	m3u8Lines := strings.Split(strings.TrimSpace(m3u8Content), "\n")
-	m3u8Lines = processM3U8Lines(m3u8Url, m3u8Lines)
+	lines := strings.Split(strings.TrimSpace(m3u8Content), "\n")
 
 	// 处理嵌套m3u8
-	lastUrl := m3u8Lines[len(m3u8Lines)-1]
+	lastUrl := lines[len(lines)-1]
 	if strings.Contains(lastUrl, ".m3u8") && lastUrl != m3u8Url {
 		nestedM3u8Url := urljoin(m3u8Url, lastUrl)
 		log.Printf("[Debug] 嵌套的m3u8_url: %s", nestedM3u8Url)
 		nestedContent, err := fetchM3U8(nestedM3u8Url)
 		if err == nil {
-			m3u8Lines = strings.Split(strings.TrimSpace(nestedContent), "\n")
-			m3u8Lines = processM3U8Lines(nestedM3u8Url, m3u8Lines)
+			lines = strings.Split(strings.TrimSpace(nestedContent), "\n")
+			lines = processM3U8Lines(nestedM3u8Url, lines)
+		} else {
+			log.Printf("[Error] 获取嵌套m3u8失败: %v", err)
 		}
 	}
 
-	firstStr, lastStr, maxCommonLen := findFirstAndLastSegments(m3u8Lines)
-	log.Printf("[Debug] 最后一条切片: %s", lastStr)
+	adCount := 0
 
-	adUrls := []string{}
-	processedLines := []string{}
+	// 分析比特率模式
+	bitratePatterns := analyzeBitratePatterns(lines)
+	mainBitrate := findMainBitrate(bitratePatterns)
+	log.Printf("[Debug] 主要比特率: %s", mainBitrate)
 
-	for i := 0; i < len(m3u8Lines); i++ {
-		line := m3u8Lines[i]
-		if !strings.HasPrefix(line, "#") {
-			if commonPrefixLen(firstStr, line) < maxCommonLen {
-				adUrls = append(adUrls, line)
-				i++ // Skip the next line (usually duration)
+	// 过滤广告
+	filteredLines := filterAdsByBitrate(lines, mainBitrate, &adCount)
+
+	log.Printf("[Debug] 移除广告 %d 行", adCount)
+	return strings.Join(filteredLines, "\n")
+}
+
+func analyzeBitratePatterns(lines []string) map[string]int {
+	patterns := make(map[string]int)
+	for _, line := range lines {
+		if strings.HasSuffix(line, ".ts") {
+			bitrate := extractBitrate(line)
+			if bitrate != "" {
+				patterns[bitrate]++
+			}
+		}
+	}
+	return patterns
+}
+
+func extractBitrate(url string) string {
+	parts := strings.Split(url, "/")
+	for _, part := range parts {
+		if strings.HasSuffix(part, "kb") {
+			return part
+		}
+	}
+	return ""
+}
+
+func findMainBitrate(patterns map[string]int) string {
+	var mainBitrate string
+	maxCount := 0
+	for bitrate, count := range patterns {
+		if count > maxCount {
+			maxCount = count
+			mainBitrate = bitrate
+		}
+	}
+	return mainBitrate
+}
+
+func filterAdsByBitrate(lines []string, mainBitrate string, adCount *int) []string {
+	var filteredLines []string
+	isAdSection := false
+
+	for i := 0; i < len(lines); i++ {
+		line := lines[i]
+
+		if strings.HasPrefix(line, "#EXT-X-DISCONTINUITY") {
+			isAdSection = !isAdSection
+			filteredLines = append(filteredLines, line)
+			continue
+		}
+
+		if strings.HasPrefix(line, "#EXTINF:") {
+			if i+1 < len(lines) && !strings.HasPrefix(lines[i+1], "#") {
+				tsUrl := lines[i+1]
+				bitrate := extractBitrate(tsUrl)
+
+				if bitrate == mainBitrate && !isAdSection {
+					filteredLines = append(filteredLines, line, tsUrl)
+				} else {
+					log.Printf("[Debug] 移除广告片段: %s", tsUrl)
+					*adCount++
+				}
+				i++ // 跳过TS URL行
 			} else {
-				processedLines = append(processedLines, urljoin(m3u8Url, line))
+				filteredLines = append(filteredLines, line)
 			}
 		} else {
-			processedLines = append(processedLines, replaceURIInLine(m3u8Url, line))
+			filteredLines = append(filteredLines, line)
 		}
 	}
 
-	log.Printf("[Debug] 处理的m3u8地址: %s", m3u8Url)
-	log.Printf("[Debug] 广告地址: %v", adUrls)
-	log.Printf("[Debug] 处理耗时: %v", time.Since(startTime))
-
-	return strings.Join(processedLines, "\n")
+	return filteredLines
 }
 
 func processM3U8Lines(baseUrl string, lines []string) []string {
 	processed := make([]string, len(lines))
 	for i, line := range lines {
-		if strings.HasPrefix(line, "#") {
-			processed[i] = line
-		} else {
+		if !strings.HasPrefix(line, "#") {
 			processed[i] = urljoin(baseUrl, line)
+		} else {
+			processed[i] = line
 		}
 	}
 	return processed
-}
-
-func findFirstAndLastSegments(lines []string) (string, string, int) {
-	var firstStr, lastStr string
-	maxCommonLen := 0
-	segmentCount := 0
-
-	for _, line := range lines {
-		if !strings.HasPrefix(line, "#") {
-			if firstStr == "" {
-				firstStr = line
-			} else if segmentCount < 20 {
-				commonLen := commonPrefixLen(firstStr, line)
-				if commonLen > maxCommonLen {
-					maxCommonLen = commonLen
-				}
-			}
-			lastStr = line
-			segmentCount++
-		}
-	}
-
-	return firstStr, lastStr, maxCommonLen
-}
-
-func commonPrefixLen(s1, s2 string) int {
-	i := 0
-	for i < len(s1) && i < len(s2) && s1[i] == s2[i] {
-		i++
-	}
-	return i
-}
-
-func replaceURIInLine(baseUrl, line string) string {
-	return regexp.MustCompile(`URI="(.*?)"`).ReplaceAllStringFunc(line, func(match string) string {
-		uri := regexp.MustCompile(`URI="(.*?)"`).FindStringSubmatch(match)[1]
-		return fmt.Sprintf(`URI="%s"`, urljoin(baseUrl, uri))
-	})
 }
 
 func urljoin(base, rel string) string {
