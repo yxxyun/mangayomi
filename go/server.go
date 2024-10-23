@@ -98,7 +98,10 @@ func Start(config *Config) (int, error) {
 
 	go func() {
 		if err := http.Serve(listener, c.Handler(mux)); err != nil && err != http.ErrServerClosed {
-			panic(err)
+			log.Printf("[ERROR] HTTP 服务器错误: %v", err)
+			if err := listener.Close(); err != nil {
+				log.Printf("[ERROR] 关闭监听器时出错: %v", err)
+			}
 		}
 	}()
 
