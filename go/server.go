@@ -17,7 +17,6 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
-	"os/signal"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -25,7 +24,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/anacrolix/torrent"
@@ -41,7 +39,7 @@ var torrentCli *torrent.Client
 var torrentcliCfg *torrent.ClientConfig
 
 func Start(config *Config) (int, error) {
-	signal.Ignore(syscall.SIGPIPE)
+
 	// Set log output
 	log.SetOutput(os.Stdout)
 
@@ -72,21 +70,7 @@ func Start(config *Config) (int, error) {
 
 	dnsResolve()
 
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigs
-		log.Println("[INFO] Termination detected. Removing torrents")
-		for _, t := range torrentCli.Torrents() {
-			log.Printf("[INFO] Removing torrent: [%s]\n", t.Name())
-			t.Drop()
-			rmaErr := os.RemoveAll(filepath.Join(torrentcliCfg.DataDir, t.Name()))
-			if rmaErr != nil {
-				log.Printf("[ERROR] Failed to remove files of torrent: [%s]: %s\n", t.Name(), rmaErr)
-			}
-		}
-		os.Exit(0)
-	}()
+	signalHandler()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/torrent/addmagnet", addMagnet)
@@ -337,7 +321,7 @@ func getTorrentFile(files []*torrent.File, filename string, exactName bool) *tor
 func dnsResolve() {
 	addrs, err := net.LookupHost("www.google.com")
 	if len(addrs) == 0 {
-		log.Printf("Check dns failed", addrs, err)
+		log.Printf("Check dns failed: %v, error: %v", addrs, err)
 
 		fn := func(ctx context.Context, network, address string) (net.Conn, error) {
 			d := net.Dialer{}
@@ -349,9 +333,9 @@ func dnsResolve() {
 		}
 
 		addrs, err = net.LookupHost("www.google.com")
-		log.Printf("Check cloudflare dns", addrs, err)
+		log.Printf("Check cloudflare dns: %v, error: %v", addrs, err)
 	} else {
-		log.Printf("Check dns OK", addrs, err)
+		log.Printf("Check dns OK: %v, error: %v", addrs, err)
 	}
 }
 
