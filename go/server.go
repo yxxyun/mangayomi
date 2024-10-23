@@ -18,6 +18,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -148,6 +149,44 @@ func fetchM3U8(url string) (string, error) {
 	return resp.String(), nil
 }
 
+func processM3U8Lines(baseUrl string, lines []string) []string {
+	processed := make([]string, len(lines))
+	for i, line := range lines {
+		if strings.HasPrefix(line, "#EXT-X-KEY") {
+			processed[i] = fixKeyLine(line, baseUrl)
+		} else if !strings.HasPrefix(line, "#") {
+			processed[i] = urljoin(baseUrl, line)
+		} else {
+			processed[i] = line
+		}
+	}
+	return processed
+}
+
+func fixKeyLine(line, baseUrl string) string {
+	parts := strings.Split(line, ",")
+	for i, part := range parts {
+		if strings.HasPrefix(part, "URI=") {
+			uri := strings.Trim(strings.TrimPrefix(part, "URI="), "\"")
+			uri = urljoin(baseUrl, uri)
+			parts[i] = "URI=\"" + uri + "\""
+		}
+	}
+	return strings.Join(parts, ",")
+}
+
+func urljoin(base, rel string) string {
+	baseUrl, err := url.Parse(base)
+	if err != nil {
+		return rel
+	}
+	relUrl, err := url.Parse(rel)
+	if err != nil {
+		return rel
+	}
+	return baseUrl.ResolveReference(relUrl).String()
+}
+
 func fixAdM3u8Ai(m3u8Url string, m3u8Content string) string {
 	lines := strings.Split(strings.TrimSpace(m3u8Content), "\n")
 
@@ -165,113 +204,85 @@ func fixAdM3u8Ai(m3u8Url string, m3u8Content string) string {
 		}
 	}
 
+	var filteredLines []string
 	adCount := 0
-
-	// 分析比特率模式
-	bitratePatterns := analyzeBitratePatterns(lines)
-	mainBitrate := findMainBitrate(bitratePatterns)
-	log.Printf("[Debug] 主要比特率: %s", mainBitrate)
-
-	// 过滤广告
-	filteredLines := filterAdsByBitrate(lines, mainBitrate, &adCount)
-
-	log.Printf("[Debug] 移除广告 %d 行", adCount)
-	return strings.Join(filteredLines, "\n")
-}
-
-func analyzeBitratePatterns(lines []string) map[string]int {
-	patterns := make(map[string]int)
+	isAdSection := false
+	mainUrlPattern := ""
+	hasEndList := false
+	// 首先确定主要URL模式
 	for _, line := range lines {
 		if strings.HasSuffix(line, ".ts") {
-			bitrate := extractBitrate(line)
-			if bitrate != "" {
-				patterns[bitrate]++
-			}
+			mainUrlPattern = extractUrlPattern(line)
+			log.Printf("[Debug] 主要URL模式: %s", mainUrlPattern)
+			break
 		}
 	}
-	return patterns
-}
-
-func extractBitrate(url string) string {
-	parts := strings.Split(url, "/")
-	for _, part := range parts {
-		if strings.HasSuffix(part, "kb") {
-			return part
-		}
-	}
-	return ""
-}
-
-func findMainBitrate(patterns map[string]int) string {
-	var mainBitrate string
-	maxCount := 0
-	for bitrate, count := range patterns {
-		if count > maxCount {
-			maxCount = count
-			mainBitrate = bitrate
-		}
-	}
-	return mainBitrate
-}
-
-func filterAdsByBitrate(lines []string, mainBitrate string, adCount *int) []string {
-	var filteredLines []string
-	isAdSection := false
 
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
 
-		if strings.HasPrefix(line, "#EXT-X-DISCONTINUITY") {
-			isAdSection = !isAdSection
-			filteredLines = append(filteredLines, line)
-			continue
-		}
-
-		if strings.HasPrefix(line, "#EXTINF:") {
-			if i+1 < len(lines) && !strings.HasPrefix(lines[i+1], "#") {
-				tsUrl := lines[i+1]
-				bitrate := extractBitrate(tsUrl)
-
-				if bitrate == mainBitrate && !isAdSection {
-					filteredLines = append(filteredLines, line, tsUrl)
-				} else {
-					log.Printf("[Debug] 移除广告片段: %s", tsUrl)
-					*adCount++
+		if line == "#EXT-X-DISCONTINUITY" {
+			// 检查下一个非空行是否为广告
+			for j := i + 1; j < len(lines); j++ {
+				if strings.HasPrefix(lines[j], "#EXTINF:") {
+					if j+1 < len(lines) && strings.HasSuffix(lines[j+1], ".ts") {
+						urlPattern := extractUrlPattern(lines[j+1])
+						if urlPattern != mainUrlPattern {
+							isAdSection = true
+							adCount++
+						} else {
+							isAdSection = false
+							filteredLines = append(filteredLines, line)
+						}
+					}
+					break
+				} else if !strings.HasPrefix(lines[j], "#") {
+					break
 				}
-				i++ // 跳过TS URL行
-			} else {
-				filteredLines = append(filteredLines, line)
+			}
+		} else if isAdSection {
+			// 跳过广告部分的所有行
+			adCount++
+			if line == "#EXT-X-ENDLIST" {
+				hasEndList = true
 			}
 		} else {
 			filteredLines = append(filteredLines, line)
+			if line == "#EXT-X-ENDLIST" {
+				hasEndList = true
+			}
 		}
 	}
 
-	return filteredLines
+	// 如果原文件有 #EXT-X-ENDLIST 但被删除了，我们需要重新添加
+	if hasEndList && filteredLines[len(filteredLines)-1] != "#EXT-X-ENDLIST" {
+		filteredLines = append(filteredLines, "#EXT-X-ENDLIST")
+	}
+
+	log.Printf("[Debug] 总共移除广告相关行 %d 行", adCount)
+
+	// 处理所有URL
+	baseUrl := getBaseUrl(m3u8Url)
+	processedLines := processM3U8Lines(baseUrl, filteredLines)
+
+	return strings.Join(processedLines, "\n")
 }
 
-func processM3U8Lines(baseUrl string, lines []string) []string {
-	processed := make([]string, len(lines))
-	for i, line := range lines {
-		if !strings.HasPrefix(line, "#") {
-			processed[i] = urljoin(baseUrl, line)
-		} else {
-			processed[i] = line
-		}
+func getBaseUrl(urlStr string) string {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return urlStr
 	}
-	return processed
+	u.Path = path.Dir(u.Path)
+	return u.String()
 }
 
-func urljoin(base, rel string) string {
-	baseUrl, err := url.Parse(base)
-	if err != nil {
-		return rel
+func extractUrlPattern(url string) string {
+	parts := strings.Split(url, "/")
+	if len(parts) > 3 {
+		return strings.Join(parts[:len(parts)-1], "/")
 	}
-	relUrl, err := url.Parse(rel)
-	if err != nil {
-		return rel
-	}
-	return baseUrl.ResolveReference(relUrl).String()
+	return url
 }
 
 func safenDisplayPath(displayPath string) string {
