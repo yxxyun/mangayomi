@@ -384,7 +384,8 @@ class MBridge {
     return await uc.videosFromUrl(url);
   }
 
-  static String getProxyUrl() {
+  static Future<String> getProxyUrl() async {
+    await MTorrentServer().ensureRunning();
     return MTorrentServer().getBaseUrl();
   }
 

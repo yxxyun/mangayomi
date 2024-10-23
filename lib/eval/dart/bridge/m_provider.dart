@@ -408,7 +408,8 @@ class $MProvider extends MProvider with $Bridge<MProvider> {
         ),
         'getProxyUrl': BridgeMethodDef(
           BridgeFunctionDef(
-              returns: BridgeTypeAnnotation(BridgeTypeRef(CoreTypes.string)),
+              returns: BridgeTypeAnnotation(BridgeTypeRef(
+                  CoreTypes.future, [BridgeTypeRef(CoreTypes.string)])),
               params: []),
         ),
         'substringAfter': BridgeMethodDef(
@@ -1014,9 +1015,8 @@ class $MProvider extends MProvider with $Bridge<MProvider> {
                     }))
                 .toList());
           }))),
-      "getProxyUrl" => $Function((_, __, List<$Value?> args) {
-          return $String(MBridge.getProxyUrl());
-        }),
+      "getProxyUrl" => $Function((_, __, List<$Value?> args) =>
+          $Future.wrap(MBridge.getProxyUrl().then((value) => $String(value)))),
       "toVideo" => $Function((_, __, List<$Value?> args) {
           final value = MBridge.toVideo(
               args[0]!.$value,

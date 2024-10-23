@@ -390,7 +390,6 @@ class QuarkUcExtractor {
 // 获取可用的质量列表
     //List<String> qualities = getPlayFormtList();
     List<Video> videos = [];
-    final baseUrl = MTorrentServer().getBaseUrl();
     if (type == "uc") {
       var headers = getHeaders();
       headers.remove('Content-Type');
@@ -426,6 +425,8 @@ class QuarkUcExtractor {
           ));
         }
       }
+      await MTorrentServer().ensureRunning();
+      final baseUrl = MTorrentServer().getBaseUrl();
       // nomal usage
       // "$baseUrl/?thread=8&url=https://xxxx&&header=$headers";
       // for quark, cookies changed every time and download url is not allowed to be cached

@@ -41,7 +41,7 @@ class JsVideosExtractors {
       return (await MBridge.ucFilesExtractor(urls, args[1]));
     });
     runtime.onMessage('getProxyUrl', (dynamic args) async {
-      return MBridge.getProxyUrl();
+      return await MBridge.getProxyUrl();
     });
     runtime.onMessage('streamlareExtractor', (dynamic args) async {
       return (await MBridge.streamlareExtractor(

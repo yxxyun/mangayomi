@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:isolate';
 import 'package:flutter/services.dart';
 import 'package:http_interceptor/http_interceptor.dart';
-import 'package:mangayomi/eval/dart/model/m_bridge.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/video.dart';
@@ -82,7 +81,6 @@ class MTorrentServer {
       } catch (e) {
         _isRunning = false;
         _serverPort = null;
-        botToast("Failed to start torrent server: $e");
       }
     }
   }
@@ -97,6 +95,7 @@ class MTorrentServer {
       String? url, String? archivePath) async {
     try {
       final isFilePath = archivePath?.isNotEmpty ?? false;
+      await ensureRunning();
       url = isFilePath ? archivePath! : url!;
       bool isMagnet = url.startsWith("magnet:?");
       String finalUrl = "";

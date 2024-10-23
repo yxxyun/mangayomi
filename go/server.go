@@ -17,6 +17,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -24,6 +25,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/anacrolix/torrent"
@@ -70,7 +72,22 @@ func Start(config *Config) (int, error) {
 
 	dnsResolve()
 
-	signalHandler()
+	signal.Ignore(syscall.SIGPIPE)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		log.Println("[INFO] Termination detected. Removing torrents")
+		for _, t := range torrentCli.Torrents() {
+			log.Printf("[INFO] Removing torrent: [%s]\n", t.Name())
+			t.Drop()
+			rmaErr := os.RemoveAll(filepath.Join(torrentcliCfg.DataDir, t.Name()))
+			if rmaErr != nil {
+				log.Printf("[ERROR] Failed to remove files of torrent: [%s]: %s\n", t.Name(), rmaErr)
+			}
+		}
+		os.Exit(0)
+	}()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/torrent/addmagnet", addMagnet)
