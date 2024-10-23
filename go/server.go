@@ -207,16 +207,27 @@ func fixAdM3u8Ai(m3u8Url string, m3u8Content string) string {
 	var filteredLines []string
 	adCount := 0
 	isAdSection := false
-	mainUrlPattern := ""
+	urlPatterns := make(map[string]int)
 	hasEndList := false
-	// 首先确定主要URL模式
+	// 第一遍：统计所有 .ts 文件的 URL 模式
 	for _, line := range lines {
 		if strings.HasSuffix(line, ".ts") {
-			mainUrlPattern = extractUrlPattern(line)
-			log.Printf("[Debug] 主要URL模式: %s", mainUrlPattern)
-			break
+			pattern := extractUrlPattern(line)
+			urlPatterns[pattern]++
 		}
 	}
+
+	// 找出出现次数最多的 URL 模式
+	var mainUrlPattern string
+	maxCount := 0
+	for pattern, count := range urlPatterns {
+		if count > maxCount {
+			maxCount = count
+			mainUrlPattern = pattern
+		}
+	}
+
+	log.Printf("[Debug] 主要URL模式: %s, 出现次数: %d", mainUrlPattern, maxCount)
 
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
