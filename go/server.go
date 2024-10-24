@@ -211,28 +211,45 @@ func fixAdM3u8Ai(m3u8Url string, m3u8Content string) string {
 	var filteredLines []string
 	adCount := 0
 	isAdSection := false
-	urlPatterns := make(map[string]int)
+	urlPatterns := make(map[string]struct {
+		count    int
+		duration float64
+	})
 	hasEndList := false
-	// 第一遍：统计所有 .ts 文件的 URL 模式
+	var currentDuration float64
+
+	// 第一遍：统计所有 .ts 文件的 URL 模式及其持续时间
 	for _, line := range lines {
-		if strings.HasSuffix(line, ".ts") {
+		if strings.HasPrefix(line, "#EXTINF:") {
+			durationStr := strings.TrimPrefix(line, "#EXTINF:")
+			durationStr = strings.Split(durationStr, ",")[0]
+			duration, err := strconv.ParseFloat(durationStr, 64)
+			if err == nil {
+				currentDuration = duration
+			}
+		} else if strings.HasSuffix(line, ".ts") {
 			pattern := extractUrlPattern(line)
-			urlPatterns[pattern]++
+			info := urlPatterns[pattern]
+			info.count++
+			info.duration += currentDuration
+			urlPatterns[pattern] = info
+			currentDuration = 0
 		}
 	}
 
-	// 找出出现次数最多的 URL 模式
+	// 找出总持续时间最长的 URL 模式
 	var mainUrlPattern string
-	maxCount := 0
-	for pattern, count := range urlPatterns {
-		if count > maxCount {
-			maxCount = count
+	var maxDuration float64
+	for pattern, info := range urlPatterns {
+		if info.duration > maxDuration {
+			maxDuration = info.duration
 			mainUrlPattern = pattern
 		}
 	}
 
-	log.Printf("[Debug] 主要URL模式: %s, 出现次数: %d", mainUrlPattern, maxCount)
+	log.Printf("[Debug] 主要URL模式: %s, 总持续时间: %.2f秒, 出现次数: %d", mainUrlPattern, maxDuration, urlPatterns[mainUrlPattern].count)
 
+	// 第二遍：过滤广告
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
 
