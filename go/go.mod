@@ -4,6 +4,8 @@ go 1.22
 
 require (
 	github.com/anacrolix/torrent v1.56.1
+	github.com/go-resty/resty/v2 v2.15.3
+	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/rs/cors v1.11.1
 )
 

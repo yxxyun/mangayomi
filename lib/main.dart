@@ -32,6 +32,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:path/path.dart' as p;
+import 'package:mangayomi/services/torrent_server.dart';
 
 late Isar isar;
 WebViewEnvironment? webViewEnvironment;
@@ -82,7 +83,7 @@ class MyApp extends ConsumerStatefulWidget {
   ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends ConsumerState<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
 
@@ -98,6 +99,8 @@ class _MyAppState extends ConsumerState<MyApp> {
       }
     });
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    MTorrentServer().ensureRunning();
   }
 
   @override
@@ -163,7 +166,18 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void dispose() {
     _linkSubscription?.cancel();
+    MTorrentServer().stopMServer();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      MTorrentServer().ensureRunning();
+    } else if (state == AppLifecycleState.paused) {
+      MTorrentServer().stopMServer();
+    }
   }
 
   Future<void> initDeepLinks() async {

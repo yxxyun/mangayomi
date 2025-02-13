@@ -110,6 +110,74 @@ class MClient {
     }
   }
 
+  static Future<void> writeCookie(String url, String ua,
+      {String? cookie}) async {
+    List<String> cookies = [];
+    final host = Uri.parse(url).host;
+
+    // if incoming cookie is not empty, use it first
+    if (cookie != null && cookie.isNotEmpty) {
+      cookies = cookie
+          .split(RegExp('(?<=)(,)(?=[^;]+?=)'))
+          .where((cookie) => cookie.isNotEmpty)
+          .toList();
+    } else {
+      // otherwise, try to get it from WebView
+      try {
+        cookies = (await flutter_inappwebview.CookieManager.instance()
+                .getCookies(url: flutter_inappwebview.WebUri(url)))
+            .map((e) => "${e.name}=${e.value}")
+            .toList();
+      } catch (e) {
+        throw Exception("获取cookie失败: $e");
+      }
+    }
+
+    if (cookies.isNotEmpty) {
+      final settings = isar.settings.getSync(227);
+      List<MCookie> cookieList = settings?.cookiesList?.toList() ?? [];
+
+      // remove old cookie
+      cookieList.removeWhere((element) =>
+          element.host == host || host.contains(element.host ?? ''));
+
+      // add new cookie
+      final newCookie = cookies.join("; ");
+      cookieList.add(MCookie()
+        ..host = host
+        ..cookie = newCookie);
+
+      // sync to WebView
+      // if (!Platform.isLinux) {
+      try {
+        for (var singleCookie in cookies) {
+          final parts = singleCookie.split('=');
+          if (parts.length == 2) {
+            await flutter_inappwebview.CookieManager.instance().setCookie(
+                url: flutter_inappwebview.WebUri(url),
+                name: parts[0].trim(),
+                value: parts[1].trim(),
+                domain: host,
+                path: '/');
+          }
+        }
+      } catch (e) {
+        throw Exception("同步cookie到WebView失败: $e");
+      }
+      // }
+
+      // save to persistent storage
+      isar.writeTxnSync(
+          () => isar.settings.putSync(settings!..cookiesList = cookieList));
+    }
+
+    // save UA
+    if (ua.isNotEmpty) {
+      final settings = isar.settings.getSync(227);
+      isar.writeTxnSync(() => isar.settings.putSync(settings!..userAgent = ua));
+    }
+  }
+
   static void deleteAllCookies(String url) {
     final cookiesList = isar.settings.getSync(227)!.cookiesList ?? [];
     List<MCookie>? cookieList = [];
