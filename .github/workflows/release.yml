@@ -424,3 +424,54 @@ jobs:
   ios-source-build:
     needs: build-and-release-ios-ipa
     uses: ./.github/workflows/update_sideloading_source.yml
+
+  flutter_build_ohos:
+    name: Release for ohos
+    runs-on: ubuntu-latest
+    permissions: write-all
+    container: ghcr.io/sanchuanhehe/harmony-next-pipeline-docker/harmonyos-ci-image:latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Extract tag name
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        shell: bash
+      - name: Echo build progress
+        run: echo "Mangayomi_ohos_${{ env.tag }}_unsigned.hap build progress"
+        shell: bash
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y curl xz-utils zip libglu1-mesa
+        shell: bash
+      - name: Build Flutter for ohos
+        run: |
+          git clone https://gitcode.com/openharmony-sig/flutter_flutter.git $GITHUB_WORKSPACE/flutter
+          cd flutter
+          git switch 3.22.0-ohos
+          git pull origin
+          cd ..
+          
+          export PATH=$GITHUB_WORKSPACE/flutter/bin:$PATH
+          export PATH=/opt/harmonyos-tools/command-line-tools/ohpm/bin:$PATH
+          export PATH=/opt/harmonyos-tools/command-line-tools/hvigor/bin:$PATH
+          export PATH=/opt/harmonyos-tools/command-line-tools/tool/node/bin:$PATH
+          export PATH=/opt/harmonyos-tools/command-line-tools/bin:$PATH
+          export OHOS_NDK_HOME=/opt/harmonyos-tools/command-line-tools/sdk/default/openharmony
+
+          # sed -i "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
+          # sed -i "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
+
+          flutter doctor -v
+          flutter pub get
+          flutter build hap --release
+        shell: bash
+      - name: Package ohos build output
+        run: cp ./ohos/entry/build/default/outputs/default/entry-default-unsigned.hap Mangayomi_ohos_${{ env.tag }}_unsigned.hap
+        shell: bash
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ env.tag }}-ohos
+          draft: ${{ inputs.draft }}
+          files: Mangayomi_ohos_*.hap
