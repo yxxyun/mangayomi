@@ -25,6 +25,7 @@ import 'package:mangayomi/modules/manga/home/widget/mangas_card_selector.dart';
 import 'package:mangayomi/modules/widgets/gridview_widget.dart';
 import 'package:mangayomi/modules/widgets/manga_image_card_widget.dart';
 import 'package:mangayomi/utils/global_style.dart';
+import 'package:marquee/marquee.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 
 class MangaHomeScreen extends ConsumerStatefulWidget {
@@ -120,10 +121,9 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
   AsyncValue<MPages?>? _getManga;
   int _length = 0;
   bool _isFiltering = false;
-
+  late final supportsLatest = ref.watch(supportsLatestProvider(source: source));
   @override
   Widget build(BuildContext context) {
-    final supportsLatest = ref.watch(supportsLatestProvider(source: source));
     final filterList = getFilterList(source: source);
     if (_selectedIndex == 2 && (_isSearch && _query.isNotEmpty) ||
         _isFiltering) {
@@ -149,7 +149,29 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
     };
     return Scaffold(
       appBar: AppBar(
-        title: _isSearch ? null : Text('${source.name}'),
+        title:
+            _isSearch
+                ? null
+                : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("${source.name}"),
+                    source.notes != null && source.notes!.isNotEmpty
+                        ? SizedBox(
+                          height: 20,
+                          child: Marquee(
+                            text: l10n.extension_notes(source.notes!),
+                            style: const TextStyle(fontSize: 12),
+                            blankSpace: 40.0,
+                            velocity: 30.0,
+                            pauseAfterRound: const Duration(seconds: 1),
+                            startPadding: 10.0,
+                          ),
+                        )
+                        : Container(),
+                  ],
+                ),
         leading: !_isSearch ? null : Container(),
         actions: [
           _isSearch
