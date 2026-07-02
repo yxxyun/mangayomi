@@ -95,7 +95,7 @@ class CloudDriveManager {
       return CloudDriveType.pan123;
     }
     if (lower.contains('cloud.189.cn')) return CloudDriveType.cloud189;
-    if (lower.contains('yun.139.com')) return CloudDriveType.yun139;
+    if (lower.contains('yun.139.com') || lower.contains('caiyun.139.com')) return CloudDriveType.yun139;
     if (lower.contains('pan.xunlei.com')) return CloudDriveType.xunlei;
 
     return null;

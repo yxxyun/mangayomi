@@ -318,7 +318,7 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
   Future<void> _useManualCookie(String cookie) async {
     setState(() => _isLoading = true);
     try {
-      await CloudCookieManager.saveCookie(widget.driveType, cookie);
+      // loginByCookie handles persistence internally via saveAccount
       final service = CloudDriveManager.instance.get(widget.driveType);
       if (service != null) {
         await service.loginByCookie(cookie);

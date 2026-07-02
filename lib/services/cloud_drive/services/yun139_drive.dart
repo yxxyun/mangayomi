@@ -140,8 +140,9 @@ class Yun139DriveService implements CloudDriveService {
     final fileNodes = await _getShareFile('root');
     if (fileNodes == null) return [];
 
-    // Map nodes to CloudDriveFile instances.
+    // Map nodes to CloudDriveFile instances, filtering out directories.
     return fileNodes
+        .where((node) => !node.isDir)
         .map((node) => CloudDriveFile(
               fileId: node.path,
               name: node.name,
@@ -396,7 +397,7 @@ class Yun139DriveService implements CloudDriveService {
         if (RegExp(filterRegex).hasMatch(name)) continue;
         final path = itemMap['path']?.toString() ?? '';
         if (path.isNotEmpty) {
-          results.add(_YunFileNode(name: name, path: path));
+          results.add(_YunFileNode(name: name, path: path, isDir: true));
         }
       }
       // Recurse into sub-directories.
@@ -478,6 +479,11 @@ class Yun139DriveService implements CloudDriveService {
 class _YunFileNode {
   final String name;
   final String path;
+  final bool isDir;
 
-  const _YunFileNode({required this.name, required this.path});
+  const _YunFileNode({
+    required this.name,
+    required this.path,
+    this.isDir = false,
+  });
 }
