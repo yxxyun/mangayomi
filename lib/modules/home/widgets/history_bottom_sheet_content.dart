@@ -11,6 +11,7 @@ import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/modules/history/providers/isar_providers.dart';
 import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/modules/widgets/error_text.dart';
 import 'package:mangayomi/utils/cached_network.dart';
 import 'package:mangayomi/utils/constant.dart';
 import 'package:mangayomi/utils/date.dart';
@@ -94,8 +95,7 @@ class _HistoryBottomSheetContentState
                 },
               );
             },
-            error: (_, _) =>
-                Center(child: Text(l10n.nothing_read_recently)),
+            error: (e, _) => ErrorText(e),
             loading: () => const Center(
               child: CircularProgressIndicator(),
             ),
@@ -139,6 +139,25 @@ class _HistoryBottomSheetContentState
   }
 
   Future<void> _deleteEntry(int id) async {
+    final l10n = l10nLocalizations(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+                    title: Text(l10n.remove),
+                        content: Text(l10n.remove_history_msg),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
     isar.writeTxnSync(() {
       isar.historys.deleteSync(id);
       ref

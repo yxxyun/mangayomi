@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/l10n/generated/app_localizations.dart';
 import 'package:mangayomi/services/cloud_drive/auth/cookie_manager.dart';
 import 'package:mangayomi/services/cloud_drive/cloud_drive_manager.dart';
 import 'package:mangayomi/services/cloud_drive/ui/qr_login_screen.dart';
@@ -21,6 +23,7 @@ class CloudDriveDetailScreen extends ConsumerStatefulWidget {
 class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen> {
   CloudDriveAccount? _account;
   bool _loading = true;
+  bool _showTokenValues = false;
 
   @override
   void initState() {
@@ -54,27 +57,28 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
   }
 
   Future<void> _loginByCookie() async {
+    final l10n = l10nLocalizations(context)!;
     final cookieController = TextEditingController();
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('登录 - 粘贴Cookie'),
+        title: Text(l10n.cloud_drive_cookie_login_title),
         content: TextField(
           controller: cookieController,
-          decoration: const InputDecoration(
-            hintText: '在此粘贴Cookie字符串...',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: l10n.cloud_drive_paste_cookie,
+            border: const OutlineInputBorder(),
           ),
           maxLines: 5,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, cookieController.text.trim()),
-            child: const Text('登录'),
+            child: Text(l10n.login),
           ),
         ],
       ),
@@ -86,7 +90,7 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
     if (service == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('该网盘服务尚未注册')),
+          SnackBar(content: Text(l10n.cloud_drive_service_not_registered)),
         );
       }
       return;
@@ -99,19 +103,19 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
           await CloudCookieManager.setLoggedIn(widget.driveType, true);
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('登录成功')),
+            SnackBar(content: Text(l10n.cloud_drive_login_success)),
           );
           _loadAccount();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('登录失败，请检查Cookie是否正确')),
+            SnackBar(content: Text(l10n.cloud_drive_login_failed_cookie)),
           );
         }
       }
     } catch (e) {
       if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('登录失败，请检查凭据是否正确')),
+        SnackBar(content: Text(l10n.cloud_drive_login_failed_cookie)),
       );
       }
     }
@@ -130,19 +134,20 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
   }
 
   Future<void> _logout() async {
+    final l10n = l10nLocalizations(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('确认退出'),
-        content: Text('确定要退出${widget.driveType.displayName}的登录吗？'),
+        title: Text(l10n.cloud_drive_confirm_logout),
+        content: Text(l10n.cloud_drive_confirm_logout_msg(widget.driveType.displayName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('退出'),
+            child: Text(l10n.cloud_drive_logout),
           ),
         ],
       ),
@@ -156,26 +161,27 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
       await CloudCookieManager.clear(widget.driveType);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已退出登录')),
+          SnackBar(content: Text(l10n.cloud_drive_logged_out)),
         );
         _loadAccount();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('退出失败')),
+          SnackBar(content: Text(l10n.cloud_drive_logout_failed)),
         );
       }
     }
   }
 
   Future<void> _refreshAuth() async {
+    final l10n = l10nLocalizations(context)!;
     try {
       final service = CloudDriveManager.instance.get(widget.driveType);
       if (service == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('该网盘服务尚未注册')),
+            SnackBar(content: Text(l10n.cloud_drive_service_not_registered)),
           );
         }
         return;
@@ -184,19 +190,19 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
       if (mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('认证刷新成功')),
+            SnackBar(content: Text(l10n.cloud_drive_auth_refresh_success)),
           );
           _loadAccount();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('认证刷新失败')),
+            SnackBar(content: Text(l10n.cloud_drive_auth_refresh_failed)),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('刷新失败')),
+          SnackBar(content: Text(l10n.cloud_drive_refresh_failed)),
         );
       }
     }
@@ -213,6 +219,7 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final isLoggedIn = _account?.isLoggedIn ?? false;
     final isExpired = _account?.isExpired ?? false;
 
@@ -225,39 +232,37 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildStatusCard(isLoggedIn, isExpired),
+                  _buildAccountCard(l10n, isLoggedIn, isExpired),
                   const SizedBox(height: 16),
-                  if (isLoggedIn) _buildLoginInfoSection(),
-                  if (isLoggedIn) const SizedBox(height: 16),
-                  _buildCookieSection(),
+                  _buildCookieSection(l10n),
                   if (_account?.token != null) ...[
                     const SizedBox(height: 16),
-                    _buildTokenSection(),
+                    _buildTokenSection(l10n),
                   ],
                   const SizedBox(height: 24),
-                  _buildActionButtons(),
+                  _buildActionButtons(l10n),
                   const SizedBox(height: 16),
-                  _buildFileBrowserButton(),
+                  _buildFileBrowserButton(l10n),
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildStatusCard(bool isLoggedIn, bool isExpired) {
+  Widget _buildAccountCard(AppLocalizations l10n, bool isLoggedIn, bool isExpired) {
     String statusText;
     IconData statusIcon;
     Color statusColor;
     if (!isLoggedIn) {
-      statusText = '未登录';
+      statusText = l10n.cloud_drive_not_logged_in;
       statusIcon = Icons.logout;
       statusColor = context.secondaryColor;
     } else if (isExpired) {
-      statusText = '已过期';
+      statusText = l10n.cloud_drive_expired;
       statusIcon = Icons.warning_amber_rounded;
       statusColor = Colors.orange;
     } else {
-      statusText = '已登录';
+      statusText = l10n.cloud_drive_logged_in;
       statusIcon = Icons.check_circle;
       statusColor = Colors.green;
     }
@@ -302,50 +307,20 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
                 ),
               ],
             ),
-            if (isLoggedIn && _account?.username != null) ...[
-              const Divider(),
-              _infoRow('用户名', _account!.username!),
-            ],
-            if (_account?.lastLoginAt != null) ...[
-              const SizedBox(height: 8),
-              _infoRow('最后登录', _formatDateTime(_account!.lastLoginAt)!),
-            ],
-            if (_account?.expiresAt != null) ...[
-              const SizedBox(height: 8),
-              _infoRow('过期时间', _formatDateTime(_account!.expiresAt)!),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoginInfoSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '登录信息',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+            const Divider(),
+            if (isLoggedIn && _account?.username != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _infoRow(l10n.cloud_drive_username, _account!.username!),
               ),
-            ),
-            const SizedBox(height: 12),
-            _infoRow(
-              '登录状态',
-              _account?.isExpired ?? false ? '已过期' : '有效',
-            ),
+            _infoRow(l10n.cloud_drive_login_status, isExpired ? l10n.cloud_drive_expired : l10n.cloud_drive_valid),
             if (_account?.lastLoginAt != null) ...[
               const SizedBox(height: 8),
-              _infoRow('登录时间', _formatDateTime(_account!.lastLoginAt)!),
+              _infoRow(l10n.cloud_drive_last_login, _formatDateTime(_account!.lastLoginAt)!),
             ],
             if (_account?.expiresAt != null) ...[
               const SizedBox(height: 8),
-              _infoRow('过期时间', _formatDateTime(_account!.expiresAt)!),
+              _infoRow(l10n.cloud_drive_expires_at, _formatDateTime(_account!.expiresAt)!),
             ],
           ],
         ),
@@ -353,7 +328,7 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
     );
   }
 
-  Widget _buildCookieSection() {
+  Widget _buildCookieSection(AppLocalizations l10n) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -363,9 +338,9 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Cookie',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -375,19 +350,19 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
                     children: [
                       IconButton(
                         icon: const Icon(Icons.copy, size: 18),
-                        tooltip: '复制Cookie',
+                        tooltip: l10n.cloud_drive_copy_cookie,
                         onPressed: () {
                           Clipboard.setData(
                             ClipboardData(text: _account!.cookie!),
                           );
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Cookie已复制到剪贴板')),
+                            SnackBar(content: Text(l10n.cloud_drive_cookie_copied)),
                           );
                         },
                       ),
                       IconButton(
                         icon: const Icon(Icons.edit, size: 18),
-                        tooltip: '更新Cookie',
+                        tooltip: l10n.cloud_drive_update_cookie,
                         onPressed: _loginByCookie,
                       ),
                     ],
@@ -405,7 +380,7 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
               child: Text(
                 _account?.cookie != null
                     ? _maskString(_account!.cookie!)
-                    : '未设置Cookie',
+                    : l10n.cloud_drive_cookie_not_set,
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 12,
@@ -419,7 +394,7 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
     );
   }
 
-  Widget _buildTokenSection() {
+  Widget _buildTokenSection(AppLocalizations l10n) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -429,26 +404,40 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Token',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (_account?.token != null)
-                  IconButton(
-                    icon: const Icon(Icons.copy, size: 18),
-                    tooltip: '复制Token',
-                    onPressed: () {
-                      Clipboard.setData(
-                        ClipboardData(text: _account!.token!),
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Token已复制到剪贴板')),
-                      );
-                    },
-                  ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        _showTokenValues ? Icons.visibility_off : Icons.visibility,
+                        size: 18,
+                      ),
+                      tooltip: _showTokenValues
+                          ? l10n.cloud_drive_hide_tokens
+                          : l10n.cloud_drive_show_tokens,
+                      onPressed: () => setState(() => _showTokenValues = !_showTokenValues),
+                    ),
+                    if (_account?.token != null)
+                      IconButton(
+                        icon: const Icon(Icons.copy, size: 18),
+                        tooltip: l10n.cloud_drive_copy_token,
+                        onPressed: () {
+                          Clipboard.setData(
+                            ClipboardData(text: _account!.token!),
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.cloud_drive_token_copied)),
+                          );
+                        },
+                      ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -461,8 +450,10 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
               ),
               child: Text(
                 _account!.token != null
-                    ? _maskString(_account!.token!, prefixLen: 15, suffixLen: 8)
-                    : '无',
+                    ? (_showTokenValues
+                        ? _account!.token!
+                        : '••••••••••••••••••••')
+                    : l10n.cloud_drive_none,
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: 12,
@@ -475,19 +466,19 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Refresh Token',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                   IconButton(
                     icon: const Icon(Icons.copy, size: 18),
-                    tooltip: '复制Refresh Token',
+                    tooltip: l10n.cloud_drive_refresh_token_copied,
                     onPressed: () {
                       Clipboard.setData(
                         ClipboardData(text: _account!.refreshToken!),
                       );
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Refresh Token已复制到剪贴板')),
+                        SnackBar(content: Text(l10n.cloud_drive_refresh_token_copied)),
                       );
                     },
                   ),
@@ -501,7 +492,9 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  _maskString(_account!.refreshToken!, prefixLen: 15, suffixLen: 8),
+                  _showTokenValues
+                      ? _account!.refreshToken!
+                      : '••••••••••••••••••••',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 12,
@@ -516,40 +509,40 @@ class _CloudDriveDetailScreenState extends ConsumerState<CloudDriveDetailScreen>
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(AppLocalizations l10n) {
     return Wrap(
       spacing: 12,
       runSpacing: 12,
       children: [
-        ActionChip(
-          avatar: const Icon(Icons.login),
-          label: const Text('Cookie登录'),
+        FilledButton.icon(
+          icon: const Icon(Icons.login),
+          label: Text(l10n.cloud_drive_cookie_login),
           onPressed: _loginByCookie,
         ),
-        ActionChip(
-          avatar: const Icon(Icons.qr_code),
-          label: const Text('QR登录'),
+        OutlinedButton.icon(
+          icon: const Icon(Icons.qr_code),
+          label: Text(l10n.cloud_drive_qr_login),
           onPressed: _loginByQR,
         ),
-        ActionChip(
-          avatar: const Icon(Icons.logout),
-          label: const Text('退出登录'),
+        OutlinedButton.icon(
+          icon: const Icon(Icons.logout),
+          label: Text(l10n.cloud_drive_logout),
           onPressed: _logout,
         ),
-        ActionChip(
-          avatar: const Icon(Icons.refresh),
-          label: const Text('刷新'),
+        FilledButton.icon(
+          icon: const Icon(Icons.refresh),
+          label: Text(l10n.refresh),
           onPressed: _refreshAuth,
         ),
       ],
     );
   }
 
-  Widget _buildFileBrowserButton() {
+  Widget _buildFileBrowserButton(AppLocalizations l10n) {
     return OutlinedButton.icon(
       onPressed: _navigateToFileBrowser,
       icon: const Icon(Icons.folder_open),
-      label: const Text('浏览文件'),
+      label: Text(l10n.cloud_drive_browse_files),
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(double.infinity, 48),
       ),

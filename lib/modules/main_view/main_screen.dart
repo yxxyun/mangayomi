@@ -132,26 +132,27 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   }
 
   Widget _tabletLayout(String? location) {
+    final l10n = context.l10n;
     final destinations = [
       NavigationRailDestination(
         icon: const Icon(Icons.video_collection_outlined),
         selectedIcon: const Icon(Icons.video_collection),
-        label: const Text('Anime'),
+        label: Text(l10n.anime),
       ),
       NavigationRailDestination(
         icon: const Icon(Icons.collections_bookmark_outlined),
         selectedIcon: const Icon(Icons.collections_bookmark),
-        label: const Text('Manga'),
+        label: Text(l10n.manga),
       ),
       NavigationRailDestination(
         icon: const Icon(Icons.local_library_outlined),
         selectedIcon: const Icon(Icons.local_library),
-        label: const Text('Novel'),
+        label: Text(l10n.novel),
       ),
       NavigationRailDestination(
         icon: const Icon(Icons.more_horiz_outlined),
         selectedIcon: const Icon(Icons.more_horiz),
-        label: const Text('More'),
+        label: Text(l10n.more),
       ),
     ];
 
@@ -173,32 +174,33 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   }
 
   Widget _mobileBottomNav(String? location) {
+    final l10n = context.l10n;
     return NavigationBar(
       selectedIndex: _currentIndex(location),
       animationDuration: const Duration(milliseconds: 300),
       indicatorShape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(30),
       ),
-      destinations: const [
+      destinations: [
         NavigationDestination(
-          icon: Icon(Icons.video_collection_outlined),
-          selectedIcon: Icon(Icons.video_collection),
-          label: 'Anime',
+          icon: const Icon(Icons.video_collection_outlined),
+          selectedIcon: const Icon(Icons.video_collection),
+          label: l10n.anime,
         ),
         NavigationDestination(
-          icon: Icon(Icons.collections_bookmark_outlined),
-          selectedIcon: Icon(Icons.collections_bookmark),
-          label: 'Manga',
+          icon: const Icon(Icons.collections_bookmark_outlined),
+          selectedIcon: const Icon(Icons.collections_bookmark),
+          label: l10n.manga,
         ),
         NavigationDestination(
-          icon: Icon(Icons.local_library_outlined),
-          selectedIcon: Icon(Icons.local_library),
-          label: 'Novel',
+          icon: const Icon(Icons.local_library_outlined),
+          selectedIcon: const Icon(Icons.local_library),
+          label: l10n.novel,
         ),
         NavigationDestination(
-          icon: Icon(Icons.more_horiz_outlined),
-          selectedIcon: Icon(Icons.more_horiz),
-          label: 'More',
+          icon: const Icon(Icons.more_horiz_outlined),
+          selectedIcon: const Icon(Icons.more_horiz),
+          label: l10n.more,
         ),
       ],
       onDestinationSelected: (index) => context.go(_tabRoutes[index]),

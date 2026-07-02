@@ -804,5 +804,484 @@
   "checking_files": "Checking files",
   "downloaded_bundle_missing_expected_files": "The downloaded bundle does not contain the expected files.",
   "android_proxy_server_mihon": "Android Proxy Server (Mihon)",
-  "select_extension_server_jar": "Select extension server JAR"
+  "select_extension_server_jar": "Select extension server JAR",
+  "cloud_drive_management": "Cloud Drive Management",
+  "@cloud_drive_management": {
+    "description": "Cloud drive management page title",
+    "value": "Cloud Drive Management"
+  },
+
+  "cloud_drive_not_logged_in": "Not logged in",
+  "@cloud_drive_not_logged_in": {
+    "description": "Status text when not logged in",
+    "value": "Not logged in"
+  },
+
+  "cloud_drive_expired": "Expired",
+  "@cloud_drive_expired": {
+    "description": "Indicates authentication has expired",
+    "value": "Expired"
+  },
+
+  "cloud_drive_logged_in": "Logged in",
+  "@cloud_drive_logged_in": {
+    "description": "Status text when logged in",
+    "value": "Logged in"
+  },
+
+  "cloud_drive_service_not_registered": "Cloud drive service is not registered",
+  "@cloud_drive_service_not_registered": {
+    "description": "Message when cloud drive service is not registered",
+    "value": "Cloud drive service is not registered"
+  },
+
+  "cloud_drive_login_success": "Login successful",
+  "@cloud_drive_login_success": {
+    "description": "Message when login is successful",
+    "value": "Login successful"
+  },
+
+  "cloud_drive_login_failed_cookie": "Login failed, please check your Cookie",
+  "@cloud_drive_login_failed_cookie": {
+    "description": "Message when login fails due to invalid cookie",
+    "value": "Login failed, please check your Cookie"
+  },
+
+  "cloud_drive_login_failed_credentials": "Login failed, please check your credentials",
+  "@cloud_drive_login_failed_credentials": {
+    "description": "Message when login fails due to invalid credentials",
+    "value": "Login failed, please check your credentials"
+  },
+
+  "cloud_drive_confirm_logout": "Confirm logout",
+  "@cloud_drive_confirm_logout": {
+    "description": "Title for logout confirmation dialog",
+    "value": "Confirm logout"
+  },
+
+  "cloud_drive_confirm_logout_msg": "Are you sure you want to log out of {drive}?",
+  "@cloud_drive_confirm_logout_msg": {
+    "description": "Confirmation dialog for logging out",
+    "placeholders": {
+      "drive": {}
+    }
+  },
+
+  "cloud_drive_logout": "Log out",
+  "@cloud_drive_logout": {
+    "description": "Logout action button text",
+    "value": "Log out"
+  },
+
+  "cloud_drive_logged_out": "Logged out",
+  "@cloud_drive_logged_out": {
+    "description": "Status text when logged out",
+    "value": "Logged out"
+  },
+
+  "cloud_drive_logout_failed": "Logout failed",
+  "@cloud_drive_logout_failed": {
+    "description": "Message when logout fails",
+    "value": "Logout failed"
+  },
+
+  "cloud_drive_auth_refresh_success": "Authentication refreshed",
+  "@cloud_drive_auth_refresh_success": {
+    "description": "Message when authentication token is refreshed successfully",
+    "value": "Authentication refreshed"
+  },
+
+  "cloud_drive_auth_refresh_failed": "Authentication refresh failed",
+  "@cloud_drive_auth_refresh_failed": {
+    "description": "Message when authentication refresh fails",
+    "value": "Authentication refresh failed"
+  },
+
+  "cloud_drive_refresh_failed": "Refresh failed",
+  "@cloud_drive_refresh_failed": {
+    "description": "Message when refresh fails",
+    "value": "Refresh failed"
+  },
+
+  "cloud_drive_username": "Username",
+  "@cloud_drive_username": {
+    "description": "Username label",
+    "value": "Username"
+  },
+
+  "cloud_drive_last_login": "Last login",
+  "@cloud_drive_last_login": {
+    "description": "Last login time label",
+    "value": "Last login"
+  },
+
+  "cloud_drive_expires_at": "Expires at",
+  "@cloud_drive_expires_at": {
+    "description": "Expiration time label",
+    "value": "Expires at"
+  },
+
+  "cloud_drive_login_info": "Login info",
+  "@cloud_drive_login_info": {
+    "description": "Login information section label",
+    "value": "Login info"
+  },
+
+  "cloud_drive_login_status": "Login status",
+  "@cloud_drive_login_status": {
+    "description": "Login status label",
+    "value": "Login status"
+  },
+
+  "cloud_drive_valid": "Valid",
+  "@cloud_drive_valid": {
+    "description": "Indicates a valid state",
+    "value": "Valid"
+  },
+
+  "cloud_drive_login_time": "Login time",
+  "@cloud_drive_login_time": {
+    "description": "Login time label",
+    "value": "Login time"
+  },
+
+  "cloud_drive_paste_cookie": "Paste Cookie here...",
+  "@cloud_drive_paste_cookie": {
+    "description": "Placeholder text for pasting cookie",
+    "value": "Paste Cookie here..."
+  },
+
+  "cloud_drive_cookie_login_title": "Login - Paste Cookie",
+  "@cloud_drive_cookie_login_title": {
+    "description": "Title for cookie login page",
+    "value": "Login - Paste Cookie"
+  },
+
+  "cloud_drive_cookie_not_set": "Cookie not set",
+  "@cloud_drive_cookie_not_set": {
+    "description": "Indicates cookie has not been set",
+    "value": "Cookie not set"
+  },
+
+  "cloud_drive_copy_cookie": "Copy Cookie",
+  "@cloud_drive_copy_cookie": {
+    "description": "Button text to copy cookie",
+    "value": "Copy Cookie"
+  },
+
+  "cloud_drive_cookie_copied": "Cookie copied to clipboard",
+  "@cloud_drive_cookie_copied": {
+    "description": "Message when cookie is copied",
+    "value": "Cookie copied to clipboard"
+  },
+
+  "cloud_drive_update_cookie": "Update Cookie",
+  "@cloud_drive_update_cookie": {
+    "description": "Button text to update cookie",
+    "value": "Update Cookie"
+  },
+
+  "cloud_drive_copy_token": "Copy Token",
+  "@cloud_drive_copy_token": {
+    "description": "Button text to copy token",
+    "value": "Copy Token"
+  },
+
+  "cloud_drive_token_copied": "Token copied to clipboard",
+  "@cloud_drive_token_copied": {
+    "description": "Message when token is copied",
+    "value": "Token copied to clipboard"
+  },
+
+  "cloud_drive_copy_refresh_token": "Copy Refresh Token",
+  "@cloud_drive_copy_refresh_token": {
+    "description": "Button text to copy refresh token",
+    "value": "Copy Refresh Token"
+  },
+
+  "cloud_drive_refresh_token_copied": "Refresh Token copied to clipboard",
+  "@cloud_drive_refresh_token_copied": {
+    "description": "Message when refresh token is copied",
+    "value": "Refresh Token copied to clipboard"
+  },
+
+  "cloud_drive_none": "None",
+  "@cloud_drive_none": {
+    "description": "Indicates no value selected",
+    "value": "None"
+  },
+
+  "cloud_drive_cookie_login": "Cookie Login",
+  "@cloud_drive_cookie_login": {
+    "description": "Cookie login method label",
+    "value": "Cookie Login"
+  },
+
+  "cloud_drive_qr_login": "QR Login",
+  "@cloud_drive_qr_login": {
+    "description": "QR code login method label",
+    "value": "QR Login"
+  },
+
+  "cloud_drive_browse_files": "Browse Files",
+  "@cloud_drive_browse_files": {
+    "description": "Button to browse cloud drive files",
+    "value": "Browse Files"
+  },
+
+  "cloud_drive_file_browser_title": "{drive} - File Browser",
+  "@cloud_drive_file_browser_title": {
+    "description": "Title for file browser page",
+    "placeholders": {
+      "drive": {}
+    }
+  },
+
+  "cloud_drive_share_link": "Share Link",
+  "@cloud_drive_share_link": {
+    "description": "Share link label",
+    "value": "Share Link"
+  },
+
+  "cloud_drive_enter_share_link": "Enter {drive} share link...",
+  "@cloud_drive_enter_share_link": {
+    "description": "Placeholder for entering share link",
+    "placeholders": {
+      "drive": {}
+    }
+  },
+
+  "cloud_drive_enter_share_link_hint": "Please enter a share link",
+  "@cloud_drive_enter_share_link_hint": {
+    "description": "Hint text for share link input",
+    "value": "Please enter a share link"
+  },
+
+  "cloud_drive_unrecognized_link": "Cannot identify link type, please check the link",
+  "@cloud_drive_unrecognized_link": {
+    "description": "Error when link type cannot be identified",
+    "value": "Cannot identify link type, please check the link"
+  },
+
+  "cloud_drive_link_type_mismatch": "Link type mismatch, please use a {drive} share link",
+  "@cloud_drive_link_type_mismatch": {
+    "description": "Error when link type does not match the expected drive",
+    "placeholders": {
+      "drive": {}
+    }
+  },
+
+  "cloud_drive_no_files_found": "No files found",
+  "@cloud_drive_no_files_found": {
+    "description": "Message when no files are found",
+    "value": "No files found"
+  },
+
+  "cloud_drive_load_failed": "Load failed, please check network and share link",
+  "@cloud_drive_load_failed": {
+    "description": "Error when loading files fails",
+    "value": "Load failed, please check network and share link"
+  },
+
+  "cloud_drive_open_folder": "Open folder: {name}",
+  "@cloud_drive_open_folder": {
+    "description": "Snackbar message when opening a folder",
+    "placeholders": {
+      "name": {}
+    }
+  },
+
+  "cloud_drive_unsupported_file_type": "Unsupported file type: {name}",
+  "@cloud_drive_unsupported_file_type": {
+    "description": "Error when a file type is not supported",
+    "placeholders": {
+      "name": {}
+    }
+  },
+
+  "cloud_drive_loading_video": "Loading video...",
+  "@cloud_drive_loading_video": {
+    "description": "Loading indicator when loading video",
+    "value": "Loading video..."
+  },
+
+  "cloud_drive_cannot_get_video": "Cannot get video source",
+  "@cloud_drive_cannot_get_video": {
+    "description": "Error when video source cannot be retrieved",
+    "value": "Cannot get video source"
+  },
+
+  "cloud_drive_video_load_failed": "Video load failed, please check network and login status",
+  "@cloud_drive_video_load_failed": {
+    "description": "Error when video load fails",
+    "value": "Video load failed, please check network and login status"
+  },
+
+  "cloud_drive_select_quality": "Select quality",
+  "@cloud_drive_select_quality": {
+    "description": "Label for quality selection",
+    "value": "Select quality"
+  },
+
+  "cloud_drive_default_quality": "Default quality",
+  "@cloud_drive_default_quality": {
+    "description": "Default quality option",
+    "value": "Default quality"
+  },
+
+  "cloud_drive_video_url_label": "Video URL:",
+  "@cloud_drive_video_url_label": {
+    "description": "Label for video URL field",
+    "value": "Video URL:"
+  },
+
+  "cloud_drive_close": "Close",
+  "@cloud_drive_close": {
+    "description": "Close button text",
+    "value": "Close"
+  },
+
+  "cloud_drive_url_copied": "URL copied to clipboard",
+  "@cloud_drive_url_copied": {
+    "description": "Message when URL is copied",
+    "value": "URL copied to clipboard"
+  },
+
+  "cloud_drive_total_files": "{count} files total",
+  "@cloud_drive_total_files": {
+    "description": "Total file count in a folder",
+    "placeholders": {
+      "count": {}
+    }
+  },
+
+  "cloud_drive_load": "Load",
+  "@cloud_drive_load": {
+    "description": "Load button text",
+    "value": "Load"
+  },
+
+  "cloud_drive_not_loaded_hint": "Enter share link and tap Load",
+  "@cloud_drive_not_loaded_hint": {
+    "description": "Hint when no files are loaded yet",
+    "value": "Enter share link and tap Load"
+  },
+
+  "cloud_drive_folder": "Folder",
+  "@cloud_drive_folder": {
+    "description": "Folder file type",
+    "value": "Folder"
+  },
+
+  "cloud_drive_video": "Video",
+  "@cloud_drive_video": {
+    "description": "Video file type",
+    "value": "Video"
+  },
+
+  "cloud_drive_file_type": "File",
+  "@cloud_drive_file_type": {
+    "description": "Generic file type",
+    "value": "File"
+  },
+
+  "cloud_drive_qr_scan_with_app": "Scan QR code with mobile app to login",
+  "@cloud_drive_qr_scan_with_app": {
+    "description": "Instruction for QR code scanning",
+    "value": "Scan QR code with mobile app to login"
+  },
+
+  "cloud_drive_qr_scanned_confirm": "Scanned, please confirm on mobile",
+  "@cloud_drive_qr_scanned_confirm": {
+    "description": "Message when QR code has been scanned",
+    "value": "Scanned, please confirm on mobile"
+  },
+
+  "cloud_drive_qr_login_success_msg": "Login successful!",
+  "@cloud_drive_qr_login_success_msg": {
+    "description": "Message when QR login succeeds",
+    "value": "Login successful!"
+  },
+
+  "cloud_drive_qr_cancelled": "Cancelled",
+  "@cloud_drive_qr_cancelled": {
+    "description": "Status when QR login is cancelled",
+    "value": "Cancelled"
+  },
+
+  "cloud_drive_qr_expired": "QR code expired",
+  "@cloud_drive_qr_expired": {
+    "description": "Status when QR code has expired",
+    "value": "QR code expired"
+  },
+
+  "cloud_drive_qr_getting_code": "Getting QR code...",
+  "@cloud_drive_qr_getting_code": {
+    "description": "Loading indicator when getting QR code",
+    "value": "Getting QR code..."
+  },
+
+  "cloud_drive_qr_get_failed": "Failed to get QR code",
+  "@cloud_drive_qr_get_failed": {
+    "description": "Error when getting QR code fails",
+    "value": "Failed to get QR code"
+  },
+
+  "cloud_drive_qr_expired_rescan": "QR code expired, please scan again",
+  "@cloud_drive_qr_expired_rescan": {
+    "description": "Message when QR code expires and needs rescan",
+    "value": "QR code expired, please scan again"
+  },
+
+  "cloud_drive_qr_waiting": "Waiting for scan...",
+  "@cloud_drive_qr_waiting": {
+    "description": "Status when waiting for QR scan",
+    "value": "Waiting for scan..."
+  },
+
+  "cloud_drive_qr_login_title": "{drive} QR Login",
+  "@cloud_drive_qr_login_title": {
+    "description": "Title for QR login page",
+    "placeholders": {
+      "drive": {}
+    }
+  },
+
+  "cloud_drive_qr_load_failed_desc": "Cannot load QR code\nCheck network connection",
+  "@cloud_drive_qr_load_failed_desc": {
+    "description": "Error description when QR code cannot be loaded",
+    "value": "Cannot load QR code\nCheck network connection"
+  },
+
+  "cloud_drive_qr_scan_hint": "Scan with {drive} mobile app",
+  "@cloud_drive_qr_scan_hint": {
+    "description": "Hint text for scanning QR code",
+    "placeholders": {
+      "drive": {}
+    }
+  },
+
+  "cloud_drive_qr_regenerate": "Regenerate QR code",
+  "@cloud_drive_qr_regenerate": {
+    "description": "Button text to regenerate QR code",
+    "value": "Regenerate QR code"
+  },
+
+  "cloud_drive_enter_cookie_manually": "Enter Cookie manually",
+  "@cloud_drive_enter_cookie_manually": {
+    "description": "Button to manually enter cookie",
+    "value": "Enter Cookie manually"
+  },
+
+  "cloud_drive_qr_login_failed": "Login failed, please check your Cookie",
+  "@cloud_drive_qr_login_failed": {
+    "description": "Message when QR login fails",
+    "value": "Login failed, please check your Cookie"
+  },
+
+  "cloud_drive_qr_retry": "Retry",
+  "@cloud_drive_qr_retry": {
+    "description": "Retry button text for QR login",
+    "value": "Retry"
+  }
 }

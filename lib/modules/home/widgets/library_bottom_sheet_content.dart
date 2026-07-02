@@ -144,7 +144,7 @@ class _ContentState extends ConsumerState<_Content>
                 IconButton(
                   icon: Icon(
                     Icons.filter_list_sharp,
-                    color: isNotFiltering ? null : Colors.yellow,
+                    color: isNotFiltering ? null : Theme.of(context).colorScheme.tertiary,
                   ),
                   onPressed: () {
                     showLibrarySettingsSheet(

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/l10n/generated/app_localizations.dart';
 import 'package:mangayomi/services/cloud_drive/models/cloud_drive_type.dart';
 import 'package:mangayomi/services/cloud_drive/auth/qr_login_flow.dart';
 import 'package:mangayomi/services/cloud_drive/auth/cookie_manager.dart';
@@ -26,18 +28,11 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
   String _statusText = '';
   String? _qrImageUrl;
   String? _errorText;
+  String? _qrStatus;
   Map<String, dynamic>? _stateData;
   Timer? _pollTimer;
   bool _isLoading = true;
   bool _isSuccess = false;
-
-  static const _statusLabels = <String, String>{
-    'NEW': '请用手机扫码登录',
-    'SCANED': '已扫码，请在手机上确认',
-    'CONFIRMED': '登录成功!',
-    'CANCELED': '已取消',
-    'EXPIRED': '二维码已过期',
-  };
 
   @override
   void initState() {
@@ -51,11 +46,29 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
     super.dispose();
   }
 
+  String _statusLabel(String status, AppLocalizations l10n) {
+    switch (status) {
+      case 'NEW':
+        return l10n.cloud_drive_qr_scan_with_app;
+      case 'SCANED':
+        return l10n.cloud_drive_qr_scanned_confirm;
+      case 'CONFIRMED':
+        return l10n.cloud_drive_qr_login_success_msg;
+      case 'CANCELED':
+        return l10n.canceled;
+      case 'EXPIRED':
+        return l10n.cloud_drive_qr_expired;
+      default:
+        return l10n.cloud_drive_qr_waiting;
+    }
+  }
+
   Future<void> _startScan() async {
+    final l10n = l10nLocalizations(context)!;
     setState(() {
       _isLoading = true;
       _errorText = null;
-      _statusText = '正在获取二维码...';
+      _statusText = l10n.cloud_drive_qr_getting_code;
     });
 
     try {
@@ -73,7 +86,8 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
       setState(() {
         _qrImageUrl = result.qrImageUrl;
         _stateData = result.stateData;
-        _statusText = _statusLabels['NEW'] ?? '请用手机扫码登录';
+        _qrStatus = 'NEW';
+        _statusText = _statusLabel('NEW', l10n);
         _isLoading = false;
       });
 
@@ -81,7 +95,7 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorText = '获取二维码失败';
+        _errorText = l10n.cloud_drive_qr_get_failed;
         _isLoading = false;
       });
     }
@@ -94,6 +108,7 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
 
   Future<void> _checkStatus() async {
     if (_stateData == null) return;
+    final l10n = l10nLocalizations(context)!;
 
     try {
       final result = await QrLoginFlow.checkStatus(widget.driveType, _stateData!);
@@ -115,7 +130,7 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
         if (!mounted) return;
         setState(() {
           _isSuccess = true;
-          _statusText = '登录成功!';
+          _statusText = l10n.cloud_drive_qr_login_success_msg;
         });
         // Auto-close after brief delay
         await Future.delayed(const Duration(milliseconds: 800));
@@ -128,18 +143,21 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
       if (status == 'EXPIRED') {
         _pollTimer?.cancel();
         setState(() {
-          _statusText = '二维码已过期，请重新扫码';
-          _errorText = '已过期';
+          _qrStatus = status;
+          _statusText = l10n.cloud_drive_qr_expired;
+          _errorText = l10n.cloud_drive_expired;
         });
       } else if (status == 'CANCELED') {
         _pollTimer?.cancel();
         setState(() {
-          _statusText = '已取消';
-          _errorText = '已取消';
+          _qrStatus = status;
+          _statusText = l10n.canceled;
+          _errorText = l10n.canceled;
         });
       } else {
         setState(() {
-          _statusText = _statusLabels[status] ?? '等待扫码...';
+          _qrStatus = status;
+          _statusText = _statusLabel(status ?? '', l10n);
         });
       }
     } catch (e) {
@@ -149,9 +167,10 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = l10nLocalizations(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.driveType.displayName} 扫码登录'),
+        title: Text(l10n.cloud_drive_qr_login_title(widget.driveType.displayName)),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -187,10 +206,10 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
                         width: 280,
                         height: 280,
                         color: Colors.grey.shade100,
-                        child: const Center(
-                          child: Text('无法加载二维码\n请检查网络连接',
-                            textAlign: TextAlign.center),
-                        ),
+                          child: Center(
+                            child: Text(l10n.cloud_drive_qr_load_failed_desc,
+                              textAlign: TextAlign.center),
+                          ),
                       ),
                     ),
                   ),
@@ -203,9 +222,9 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                if (_statusText == 'NEW')
+                if (_qrStatus == 'NEW')
                   Text(
-                    '请使用${widget.driveType.displayName}手机App扫描二维码',
+                    l10n.cloud_drive_qr_scan_hint(widget.driveType.displayName),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.grey,
                     ),
@@ -220,7 +239,7 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '等待扫码...',
+                    l10n.cloud_drive_qr_waiting,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -234,14 +253,14 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
                     _startScan();
                   },
                   icon: const Icon(Icons.refresh),
-                  label: const Text('重新获取二维码'),
+                  label: Text(l10n.cloud_drive_qr_regenerate),
                 ),
                 const SizedBox(height: 12),
               ],
               TextButton.icon(
                 onPressed: () => _showManualInputDialog(context),
                 icon: const Icon(Icons.edit),
-                label: const Text('手动输入Cookie'),
+                label: Text(l10n.cloud_drive_enter_cookie_manually),
               ),
               if (_errorText != null) ...[
                 const SizedBox(height: 8),
@@ -259,12 +278,13 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
   }
 
   Widget _buildErrorState() {
+    final l10n = l10nLocalizations(context)!;
     return Column(
       children: [
         Icon(Icons.error_outline, size: 80, color: Theme.of(context).colorScheme.error),
         const SizedBox(height: 16),
         Text(
-          _errorText ?? '获取二维码失败',
+          _errorText ?? l10n.cloud_drive_qr_get_failed,
           style: Theme.of(context).textTheme.titleMedium,
           textAlign: TextAlign.center,
         ),
@@ -275,30 +295,31 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
             _startScan();
           },
           icon: const Icon(Icons.refresh),
-          label: const Text('重试'),
+          label: Text(l10n.retry),
         ),
       ],
     );
   }
 
   void _showManualInputDialog(BuildContext context) {
+    final l10n = l10nLocalizations(context)!;
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('手动输入Cookie'),
+        title: Text(l10n.cloud_drive_enter_cookie_manually),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: '粘贴Cookie字符串...',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: l10n.cloud_drive_paste_cookie,
+            border: const OutlineInputBorder(),
           ),
           maxLines: 5,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -308,7 +329,7 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
                 _useManualCookie(cookie);
               }
             },
-            child: const Text('登录'),
+            child: Text(l10n.login),
           ),
         ],
       ),
@@ -316,6 +337,7 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
   }
 
   Future<void> _useManualCookie(String cookie) async {
+    final l10n = l10nLocalizations(context)!;
     setState(() => _isLoading = true);
     try {
       // loginByCookie handles persistence internally via saveAccount
@@ -328,7 +350,7 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorText = '登录失败，请检查Cookie是否正确';
+        _errorText = l10n.cloud_drive_qr_login_failed;
         _isLoading = false;
       });
     }

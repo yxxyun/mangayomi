@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/models/video.dart';
+import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/cloud_drive/cloud_drive_manager.dart';
 import 'package:mangayomi/services/cloud_drive/models/cloud_drive_file.dart';
 import 'package:mangayomi/services/cloud_drive/models/cloud_drive_type.dart';
@@ -28,20 +29,21 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
   }
 
   Future<void> _loadFiles() async {
+    final l10n = l10nLocalizations(context)!;
     final url = _urlController.text.trim();
     if (url.isEmpty) {
-      setState(() => _error = '请输入分享链接');
+      setState(() => _error = l10n.cloud_drive_enter_share_link(widget.driveType.displayName));
       return;
     }
 
     // Verify the URL matches the selected drive type
     final detectedType = CloudDriveManager.detectType(url);
     if (detectedType == null) {
-      setState(() => _error = '无法识别链接类型，请检查链接是否正确');
+      setState(() => _error = l10n.cloud_drive_unrecognized_link);
       return;
     }
     if (detectedType != widget.driveType) {
-      setState(() => _error = '链接类型不匹配，请使用${widget.driveType.displayName}的分享链接');
+      setState(() => _error = l10n.cloud_drive_link_type_mismatch(widget.driveType.displayName));
       return;
     }
 
@@ -58,7 +60,7 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
           _files = files;
           _loading = false;
           if (files.isEmpty) {
-            _error = '未找到文件';
+            _error = l10n.cloud_drive_no_files_found;
           }
         });
       }
@@ -66,16 +68,17 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
       if (mounted) {
         setState(() {
           _loading = false;
-          _error = '加载失败，请检查网络和分享链接是否有效';
+          _error = l10n.cloud_drive_load_failed;
         });
       }
     }
   }
 
   void _onFileTap(CloudDriveFile file) {
+    final l10n = l10nLocalizations(context)!;
     if (file.isDir) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('打开目录: ${file.name}')),
+        SnackBar(content: Text(l10n.cloud_drive_folder_browsing_coming_soon(file.name))),
       );
       return;
     }
@@ -86,7 +89,7 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
 
     if (!isVideo) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('不支持的文件类型: ${file.name}')),
+        SnackBar(content: Text(l10n.cloud_drive_unsupported_file_type(file.name))),
       );
       return;
     }
@@ -96,10 +99,11 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
   }
 
   Future<void> _playVideoFile(CloudDriveFile file) async {
+    final l10n = l10nLocalizations(context)!;
     final service = CloudDriveManager.instance.get(widget.driveType);
     if (service == null) return;
 
-    final videoUrl = file.getEpisodeUrl('电影');
+    final videoUrl = file.getEpisodeUrl('movie');
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -113,7 +117,7 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
               children: [
                 const CircularProgressIndicator(),
                 const SizedBox(height: 16),
-                Text('正在加载视频...\n${file.name}', textAlign: TextAlign.center),
+                Text('${l10n.cloud_drive_loading_video}\n${file.name}', textAlign: TextAlign.center),
               ],
             ),
           ),
@@ -129,7 +133,7 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
       if (videos.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('无法获取视频源')),
+            SnackBar(content: Text(l10n.cloud_drive_cannot_get_video)),
           );
         }
         return;
@@ -140,12 +144,13 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
       if (!mounted) return;
       Navigator.of(context).pop(); // dismiss loading
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('加载视频失败，请检查网络和登录状态')),
+        SnackBar(content: Text(l10n.cloud_drive_video_load_failed)),
       );
     }
   }
 
   void _showVideoOptions(List<Video> videos, String fileName) {
+    final l10n = l10nLocalizations(context)!;
     showModalBottomSheet(
       context: context,
       builder: (ctx) => Column(
@@ -159,12 +164,12 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
           if (videos.length > 1) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text('选择画质', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+              child: Text(l10n.cloud_drive_select_quality, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
             ),
           ],
           ...videos.map((video) => ListTile(
             leading: const Icon(Icons.play_circle_outline),
-            title: Text(video.quality.isNotEmpty ? video.quality : '默认画质'),
+            title: Text(video.quality.isNotEmpty ? video.quality : l10n.cloud_drive_default_quality),
             subtitle: video.url.isNotEmpty ? Text(video.url,
               maxLines: 1, overflow: TextOverflow.ellipsis) : null,
             trailing: const Icon(Icons.open_in_new),
@@ -180,8 +185,8 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
   }
 
   void _openVideoUrl(String url, String fileName) {
-    // Open in external player or webview
-    // For now, show URL in a dialog with copy option
+    final l10n = l10nLocalizations(context)!;
+    // Show URL with copy action
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -190,7 +195,7 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('视频地址：'),
+            Text(l10n.cloud_drive_video_url_label),
             const SizedBox(height: 8),
             SelectableText(url, style: const TextStyle(fontSize: 12)),
           ],
@@ -198,18 +203,16 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('关闭'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () {
-              // Copy to clipboard
-              // Clipboard.setData(ClipboardData(text: url));
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('URL已复制到剪贴板')),
+                SnackBar(content: Text(l10n.cloud_drive_url_copied)),
               );
             },
-            child: const Text('复制链接'),
+            child: Text(l10n.cloud_drive_copy_link),
           ),
         ],
       ),
@@ -218,9 +221,10 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.driveType.displayName} - 文件浏览'),
+        title: Text(l10n.cloud_drive_file_browser_title(widget.driveType.displayName)),
       ),
       body: Column(
         children: [
@@ -241,7 +245,7 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  '分享链接',
+                  l10n.cloud_drive_share_link,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -255,7 +259,7 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
                       child: TextField(
                         controller: _urlController,
                         decoration: InputDecoration(
-                          hintText: '输入${widget.driveType.displayName}分享链接...',
+                          hintText: l10n.cloud_drive_enter_share_link(widget.driveType.displayName),
                           hintStyle: TextStyle(
                             fontSize: 13,
                             color: context.secondaryColor.withValues(alpha: 0.5),
@@ -285,7 +289,7 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
                               ),
                             )
                           : const Icon(Icons.search),
-                      label: Text(_loading ? '加载中...' : '加载'),
+                      label: Text(_loading ? l10n.cloud_drive_loading : l10n.cloud_drive_load),
                     ),
                   ],
                 ),
@@ -320,7 +324,7 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
                   Icon(Icons.folder_open, size: 16, color: context.secondaryColor),
                   const SizedBox(width: 6),
                   Text(
-                    '共 ${_files.length} 个文件',
+                    l10n.cloud_drive_total_files(_files.length.toString()),
                     style: TextStyle(
                       fontSize: 13,
                       color: context.secondaryColor,
@@ -346,7 +350,7 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              '输入分享链接并点击加载',
+                              l10n.cloud_drive_not_loaded_hint,
                               style: TextStyle(
                                 fontSize: 14,
                                 color: context.secondaryColor,
@@ -373,6 +377,7 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
   }
 
   Widget _buildFileTile(CloudDriveFile file) {
+    final l10n = context.l10n;
     final isVideo = _isVideoFile(file.name);
     final sizeStr = _formatSize(file.size);
 
@@ -421,7 +426,7 @@ class _CloudFileBrowserScreenState extends ConsumerState<CloudFileBrowserScreen>
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
-              file.isDir ? '目录' : isVideo ? '视频' : '文件',
+              file.isDir ? l10n.cloud_drive_folder : isVideo ? l10n.cloud_drive_video : l10n.cloud_drive_file_type,
               style: TextStyle(
                 fontSize: 10,
                 color: file.isDir

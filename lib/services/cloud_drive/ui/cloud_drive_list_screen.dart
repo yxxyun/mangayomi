@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/cloud_drive/auth/cookie_manager.dart';
 import 'package:mangayomi/services/cloud_drive/models/cloud_drive_account.dart';
 import 'package:mangayomi/services/cloud_drive/models/cloud_drive_type.dart';
@@ -26,22 +27,33 @@ class _CloudDriveListScreenState extends ConsumerState<CloudDriveListScreen> {
 
   Future<void> _loadAccounts() async {
     setState(() => _loading = true);
-    final accounts = <CloudDriveType, CloudDriveAccount?>{};
-    for (final type in CloudDriveType.values) {
-      accounts[type] = await CloudCookieManager.getAccount(type);
-    }
-    if (mounted) {
-      setState(() {
-        _accounts = accounts;
-        _loading = false;
-      });
+    try {
+      final accounts = <CloudDriveType, CloudDriveAccount?>{};
+      for (final type in CloudDriveType.values) {
+        accounts[type] = await CloudCookieManager.getAccount(type);
+      }
+      if (mounted) {
+        setState(() {
+          _accounts = accounts;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.cloud_drive_load_failed)),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text('网盘管理')),
+      appBar: AppBar(title: Text(l10n.cloud_drive_management)),
+
       body: RefreshIndicator(
         onRefresh: _loadAccounts,
         child: _loading
@@ -59,6 +71,7 @@ class _CloudDriveListScreenState extends ConsumerState<CloudDriveListScreen> {
   }
 
   Widget _buildDriveTile(CloudDriveType type, CloudDriveAccount? account) {
+    final l10n = context.l10n;
     final isLoggedIn = account?.isLoggedIn ?? false;
     final isExpired = account?.isExpired ?? false;
 
@@ -66,15 +79,15 @@ class _CloudDriveListScreenState extends ConsumerState<CloudDriveListScreen> {
     Color statusColor;
     IconData statusIcon;
     if (!isLoggedIn) {
-      statusText = '未登录';
+      statusText = l10n.cloud_drive_not_logged_in;
       statusColor = context.secondaryColor;
       statusIcon = Icons.logout;
     } else if (isExpired) {
-      statusText = '已过期';
+      statusText = l10n.cloud_drive_expired;
       statusColor = Colors.orange;
       statusIcon = Icons.warning_amber_rounded;
     } else {
-      statusText = '已登录';
+      statusText = l10n.cloud_drive_logged_in;
       statusColor = Colors.green;
       statusIcon = Icons.check_circle_outline;
     }
@@ -102,9 +115,9 @@ class _CloudDriveListScreenState extends ConsumerState<CloudDriveListScreen> {
                 color: Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                '已登录',
-                style: TextStyle(fontSize: 12, color: Colors.green),
+              child: Text(
+                l10n.cloud_drive_logged_in,
+                style: const TextStyle(fontSize: 12, color: Colors.green),
               ),
             )
           : Icon(Icons.chevron_right, color: context.secondaryColor),
