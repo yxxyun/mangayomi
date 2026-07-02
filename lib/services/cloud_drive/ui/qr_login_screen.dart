@@ -101,17 +101,16 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
 
       if (result.isSuccess) {
         _pollTimer?.cancel();
-        // Save credentials
-        if (result.cookie != null) {
-          await CloudCookieManager.saveCookie(widget.driveType, result.cookie!);
-        }
-        if (result.token != null) {
-          await CloudCookieManager.saveToken(widget.driveType, result.token!);
-        }
-        // Reinitialize the service
+        // Reinitialize the service — loginByCookie handles persistence internally
         final service = CloudDriveManager.instance.get(widget.driveType);
         if (service != null) {
-          if (result.cookie != null) await service.loginByCookie(result.cookie!);
+          if (result.cookie != null) {
+            await service.loginByCookie(result.cookie!);
+          } else if (result.token != null) {
+            // Token-based auth (e.g. AliDrive) — save token then init
+            await CloudCookieManager.saveToken(widget.driveType, result.token!);
+            await service.initialize();
+          }
         }
         if (!mounted) return;
         setState(() {
@@ -120,7 +119,8 @@ class _QrLoginScreenState extends State<QrLoginScreen> {
         });
         // Auto-close after brief delay
         await Future.delayed(const Duration(milliseconds: 800));
-        if (mounted) Navigator.of(context).pop(true);
+        if (!mounted) return;
+        Navigator.of(context).pop(true);
         return;
       }
 

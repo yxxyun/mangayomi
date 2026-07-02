@@ -107,57 +107,82 @@ class _ContentState extends ConsumerState<_Content>
           padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
           child: Row(
             children: [
-              IconButton(
-                icon: const Icon(Icons.search),
-                onPressed: () => setState(() => _isSearch = !_isSearch),
-              ),
-              const Spacer(),
-              Text(
-                l10n.library,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const Spacer(),
-              IconButton(
-                icon: Icon(
-                  Icons.filter_list_sharp,
-                  color: isNotFiltering ? null : Colors.yellow,
+              if (_isSearch)
+                Expanded(
+                  child: TextField(
+                    controller: _textEditingController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: l10n.search,
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          _textEditingController.clear();
+                          setState(() => _isSearch = false);
+                        },
+                      ),
+                      isDense: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                )
+              else ...[
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () => setState(() => _isSearch = true),
                 ),
-                onPressed: () {
-                  showLibrarySettingsSheet(
-                    context: context,
-                    vsync: this,
-                    settings: widget.settings,
-                    itemType: widget.itemType,
-                    entries: _entries,
-                  );
-                },
-              ),
-              PopupMenuButton(
-                itemBuilder: (_) => [
-                  PopupMenuItem(
-                    value: 0,
-                    child: Text(l10n.update_library),
+                const Spacer(),
+                Text(
+                  l10n.library,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: Icon(
+                    Icons.filter_list_sharp,
+                    color: isNotFiltering ? null : Colors.yellow,
                   ),
-                  PopupMenuItem(
-                    value: 1,
-                    child: Text(l10n.import),
-                  ),
-                ],
-                onSelected: (value) {
-                  if (value == 0) {
-                    mangaAll.whenData((data) {
-                      updateLibrary(
-                        ref: ref,
-                        context: context,
-                        mangaList: data,
-                        itemType: widget.itemType,
-                      );
-                    });
-                  } else if (value == 1) {
-                    showImportLocalDialog(context, widget.itemType);
-                  }
-                },
-              ),
+                  onPressed: () {
+                    showLibrarySettingsSheet(
+                      context: context,
+                      vsync: this,
+                      settings: widget.settings,
+                      itemType: widget.itemType,
+                      entries: _entries,
+                    );
+                  },
+                ),
+                PopupMenuButton(
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 0,
+                      child: Text(l10n.update_library),
+                    ),
+                    PopupMenuItem(
+                      value: 1,
+                      child: Text(l10n.import),
+                    ),
+                  ],
+                  onSelected: (value) {
+                    if (value == 0) {
+                      mangaAll.whenData((data) {
+                        updateLibrary(
+                          ref: ref,
+                          context: context,
+                          mangaList: data,
+                          itemType: widget.itemType,
+                        );
+                      });
+                    } else if (value == 1) {
+                      showImportLocalDialog(context, widget.itemType);
+                    }
+                  },
+                ),
+              ],
             ],
           ),
         ),
@@ -243,8 +268,8 @@ class _ContentState extends ConsumerState<_Content>
                 displayType: displayType,
                 settings: widget.settings,
                 downloadedOnly: ref.watch(downloadedOnlyStateProvider),
-                searchQuery: '',
-                ignoreFiltersOnSearch: false,
+                searchQuery: _textEditingController.text,
+                ignoreFiltersOnSearch: _textEditingController.text.isNotEmpty,
               );
             },
             error: (e, _) => ErrorText(e),

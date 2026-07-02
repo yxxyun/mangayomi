@@ -253,27 +253,33 @@ class MBridge {
     List<String> shareUrls,
   ) async {
     final manager = CloudDriveManager.instance;
-    // Detect type from the first URL
     if (shareUrls.isEmpty) return [];
-    final type = CloudDriveManager.detectType(shareUrls.first);
-    if (type == null) return [];
 
-    final service = manager.get(type);
-    if (service == null) return [];
+    // Group URLs by detected drive type — a single list may contain
+    // mixed share links (e.g. both Quark and UC).
+    final grouped = <cloud_drive_type.CloudDriveType, List<String>>{};
+    for (final url in shareUrls) {
+      final type = CloudDriveManager.detectType(url);
+      if (type == null) continue;
+      grouped.putIfAbsent(type, () => []).add(url);
+    }
 
     try {
-      // Collect all files from all share URLs
-      List<Map<String, String>> allEpisodes = [];
-      for (final url in shareUrls) {
-        final files = await service.getFilesByShareUrl(url);
-        for (final file in files) {
-          if (!file.isDir) {
-            final epUrl = file.getEpisodeUrl('电影');
-            final parts = epUrl.split('\$');
-            allEpisodes.add({
-              'name': parts.isNotEmpty ? parts[0].trim() : file.name,
-              'url': epUrl,
-            });
+      final allEpisodes = <Map<String, String>>[];
+      for (final entry in grouped.entries) {
+        final service = manager.get(entry.key);
+        if (service == null) continue;
+        for (final url in entry.value) {
+          final files = await service.getFilesByShareUrl(url);
+          for (final file in files) {
+            if (!file.isDir) {
+              final epUrl = file.getEpisodeUrl('电影');
+              final parts = epUrl.split('\$');
+              allEpisodes.add({
+                'name': parts.isNotEmpty ? parts[0].trim() : file.name,
+                'url': epUrl,
+              });
+            }
           }
         }
       }

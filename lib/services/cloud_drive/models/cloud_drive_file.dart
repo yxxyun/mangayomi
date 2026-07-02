@@ -80,9 +80,10 @@ class CloudDriveFile {
 
   String getEpisodeUrl(String typeName) {
     var url = '${getDisplayName(typeName)}\$${driveType.key}++$fileId++${shareFileToken ?? ''}++$shareId++${shareToken ?? ''}';
-    // Append subtitle info if available
+    // Append subtitle info if available — use ++ separator so it
+    // becomes a distinct part when the URL is split on '++'.
     if (subtitleUrl != null && subtitleUrl!.isNotEmpty) {
-      url = '$url+$subtitleUrl';
+      url = '$url++$subtitleUrl';
     }
     return url;
   }

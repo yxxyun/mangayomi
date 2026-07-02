@@ -87,8 +87,11 @@ class CloudDriveManager {
     }
     if (lower.contains('pan.baidu.com/s/')) return CloudDriveType.baidu;
     if (lower.contains('123684.com') ||
+        lower.contains('123865.com') ||
+        lower.contains('123912.com') ||
         lower.contains('123pan.com') ||
-        lower.contains('123pan.cn')) {
+        lower.contains('123pan.cn') ||
+        lower.contains('123592.com')) {
       return CloudDriveType.pan123;
     }
     if (lower.contains('cloud.189.cn')) return CloudDriveType.cloud189;

@@ -72,6 +72,13 @@ class MoreScreenState extends ConsumerState<MoreScreen> {
             ),
             ListTileWidget(
               onTap: () {
+                context.push('/updates');
+              },
+              icon: Icons.new_releases_outlined,
+              title: l10n!.updates,
+            ),
+            ListTileWidget(
+              onTap: () {
                 context.push('/downloadQueue');
               },
               icon: Icons.download_outlined,

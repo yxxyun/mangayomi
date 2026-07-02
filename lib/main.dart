@@ -314,6 +314,7 @@ class _MyAppState extends ConsumerState<MyApp>
     _linkSubscription?.cancel();
     discordRpc?.destroy();
     stopwebviewServer();
+    CloudDriveManager.instance.disposeAll();
     AppLogger.dispose();
     super.dispose();
   }
