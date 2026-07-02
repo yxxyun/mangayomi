@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mangayomi/models/manga.dart';
+import 'package:mangayomi/services/cloud_drive/models/cloud_drive_type.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/models/track.dart';
@@ -28,7 +29,6 @@ import 'package:mangayomi/modules/more/settings/player/player_advanced_screen.da
 import 'package:mangayomi/modules/more/settings/player/player_audio_screen.dart';
 import 'package:mangayomi/modules/more/settings/player/player_decoder_screen.dart';
 import 'package:mangayomi/modules/more/settings/player/player_overview_screen.dart';
-import 'package:mangayomi/modules/more/settings/reader/providers/reader_state_provider.dart';
 import 'package:mangayomi/modules/more/statistics/statistics_screen.dart';
 import 'package:mangayomi/modules/novel/novel_reader_view.dart';
 import 'package:mangayomi/modules/tracker_library/tracker_library_screen.dart';
@@ -41,12 +41,15 @@ import 'package:mangayomi/modules/more/settings/track/track.dart';
 import 'package:mangayomi/modules/more/settings/track/manage_trackers/manage_trackers.dart';
 import 'package:mangayomi/modules/more/settings/track/manage_trackers/tracking_detail.dart';
 import 'package:mangayomi/modules/webview/webview.dart';
-import 'package:mangayomi/modules/browse/browse_screen.dart';
 import 'package:mangayomi/modules/browse/extension/extension_lang.dart';
 import 'package:mangayomi/modules/browse/global_search/global_search_screen.dart';
 import 'package:mangayomi/modules/main_view/main_screen.dart';
 import 'package:mangayomi/modules/history/history_screen.dart';
 import 'package:mangayomi/modules/library/library_screen.dart';
+import 'package:mangayomi/modules/home/type_home_screen.dart';
+import 'package:mangayomi/services/cloud_drive/ui/cloud_drive_list_screen.dart';
+import 'package:mangayomi/services/cloud_drive/ui/cloud_drive_detail_screen.dart';
+import 'package:mangayomi/services/cloud_drive/ui/cloud_file_browser_screen.dart';
 import 'package:mangayomi/modules/manga/detail/manga_detail_main.dart';
 import 'package:mangayomi/modules/manga/home/manga_home_screen.dart';
 import 'package:mangayomi/modules/manga/reader/reader_view.dart';
@@ -68,20 +71,15 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 @riverpod
 GoRouter router(Ref ref) {
   final router = RouterNotifier();
-  final hiddenItems = ref.read(hideItemsStateProvider);
-  final initLocation = ref
-      .watch(navigationOrderStateProvider)
-      .where((e) => !hiddenItems.contains(e))
-      .first;
 
   return GoRouter(
     observers: [BotToastNavigatorObserver()],
-    initialLocation: initLocation,
+    initialLocation: '/manga',
     debugLogDiagnostics: kDebugMode,
     refreshListenable: router,
     routes: router._routes,
     navigatorKey: navigatorKey,
-    onException: (context, state, router) => router.go(initLocation),
+    onException: (context, state, r) => r.go('/manga'),
   );
 }
 
@@ -127,31 +125,40 @@ class RouterNotifier extends ChangeNotifier {
     ShellRoute(
       builder: (context, state, child) => MainScreen(child: child),
       routes: [
-        _genericRoute<String?>(
-          name: "MangaLibrary",
-          builder: (id) =>
-              LibraryScreen(itemType: ItemType.manga, presetInput: id),
+        _genericRoute(
+          name: "anime",
+          child: const TypeHomeScreen(itemType: ItemType.anime),
         ),
-        _genericRoute<String?>(
-          name: "AnimeLibrary",
-          builder: (id) =>
-              LibraryScreen(itemType: ItemType.anime, presetInput: id),
+        _genericRoute(
+          name: "manga",
+          child: const TypeHomeScreen(itemType: ItemType.manga),
         ),
-        _genericRoute<String?>(
-          name: "NovelLibrary",
-          builder: (id) =>
-              LibraryScreen(itemType: ItemType.novel, presetInput: id),
+        _genericRoute(
+          name: "novel",
+          child: const TypeHomeScreen(itemType: ItemType.novel),
         ),
-        _genericRoute<String?>(
-          name: "trackerLibrary",
-          builder: (id) => TrackerLibraryScreen(presetInput: id),
-        ),
-        _genericRoute(name: "history", child: const HistoryScreen()),
-        _genericRoute(name: "updates", child: const UpdatesScreen()),
-        _genericRoute(name: "browse", child: const BrowseScreen()),
         _genericRoute(name: "more", child: const MoreScreen()),
       ],
     ),
+    // Full-screen routes (no bottom nav)
+    _genericRoute<String?>(
+      name: "MangaLibrary",
+      builder: (id) => LibraryScreen(itemType: ItemType.manga, presetInput: id),
+    ),
+    _genericRoute<String?>(
+      name: "AnimeLibrary",
+      builder: (id) => LibraryScreen(itemType: ItemType.anime, presetInput: id),
+    ),
+    _genericRoute<String?>(
+      name: "NovelLibrary",
+      builder: (id) => LibraryScreen(itemType: ItemType.novel, presetInput: id),
+    ),
+    _genericRoute<String?>(
+      name: "trackerLibrary",
+      builder: (id) => TrackerLibraryScreen(presetInput: id),
+    ),
+    _genericRoute(name: "history", child: const HistoryScreen()),
+    _genericRoute(name: "updates", child: const UpdatesScreen()),
     _genericRoute<(Source?, bool)>(
       name: "mangaHome",
       builder: (id) => MangaHomeScreen(source: id.$1!, isLatest: id.$2),
@@ -275,6 +282,16 @@ class RouterNotifier extends ChangeNotifier {
     _genericRoute<(String, Track?)>(
       name: "watchOrder",
       builder: (data) => WatchOrderScreen(name: data.$1, track: data.$2),
+    ),
+    // Cloud drive management
+    _genericRoute(name: "cloudDrives", child: const CloudDriveListScreen()),
+    _genericRoute<CloudDriveType>(
+      name: "cloudDriveDetail",
+      builder: (type) => CloudDriveDetailScreen(driveType: type),
+    ),
+    _genericRoute<CloudDriveType>(
+      name: "cloudFileBrowser",
+      builder: (type) => CloudFileBrowserScreen(driveType: type),
     ),
   ];
 

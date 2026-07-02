@@ -33,7 +33,8 @@ import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:mangayomi/utils/reg_exp_matcher.dart';
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
-import 'package:mangayomi/services/anime_extractors/quarkuc_extractor.dart';
+import 'package:mangayomi/services/cloud_drive/cloud_drive_manager.dart';
+import 'package:mangayomi/services/cloud_drive/models/cloud_drive_type.dart' as cloud_drive_type;
 
 class WordSet {
   final List<String> words;
@@ -242,48 +243,66 @@ class MBridge {
     );
   }
 
-  static final Map<CloudDriveType, QuarkUcExtractor> _extractorCache = {};
   static final Set<String> _initializedLocales = {};
 
-  static QuarkUcExtractor _getExtractor(String cookie, CloudDriveType type) {
-    if (!_extractorCache.containsKey(type)) {
-      QuarkUcExtractor extractor = QuarkUcExtractor();
-      extractor.initCloudDrive(cookie, type);
-      _extractorCache[type] = extractor;
+  // ── Cloud drive interface ────────────────────────────────────────
+
+  /// Unified file listing: auto-detects drive type from share URLs.
+  /// Returns list of {name, url} maps for video episodes.
+  static Future<List<Map<String, String>>> cloudDriveFilesExtractor(
+    List<String> shareUrls,
+  ) async {
+    final manager = CloudDriveManager.instance;
+    // Detect type from the first URL
+    if (shareUrls.isEmpty) return [];
+    final type = CloudDriveManager.detectType(shareUrls.first);
+    if (type == null) return [];
+
+    final service = manager.get(type);
+    if (service == null) return [];
+
+    try {
+      // Collect all files from all share URLs
+      List<Map<String, String>> allEpisodes = [];
+      for (final url in shareUrls) {
+        final files = await service.getFilesByShareUrl(url);
+        for (final file in files) {
+          if (!file.isDir) {
+            final epUrl = file.getEpisodeUrl('电影');
+            final parts = epUrl.split('\$');
+            allEpisodes.add({
+              'name': parts.isNotEmpty ? parts[0].trim() : file.name,
+              'url': epUrl,
+            });
+          }
+        }
+      }
+      return allEpisodes;
+    } catch (_) {
+      return [];
     }
-    return _extractorCache[type]!;
   }
 
-  static Future<List<Map<String, String>>> quarkFilesExtractor(
-    List<String> url,
-    String cookie,
-  ) async {
-    var quark = _getExtractor(cookie, CloudDriveType.quark);
-    return await quark.videoFilesFromUrl(url);
-  }
+  /// Unified video list: parses encoded URL and gets videos from the correct drive.
+  /// The encoded URL format is: [prefix] name$type++fileId++...
+  static Future<List<Video>> cloudDriveVideosExtractor(String url) async {
+    final manager = CloudDriveManager.instance;
+    // Extract drive type from the encoded URL: [quark] or [uc] or [ali] etc.
+    final typeMatch = RegExp(r'\[(\w+)\]').firstMatch(url);
+    if (typeMatch == null) return [];
 
-  static Future<List<Video>> quarkVideosExtractor(
-    String url,
-    String cookie,
-  ) async {
-    var quark = _getExtractor(cookie, CloudDriveType.quark);
-    return await quark.videosFromUrl(url);
-  }
+    final typeKey = typeMatch.group(1)!;
+    final cloudType = cloud_drive_type.CloudDriveType.fromKey(typeKey);
+    if (cloudType == null) return [];
 
-  static Future<List<Map<String, String>>> ucFilesExtractor(
-    List<String> url,
-    String cookie,
-  ) async {
-    var uc = _getExtractor(cookie, CloudDriveType.uc);
-    return await uc.videoFilesFromUrl(url);
-  }
+    final service = manager.get(cloudType);
+    if (service == null) return [];
 
-  static Future<List<Video>> ucVideosExtractor(
-    String url,
-    String cookie,
-  ) async {
-    var uc = _getExtractor(cookie, CloudDriveType.uc);
-    return await uc.videosFromUrl(url);
+    try {
+      return await service.getVideos(url);
+    } catch (_) {
+      return [];
+    }
   }
 
   static Future<List<Video>> streamTapeExtractor(

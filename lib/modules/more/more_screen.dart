@@ -7,6 +7,7 @@ import 'package:mangayomi/modules/more/widgets/incognito_mode_widget.dart';
 import 'package:mangayomi/modules/more/widgets/list_tile_widget.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 
+
 class MoreScreen extends ConsumerStatefulWidget {
   const MoreScreen({super.key});
 
@@ -15,6 +16,11 @@ class MoreScreen extends ConsumerStatefulWidget {
 }
 
 class MoreScreenState extends ConsumerState<MoreScreen> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = l10nLocalizations(context);
@@ -57,6 +63,13 @@ class MoreScreenState extends ConsumerState<MoreScreen> {
                 icon: Icons.history,
                 title: l10n!.history,
               ),
+            ListTileWidget(
+              onTap: () {
+                context.push('/cloudDrives');
+              },
+              icon: Icons.cloud_outlined,
+              title: '网盘管理',
+            ),
             ListTileWidget(
               onTap: () {
                 context.push('/downloadQueue');

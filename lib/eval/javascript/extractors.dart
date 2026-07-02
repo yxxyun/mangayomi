@@ -27,22 +27,13 @@ class JsVideosExtractors {
     runtime.onMessage('vidBomExtractor', (dynamic args) async {
       return (await MBridge.vidBomExtractor(args[0])).encodeToJson();
     });
-    runtime.onMessage('quarkVideosExtractor', (dynamic args) async {
-      return (await MBridge.quarkVideosExtractor(
-        args[0],
-        args[1],
-      )).encodeToJson();
-    });
-    runtime.onMessage('ucVideosExtractor', (dynamic args) async {
-      return (await MBridge.ucVideosExtractor(args[0], args[1])).encodeToJson();
-    });
-    runtime.onMessage('quarkFilesExtractor', (dynamic args) async {
+    // ── Unified cloud drive interface ──
+    runtime.onMessage('cloudDriveFilesExtractor', (dynamic args) async {
       List<String> urls = (args[0] as List).cast<String>();
-      return (await MBridge.quarkFilesExtractor(urls, args[1]));
+      return (await MBridge.cloudDriveFilesExtractor(urls));
     });
-    runtime.onMessage('ucFilesExtractor', (dynamic args) async {
-      List<String> urls = (args[0] as List).cast<String>();
-      return (await MBridge.ucFilesExtractor(urls, args[1]));
+    runtime.onMessage('cloudDriveVideosExtractor', (dynamic args) async {
+      return (await MBridge.cloudDriveVideosExtractor(args[0])).encodeToJson();
     });
     runtime.onMessage('streamlareExtractor', (dynamic args) async {
       return (await MBridge.streamlareExtractor(
@@ -205,33 +196,20 @@ async function filemoonExtractor(url, prefix, suffix) {
     );
     return JSON.parse(result);
 }
-async function quarkVideosExtractor(url, cookie) {
+// ── Unified cloud drive interface ──
+async function cloudDriveFilesExtractor(urls) {
     const result = await sendMessage(
-        "quarkVideosExtractor",
-        JSON.stringify([url, cookie])
-    );
-    return JSON.parse(result);
-}
-async function ucVideosExtractor(url, cookie) {
-    const result = await sendMessage(
-        "ucVideosExtractor",
-        JSON.stringify([url, cookie])
-    );
-    return JSON.parse(result);
-}
-async function quarkFilesExtractor(urls, cookie) {
-    const result = await sendMessage(
-        "quarkFilesExtractor",
-        JSON.stringify([urls, cookie])
+        "cloudDriveFilesExtractor",
+        JSON.stringify([urls])
     );
     return result;
 }
-async function ucFilesExtractor(urls, cookie) {
+async function cloudDriveVideosExtractor(url) {
     const result = await sendMessage(
-        "ucFilesExtractor",
-        JSON.stringify([urls, cookie])
+        "cloudDriveVideosExtractor",
+        JSON.stringify([url])
     );
-    return result;
+    return JSON.parse(result);
 }
 ''');
   }

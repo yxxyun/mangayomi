@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mangayomi/modules/browse/browse_screen.dart';
 import 'package:mangayomi/modules/widgets/custom_sliver_grouped_list_view.dart';
 import 'package:isar_community/isar.dart';
 import 'package:mangayomi/main.dart';
@@ -12,13 +11,11 @@ import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/utils/language.dart';
 
 class SourcesScreen extends ConsumerStatefulWidget {
-  final Function(int) tabIndex;
-  final List<BrowseTab> tabs;
+  final VoidCallback? onSwitchToExtensions;
   final ItemType itemType;
   const SourcesScreen({
-    required this.tabIndex,
+    this.onSwitchToExtensions,
     required this.itemType,
-    required this.tabs,
     super.key,
   });
 
@@ -69,17 +66,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      final extensionIndex = widget.tabs.indexWhere(
-                        (t) =>
-                            t.type == widget.itemType &&
-                            t.kind == BrowseTabKind.extensions,
-                      );
-
-                      if (extensionIndex != -1) {
-                        widget.tabIndex(extensionIndex);
-                      }
-                    },
+                    onPressed: widget.onSwitchToExtensions,
                     icon: const Icon(Icons.extension_rounded),
                     label: Text(context.l10n.show_extensions),
                   ),

@@ -161,32 +161,17 @@ class MProviderBridged {
         positionalArgs[3] as String,
       ),
     );
+    // ── Unified cloud drive interface ──
     interpreter.registertopLevelFunction(
-      'quarkVideosExtractor',
-      (visitor, positionalArgs, namedArgs, _) => MBridge.quarkVideosExtractor(
+      'cloudDriveFilesExtractor',
+      (visitor, positionalArgs, namedArgs, _) => MBridge.cloudDriveFilesExtractor(
+        (positionalArgs[0] as List).cast<String>(),
+      ),
+    );
+    interpreter.registertopLevelFunction(
+      'cloudDriveVideosExtractor',
+      (visitor, positionalArgs, namedArgs, _) => MBridge.cloudDriveVideosExtractor(
         positionalArgs[0] as String,
-        positionalArgs[1] as String,
-      ),
-    );
-    interpreter.registertopLevelFunction(
-      'ucVideosExtractor',
-      (visitor, positionalArgs, namedArgs, _) => MBridge.ucVideosExtractor(
-        positionalArgs[0] as String,
-        positionalArgs[1] as String,
-      ),
-    );
-    interpreter.registertopLevelFunction(
-      'quarkFilesExtractor',
-      (visitor, positionalArgs, namedArgs, _) => MBridge.quarkFilesExtractor(
-        (positionalArgs[0] as List).cast(),
-        positionalArgs[1] as String,
-      ),
-    );
-    interpreter.registertopLevelFunction(
-      'ucFilesExtractor',
-      (visitor, positionalArgs, namedArgs, _) => MBridge.ucFilesExtractor(
-        (positionalArgs[0] as List).cast(),
-        positionalArgs[1] as String,
       ),
     );
     interpreter.registertopLevelFunction(

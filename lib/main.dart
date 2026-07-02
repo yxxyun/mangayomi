@@ -51,6 +51,15 @@ import 'package:window_manager/window_manager.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:mangayomi/utils/window_geometry.dart';
+import 'package:mangayomi/services/cloud_drive/services/ali_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/baidu_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/cloud189_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/pan123_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/quark_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/uc_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/xunlei_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/yun139_drive.dart';
+import 'package:mangayomi/services/cloud_drive/cloud_drive_manager.dart';
 
 late Isar isar;
 DiscordRPC? discordRpc;
@@ -183,6 +192,17 @@ Future<void> _postLaunchInit(StorageProvider storage) async {
   }
   await storage.deleteBtDirectory();
   await webviewServer();
+  // Initialize cloud drive services
+  CloudDriveManager.instance
+    ..register(AliDriveService())
+    ..register(BaiduDriveService())
+    ..register(Cloud189DriveService())
+    ..register(Pan123DriveService())
+    ..register(QuarkDriveService())
+    ..register(UCDriveService())
+    ..register(XunleiDriveService())
+    ..register(Yun139DriveService());
+  await CloudDriveManager.instance.initializeAll();
 }
 
 class MyApp extends ConsumerStatefulWidget {

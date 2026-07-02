@@ -197,8 +197,12 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen>
             if (tab.kind == BrowseTabKind.sources) {
               return SourcesScreen(
                 itemType: tab.type,
-                tabs: _tabList,
-                tabIndex: (index) => _tabBarController.animateTo(index),
+                onSwitchToExtensions: () {
+                  final extIndex = _tabList.indexWhere(
+                    (t) => t.type == tab.type && t.kind == BrowseTabKind.extensions,
+                  );
+                  if (extIndex != -1) _tabBarController.animateTo(extIndex);
+                },
               );
             } else {
               return ExtensionScreen(
