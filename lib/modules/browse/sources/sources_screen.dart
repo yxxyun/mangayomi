@@ -34,7 +34,8 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = l10nLocalizations(context)!;
+    final l10n = l10nLocalizations(context);
+    if (l10n == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: StreamBuilder(

@@ -24,6 +24,7 @@ class MoreScreenState extends ConsumerState<MoreScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = l10nLocalizations(context);
+    if (l10n == null) return const SizedBox.shrink();
     final hiddenItems = ref.watch(hideItemsStateProvider);
     return Scaffold(
       body: SingleChildScrollView(
@@ -61,28 +62,28 @@ class MoreScreenState extends ConsumerState<MoreScreen> {
                   context.push('/history');
                 },
                 icon: Icons.history,
-                title: l10n!.history,
+                title: l10n.history,
               ),
             ListTileWidget(
               onTap: () {
                 context.push('/cloudDrives');
               },
               icon: Icons.cloud_outlined,
-              title: '网盘管理',
+              title: l10n.cloud_drive_management,
             ),
             ListTileWidget(
               onTap: () {
                 context.push('/updates');
               },
               icon: Icons.new_releases_outlined,
-              title: l10n!.updates,
+              title: l10n.updates,
             ),
             ListTileWidget(
               onTap: () {
                 context.push('/downloadQueue');
               },
               icon: Icons.download_outlined,
-              title: l10n!.download_queue,
+              title: l10n.download_queue,
             ),
             ListTileWidget(
               onTap: () {

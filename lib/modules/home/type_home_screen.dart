@@ -90,7 +90,8 @@ class _TypeHomeScreenState extends ConsumerState<TypeHomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final l10n = l10nLocalizations(context)!;
+    final l10n = l10nLocalizations(context);
+    if (l10n == null) return const SizedBox.shrink();
 
     return Scaffold(
       appBar: AppBar(

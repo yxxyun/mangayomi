@@ -73,7 +73,8 @@ class _ExtensionScreenState extends ConsumerState<ExtensionScreen> {
     );
     final showNSFW = ref.watch(showNSFWStateProvider);
 
-    final l10n = l10nLocalizations(context)!;
+    final l10n = l10nLocalizations(context);
+    if (l10n == null) return const SizedBox.shrink();
 
     return RefreshIndicator(
       onRefresh: _refreshSources,
