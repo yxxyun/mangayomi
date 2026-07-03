@@ -186,15 +186,17 @@ class FullScreenReaderState extends _$FullScreenReaderState {
 @riverpod
 class NavigationOrderState extends _$NavigationOrderState {
   final items = [
-    '/MangaLibrary',
-    '/AnimeLibrary',
-    '/NovelLibrary',
-    '/updates',
-    '/history',
-    '/browse',
+    '/anime',
+    '/manga',
+    '/novel',
     '/more',
-    '/trackerLibrary',
   ];
+
+  final _legacyRoutes = {
+    '/browseS', '/browse', '/updates', '/history',
+    '/categories', '/statistics', '/calendarScreen', '/dataAndStorage',
+    '/trackerLibrary',
+  };
 
   @override
   List<String> build() {
@@ -204,6 +206,9 @@ class NavigationOrderState extends _$NavigationOrderState {
   }
 
   List<String> _checkMissingItems(List<String> navigationOrder) {
+    // Remove legacy routes that no longer exist
+    navigationOrder.removeWhere((e) => _legacyRoutes.contains(e));
+    // Add any new items that aren't already present
     navigationOrder.addAll(
       items.where((e) => !navigationOrder.contains(e)).toList(),
     );
