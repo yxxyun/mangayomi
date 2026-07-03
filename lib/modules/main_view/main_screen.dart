@@ -59,7 +59,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       ),
       (timer) => _onSyncTimerTick(timer),
     );
-    // Warm up source lists
     for (final type in ItemType.values) {
       ref.read(
         fetchItemSourcesListProvider(
@@ -127,30 +126,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   }
 
   Widget _tabletLayout(String? location) {
-    final l10n = context.l10n;
-    final destinations = [
-      NavigationRailDestination(
-        icon: const Icon(Icons.video_collection_outlined),
-        selectedIcon: const Icon(Icons.video_collection),
-        label: Text(l10n.anime),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.collections_bookmark_outlined),
-        selectedIcon: const Icon(Icons.collections_bookmark),
-        label: Text(l10n.manga),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.local_library_outlined),
-        selectedIcon: const Icon(Icons.local_library),
-        label: Text(l10n.novel),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.more_horiz_outlined),
-        selectedIcon: const Icon(Icons.more_horiz),
-        label: Text(l10n.more),
-      ),
-    ];
-
     return Row(
       children: [
         NavigationRail(
@@ -159,7 +134,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           indicatorShape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
-          destinations: destinations,
+          destinations: _buildRailDestinations(),
           selectedIndex: _currentIndex(location),
           onDestinationSelected: (index) => context.go(_tabRoutes[index]),
         ),
@@ -169,36 +144,71 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   }
 
   Widget _mobileBottomNav(String? location) {
-    final l10n = context.l10n;
     return NavigationBar(
       selectedIndex: _currentIndex(location),
       animationDuration: const Duration(milliseconds: 300),
       indicatorShape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(30),
       ),
-      destinations: [
-        NavigationDestination(
-          icon: const Icon(Icons.video_collection_outlined),
-          selectedIcon: const Icon(Icons.video_collection),
-          label: l10n.anime,
-        ),
-        NavigationDestination(
-          icon: const Icon(Icons.collections_bookmark_outlined),
-          selectedIcon: const Icon(Icons.collections_bookmark),
-          label: l10n.manga,
-        ),
-        NavigationDestination(
-          icon: const Icon(Icons.local_library_outlined),
-          selectedIcon: const Icon(Icons.local_library),
-          label: l10n.novel,
-        ),
-        NavigationDestination(
-          icon: const Icon(Icons.more_horiz_outlined),
-          selectedIcon: const Icon(Icons.more_horiz),
-          label: l10n.more,
-        ),
-      ],
+      destinations: _buildNavDestinations(),
       onDestinationSelected: (index) => context.go(_tabRoutes[index]),
     );
+  }
+
+  List<NavigationRailDestination> _buildRailDestinations() {
+    final loc = l10nLocalizations(context);
+    // Fallback labels if l10n not yet available
+    const fallback = ['Anime', 'Manga', 'Novel', 'More'];
+    final labels = loc != null ? [loc.anime, loc.manga, loc.novel, loc.more] : fallback;
+    return [
+      NavigationRailDestination(
+        icon: const Icon(Icons.video_collection_outlined),
+        selectedIcon: const Icon(Icons.video_collection),
+        label: Text(labels[0]),
+      ),
+      NavigationRailDestination(
+        icon: const Icon(Icons.collections_bookmark_outlined),
+        selectedIcon: const Icon(Icons.collections_bookmark),
+        label: Text(labels[1]),
+      ),
+      NavigationRailDestination(
+        icon: const Icon(Icons.local_library_outlined),
+        selectedIcon: const Icon(Icons.local_library),
+        label: Text(labels[2]),
+      ),
+      NavigationRailDestination(
+        icon: const Icon(Icons.more_horiz_outlined),
+        selectedIcon: const Icon(Icons.more_horiz),
+        label: Text(labels[3]),
+      ),
+    ];
+  }
+
+  List<NavigationDestination> _buildNavDestinations() {
+    final loc = l10nLocalizations(context);
+    const fallback = ['Anime', 'Manga', 'Novel', 'More'];
+    final labels = loc != null ? [loc.anime, loc.manga, loc.novel, loc.more] : fallback;
+    return [
+      NavigationDestination(
+        icon: const Icon(Icons.video_collection_outlined),
+        selectedIcon: const Icon(Icons.video_collection),
+        label: labels[0],
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.collections_bookmark_outlined),
+        selectedIcon: const Icon(Icons.collections_bookmark),
+        label: labels[1],
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.local_library_outlined),
+        selectedIcon: const Icon(Icons.local_library),
+        label: labels[2],
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.more_horiz_outlined),
+        selectedIcon: const Icon(Icons.more_horiz),
+        label: labels[3],
+      ),
+    ];
   }
 }
