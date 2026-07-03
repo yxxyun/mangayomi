@@ -53,21 +53,27 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       const Duration(minutes: 5),
       (_) => ref.read(checkAndBackupProvider),
     );
-    _syncTimer = Timer.periodic(
-      Duration(
-        seconds: ref.read(synchingProvider(syncId: 1)).autoSyncFrequency,
-      ),
-      (timer) => _onSyncTimerTick(timer),
-    );
-    for (final type in ItemType.values) {
-      ref.read(
-        fetchItemSourcesListProvider(
-          id: null,
-          reFresh: false,
-          itemType: type,
-        ),
+    final autoSyncFrequency =
+        ref.read(synchingProvider(syncId: 1)).autoSyncFrequency;
+    if (autoSyncFrequency != 0) {
+      _syncTimer = Timer.periodic(
+        Duration(seconds: autoSyncFrequency),
+        (timer) => _onSyncTimerTick(timer),
       );
     }
+    Future.microtask(() {
+      if (mounted) {
+        for (final type in ItemType.values) {
+          ref.read(
+            fetchItemSourcesListProvider(
+              id: null,
+              reFresh: false,
+              itemType: type,
+            ),
+          );
+        }
+      }
+    });
   }
 
   void _onSyncTimerTick(Timer timer) {

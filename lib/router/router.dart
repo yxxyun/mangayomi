@@ -31,6 +31,7 @@ import 'package:mangayomi/modules/more/settings/player/player_decoder_screen.dar
 import 'package:mangayomi/modules/more/settings/player/player_overview_screen.dart';
 import 'package:mangayomi/modules/more/statistics/statistics_screen.dart';
 import 'package:mangayomi/modules/novel/novel_reader_view.dart';
+import 'package:mangayomi/modules/more/settings/reader/providers/reader_state_provider.dart';
 import 'package:mangayomi/modules/tracker_library/tracker_library_screen.dart';
 import 'package:mangayomi/modules/updates/updates_screen.dart';
 import 'package:mangayomi/modules/more/categories/categories_screen.dart';
@@ -71,15 +72,20 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 @riverpod
 GoRouter router(Ref ref) {
   final router = RouterNotifier();
+  final hiddenItems = ref.read(hideItemsStateProvider);
+  final initLocation = ref
+      .watch(navigationOrderStateProvider)
+      .where((e) => !hiddenItems.contains(e))
+      .first;
 
   return GoRouter(
     observers: [BotToastNavigatorObserver()],
-    initialLocation: '/manga',
+    initialLocation: initLocation,
     debugLogDiagnostics: kDebugMode,
     refreshListenable: router,
     routes: router._routes,
     navigatorKey: navigatorKey,
-    onException: (context, state, r) => r.go('/manga'),
+    onException: (context, state, r) => r.go(initLocation),
   );
 }
 
