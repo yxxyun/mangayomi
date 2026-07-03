@@ -87,11 +87,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     }
   }
 
-  bool get _isReadingScreen {
-    final location = ref.watch(routerCurrentLocationStateProvider);
-    return _readerRoutes.contains(location);
-  }
-
   int _currentIndex(String? location) {
     final idx = _tabRoutes.indexOf(location ?? '/anime');
     return idx >= 0 ? idx : 0;
@@ -120,7 +115,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
     final location = ref.watch(routerCurrentLocationStateProvider);
 
-    if (_isReadingScreen) {
+    if (location != null && _readerRoutes.contains(location)) {
       return widget.child;
     }
 
