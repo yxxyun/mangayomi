@@ -82,7 +82,7 @@ class QrLoginFlow {
       },
     );
     final data = jsonDecode(res.body);
-    final token = data['data']?['data']?['members']?['token'] as String?;
+    final token = data['data']?['members']?['token'] as String?;
     if (token == null) {
       return const QrLoginResult(error: '获取二维码失败');
     }
@@ -107,10 +107,10 @@ class QrLoginFlow {
       },
     );
     final data = jsonDecode(res.body);
-    final status = data['data']?['status'];
+    final status = data['status'];
     if (status == 2000000) {
       // Scanned — exchange serviceTicket for cookies
-      final ticket = data['data']?['data']?['members']?['service_ticket'] as String?;
+      final ticket = data['data']?['members']?['service_ticket'] as String?;
       if (ticket == null) return const QrLoginResult(status: 'NEW');
       final cookieRes = await client.get(
         Uri.parse('https://pan.quark.cn/account/info?st=$ticket&lw=scan'),
@@ -152,7 +152,7 @@ class QrLoginFlow {
       },
     );
     final data = jsonDecode(res.body);
-    final token = data['data']?['data']?['members']?['token'] as String?;
+    final token = data['data']?['members']?['token'] as String?;
     if (token == null) return const QrLoginResult(error: '获取二维码失败');
     final qrUrl = 'https://su.uc.cn/1_n0ZCv?token=$token&client_id=381';
     return QrLoginResult(
@@ -174,9 +174,9 @@ class QrLoginFlow {
       },
     );
     final data = jsonDecode(res.body);
-    final status = data['data']?['status'];
+    final status = data['status'];
     if (status == 2000000) {
-      final ticket = data['data']?['data']?['members']?['service_ticket'] as String?;
+      final ticket = data['data']?['members']?['service_ticket'] as String?;
       if (ticket == null) return const QrLoginResult(status: 'NEW');
       final cookieRes = await client.get(
         Uri.parse('https://drive.uc.cn/account/info?st=$ticket&lw=scan'),
