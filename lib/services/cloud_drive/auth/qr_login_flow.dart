@@ -74,11 +74,11 @@ class QrLoginFlow {
   static Future<QrLoginResult> _startQuarkScan() async {
     final client = MClient.init(reqcopyWith: {'useDartHttpClient': true});
     final requestId = generateUUID();
-    final res = await client.post(
+    final res = await client.get(
       Uri.parse('https://uop.quark.cn/cas/ajax/getTokenForQrcodeLogin?request_id=$requestId&client_id=532&v=1.2'),
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36',
+        'Accept': 'application/json, text/plain, */*',
       },
     );
     final data = jsonDecode(res.body);
@@ -99,11 +99,11 @@ class QrLoginFlow {
     final token = state['token'] as String;
     final requestId = state['request_id'] as String;
 
-    final res = await client.post(
+    final res = await client.get(
       Uri.parse('https://uop.quark.cn/cas/ajax/getServiceTicketByQrcodeToken?request_id=$requestId&client_id=532&v=1.2&token=$token'),
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36',
+        'Accept': 'application/json, text/plain, */*',
       },
     );
     final data = jsonDecode(res.body);
@@ -144,11 +144,11 @@ class QrLoginFlow {
   static Future<QrLoginResult> _startUCScan() async {
     final client = MClient.init(reqcopyWith: {'useDartHttpClient': true});
     final requestId = generateUUID();
-    final res = await client.post(
+    final res = await client.get(
       Uri.parse('https://api.open.uc.cn/cas/ajax/getTokenForQrcodeLogin?v=1.2&request_id=$requestId&client_id=381'),
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36',
+        'Accept': 'application/json, text/plain, */*',
       },
     );
     final data = jsonDecode(res.body);
@@ -166,11 +166,11 @@ class QrLoginFlow {
     final client = MClient.init(reqcopyWith: {'useDartHttpClient': true});
     final token = state['token'] as String;
     final requestId = state['request_id'] as String;
-    final res = await client.post(
+    final res = await client.get(
       Uri.parse('https://api.open.uc.cn/cas/ajax/getServiceTicketByQrcodeToken?request_id=$requestId&client_id=381&v=1.2&token=$token'),
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36',
+        'Accept': 'application/json, text/plain, */*',
       },
     );
     final data = jsonDecode(res.body);
@@ -195,11 +195,11 @@ class QrLoginFlow {
 
   static Future<QrLoginResult> _startAliScan() async {
     final client = MClient.init(reqcopyWith: {'useDartHttpClient': true});
-    final res = await client.post(
+    final res = await client.get(
       Uri.parse('https://passport.aliyundrive.com/newlogin/qrcode/generate.do?appName=aliyun_drive&fromSite=52&appEntrance=web&isMobile=false&lang=zh_CN'),
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36',
+        'Accept': 'application/json, text/plain, */*',
       },
     );
     final data = jsonDecode(res.body);
@@ -222,11 +222,11 @@ class QrLoginFlow {
     final client = MClient.init(reqcopyWith: {'useDartHttpClient': true});
     final ck = state['ck'] as String;
     final t = state['t'] as String;
-    final res = await client.post(
+    final res = await client.get(
       Uri.parse('https://passport.aliyundrive.com/newlogin/qrcode/query.do?appName=aliyun_drive&fromSite=52&isMobile=false&lang=zh_CN&ck=$ck&t=$t'),
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
         'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36',
+        'Accept': 'application/json, text/plain, */*',
       },
     );
     final data = jsonDecode(res.body);
