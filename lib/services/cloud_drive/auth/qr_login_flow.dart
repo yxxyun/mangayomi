@@ -95,11 +95,14 @@ class QrLoginFlow {
     if (token == null) {
       return const QrLoginResult(error: '获取二维码失败');
     }
+    // Save cookies from start scan — these _UP_* cookies are needed
+    // for subsequent requests in _checkQuarkStatus.
+    final startCookies = _extractSetCookie(res.headers);
     final qrUrl = 'https://su.quark.cn/4_eMHBJ?token=$token&client_id=532&ssb=weblogin&uc_param_str=&uc_biz_str=S%3Acustom%7COPT%3ASAREA%400%7COPT%3AIMMERSIVE%401%7COPT%3ABACK_BTN_STYLE%400';
     return QrLoginResult(
       qrImageUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${Uri.encodeComponent(qrUrl)}',
       status: 'NEW',
-      stateData: {'token': token, 'request_id': requestId},
+      stateData: {'token': token, 'request_id': requestId, 'startCookies': startCookies},
     );
   }
 
@@ -107,12 +110,15 @@ class QrLoginFlow {
     final client = MClient.init(reqcopyWith: {'useDartHttpClient': true});
     final token = state['token'] as String;
     final requestId = state['request_id'] as String;
+    // Cookies from the start scan (must be sent with subsequent requests)
+    final startCookies = state['startCookies'] as String? ?? '';
 
     final res = await client.get(
       Uri.parse('https://uop.quark.cn/cas/ajax/getServiceTicketByQrcodeToken?request_id=$requestId&client_id=532&v=1.2&token=$token'),
       headers: {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36',
         'Accept': 'application/json, text/plain, */*',
+        if (startCookies.isNotEmpty) 'Cookie': startCookies,
       },
     );
     final data = jsonDecode(res.body);
@@ -121,11 +127,18 @@ class QrLoginFlow {
       // Scanned — exchange serviceTicket for cookies
       final ticket = data['data']?['members']?['service_ticket'] as String?;
       if (ticket == null) return const QrLoginResult(status: 'NEW');
+      // Build combined cookie from all sources
+      final combinedCookie = StringBuffer(startCookies.isNotEmpty ? '$startCookies; ' : '');
       final cookieRes = await client.get(
         Uri.parse('https://pan.quark.cn/account/info?st=$ticket&lw=scan'),
-        headers: {'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36'},
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          if (combinedCookie.isNotEmpty) 'Cookie': combinedCookie.toString(),
+        },
       );
-      String? cookies = _extractSetCookie(cookieRes.headers);
+      final exchangeCookies = _extractSetCookie(cookieRes.headers);
+      if (exchangeCookies != null) combinedCookie.write(exchangeCookies);
       // Second request to get drive-specific cookies
       final driveRes = await client.get(
         Uri.parse(
@@ -133,14 +146,15 @@ class QrLoginFlow {
         ),
         headers: {
           'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36',
-          'Cookie': cookies ?? '',
+          'Accept': 'application/json, text/plain, */*',
+          'Cookie': combinedCookie.toString(),
           'Origin': 'https://pan.quark.cn',
           'Referer': 'https://pan.quark.cn/',
         },
       );
       final driveCookies = _extractSetCookie(driveRes.headers);
-      if (driveCookies != null) cookies = cookies != null ? '$cookies;$driveCookies' : driveCookies;
-      return QrLoginResult(cookie: cookies, status: 'CONFIRMED');
+      if (driveCookies != null) combinedCookie.write('; $driveCookies');
+      return QrLoginResult(cookie: combinedCookie.toString(), status: 'CONFIRMED');
     } else if (status == 50004002) {
       return const QrLoginResult(status: 'EXPIRED');
     } else {
