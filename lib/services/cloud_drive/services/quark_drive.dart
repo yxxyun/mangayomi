@@ -74,7 +74,7 @@ class QuarkDriveService implements CloudDriveService {
 
     final cookie = _account.cookie;
     if (cookie != null && cookie.isNotEmpty) {
-      _setCookiesIfChanged(cookie);
+      await _setCookiesIfChanged(cookie);
     }
   }
 
@@ -82,7 +82,7 @@ class QuarkDriveService implements CloudDriveService {
   Future<bool> loginByCookie(String cookie) async {
     if (cookie.isEmpty) return false;
 
-    _setCookiesIfChanged(cookie);
+    await _setCookiesIfChanged(cookie);
 
     // Verify by hitting a simple API endpoint.
     try {
@@ -698,11 +698,11 @@ class QuarkDriveService implements CloudDriveService {
     };
   }
 
-  void _setCookiesIfChanged(String cookie) {
+  Future<void> _setCookiesIfChanged(String cookie) async {
     if (cookie.isEmpty) return;
     if (_lastCookie == cookie) return;
-    MClient.setCookie(_host, _userAgent, null, cookie: cookie);
-    MClient.setCookie(_cookieKey, _userAgent, null, cookie: cookie);
+    await MClient.setCookie(_host, _userAgent, null, cookie: cookie);
+    await MClient.setCookie(_cookieKey, _userAgent, null, cookie: cookie);
     _lastCookie = cookie;
   }
 
