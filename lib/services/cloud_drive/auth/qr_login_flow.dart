@@ -86,7 +86,7 @@ class QrLoginFlow {
     if (token == null) {
       return const QrLoginResult(error: '获取二维码失败');
     }
-    final qrUrl = 'https://su.quark.cn/4_eMHBJ?token=$token&client_id=532&ssb=weblogin';
+    final qrUrl = 'https://su.quark.cn/4_eMHBJ?token=$token&client_id=532&ssb=weblogin&uc_param_str=&uc_biz_str=S%3Acustom%7COPT%3ASAREA%400%7COPT%3AIMMERSIVE%401%7COPT%3ABACK_BTN_STYLE%400';
     return QrLoginResult(
       qrImageUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${Uri.encodeComponent(qrUrl)}',
       status: 'NEW',
@@ -154,7 +154,7 @@ class QrLoginFlow {
     final data = jsonDecode(res.body);
     final token = data['data']?['members']?['token'] as String?;
     if (token == null) return const QrLoginResult(error: '获取二维码失败');
-    final qrUrl = 'https://su.uc.cn/1_n0ZCv?token=$token&client_id=381';
+    final qrUrl = 'https://su.uc.cn/1_n0ZCv?token=$token&client_id=381&uc_param_str=&uc_biz_str=S%3Acustom%7CC%3Atitlebar_fix';
     return QrLoginResult(
       qrImageUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${Uri.encodeComponent(qrUrl)}',
       status: 'NEW',
