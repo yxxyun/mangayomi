@@ -26,9 +26,18 @@ class QrLoginResult {
 /// Platform-specific QR login flows, ported from drpy-node's core.js.
 class QrLoginFlow {
   static String generateUUID() {
-    // Simple UUID v4 generation
-    final now = DateTime.now().microsecondsSinceEpoch;
-    return '${now.toString().padLeft(14, '0')}-${now.toRadixString(16).padLeft(8, '0')}-4${now.toString().substring(0, 3)}-${now.toRadixString(16).substring(0, 4)}-${now.toString().padLeft(12, '0')}';
+    // Generate a proper UUID v4
+    final r = DateTime.now().microsecondsSinceEpoch;
+    final bytes = List<int>.generate(16, (i) => (r >> (i * 4)) & 0xff);
+    // Set version (4) and variant bits
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    // Format as xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    return '${_hex(bytes, 0, 4)}-${_hex(bytes, 4, 2)}-${_hex(bytes, 6, 2)}-${_hex(bytes, 8, 2)}-${_hex(bytes, 10, 6)}';
+  }
+
+  static String _hex(List<int> bytes, int start, int count) {
+    return bytes.sublist(start, start + count).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
   /// Start QR scan for the given platform.
@@ -326,8 +335,13 @@ class QrLoginFlow {
   static String? _extractSetCookie(Map<String, String> headers) {
     final setCookie = headers['set-cookie'];
     if (setCookie == null || setCookie.isEmpty) return null;
-    // Split multiple cookies (separated by comma in some servers, or already joined)
-    final parts = setCookie.split(',').map((c) => c.trim().split(';')[0]).where((c) => c.contains('=')).toList();
+    // Dart http package joins duplicate headers with newline (\n)
+    // Split on newline to get individual set-cookie entries
+    final entries = setCookie.split('\n');
+    final parts = entries
+        .map((c) => c.trim().split(';')[0])
+        .where((c) => c.contains('='))
+        .toList();
     if (parts.isEmpty) return null;
     return parts.join('; ');
   }
