@@ -272,16 +272,6 @@ class MBridge {
       _cdCache[cloud_drive_type.CloudDriveType.cloud189] = Cloud189DriveService();
       _cdCache[cloud_drive_type.CloudDriveType.yun139] = Yun139DriveService();
       _cdCache[cloud_drive_type.CloudDriveType.xunlei] = XunleiDriveService();
-      // Load saved cookies for all services
-      for (final svc in _cdCache.values) {
-        try {
-          await svc.initialize();
-        } catch (_) {
-          // Services work without saved cookies for public share listing.
-          // For authenticated operations (video playback), the service
-          // needs to be logged in via QR or cookie in the app first.
-        }
-      }
     }
     return _cdCache[type]!;
   }
