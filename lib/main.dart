@@ -192,26 +192,18 @@ Future<void> _postLaunchInit(StorageProvider storage) async {
   }
   await storage.deleteBtDirectory();
   await webviewServer();
-  // Initialize cloud drive services (background, non-blocking)
-  unawaited(_initCloudDrives());
-}
-
-Future<void> _initCloudDrives() async {
-  try {
-    CloudDriveManager.instance
-      ..register(AliDriveService())
-      ..register(BaiduDriveService())
-      ..register(Cloud189DriveService())
-      ..register(Pan123DriveService())
-      ..register(QuarkDriveService())
-      ..register(UCDriveService())
-      ..register(XunleiDriveService())
-      ..register(Yun139DriveService());
-    await CloudDriveManager.instance.initializeAll();
-  } catch (e) {
-    // ignore: avoid_print
-    print('Cloud drive init: $e');
-  }
+  // Register cloud drive services (synchronous — registration is fast)
+  CloudDriveManager.instance
+    ..register(AliDriveService())
+    ..register(BaiduDriveService())
+    ..register(Cloud189DriveService())
+    ..register(Pan123DriveService())
+    ..register(QuarkDriveService())
+    ..register(UCDriveService())
+    ..register(XunleiDriveService())
+    ..register(Yun139DriveService());
+  // Initialize cookies in background (async Hive reads)
+  unawaited(CloudDriveManager.instance.initializeAll());
 }
 
 class MyApp extends ConsumerStatefulWidget {
