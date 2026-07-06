@@ -34,7 +34,16 @@ import 'package:mangayomi/utils/reg_exp_matcher.dart';
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:mangayomi/services/cloud_drive/cloud_drive_manager.dart';
+import 'package:mangayomi/services/cloud_drive/cloud_drive_service.dart';
 import 'package:mangayomi/services/cloud_drive/models/cloud_drive_type.dart' as cloud_drive_type;
+import 'package:mangayomi/services/cloud_drive/services/ali_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/baidu_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/cloud189_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/pan123_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/quark_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/uc_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/xunlei_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/yun139_drive.dart';
 
 class WordSet {
   final List<String> words;
@@ -247,12 +256,41 @@ class MBridge {
 
   // ── Cloud drive interface ────────────────────────────────────────
 
+  /// Local service registry — uses own map to avoid singleton duplication
+  /// across different Dart compilation contexts.
+  static final Map<cloud_drive_type.CloudDriveType, CloudDriveService> _cdCache = {};
+  static bool _cdCacheInit = false;
+
+  static Future<CloudDriveService> _cdService(cloud_drive_type.CloudDriveType type) async {
+    if (!_cdCacheInit) {
+      _cdCacheInit = true;
+      _cdCache[cloud_drive_type.CloudDriveType.quark] = QuarkDriveService();
+      _cdCache[cloud_drive_type.CloudDriveType.uc] = UCDriveService();
+      _cdCache[cloud_drive_type.CloudDriveType.ali] = AliDriveService();
+      _cdCache[cloud_drive_type.CloudDriveType.baidu] = BaiduDriveService();
+      _cdCache[cloud_drive_type.CloudDriveType.pan123] = Pan123DriveService();
+      _cdCache[cloud_drive_type.CloudDriveType.cloud189] = Cloud189DriveService();
+      _cdCache[cloud_drive_type.CloudDriveType.yun139] = Yun139DriveService();
+      _cdCache[cloud_drive_type.CloudDriveType.xunlei] = XunleiDriveService();
+      // Load saved cookies for all services
+      for (final svc in _cdCache.values) {
+        try {
+          await svc.initialize();
+        } catch (_) {
+          // Services work without saved cookies for public share listing.
+          // For authenticated operations (video playback), the service
+          // needs to be logged in via QR or cookie in the app first.
+        }
+      }
+    }
+    return _cdCache[type]!;
+  }
+
   /// Unified file listing: auto-detects drive type from share URLs.
   /// Returns list of {name, url} maps for video episodes.
   static Future<List<Map<String, String>>> cloudDriveFilesExtractor(
     List<String> shareUrls,
   ) async {
-    final manager = CloudDriveManager.instance;
     if (shareUrls.isEmpty) return [];
 
     // Group URLs by detected drive type — a single list may contain
@@ -267,8 +305,7 @@ class MBridge {
     try {
       final allEpisodes = <Map<String, String>>[];
       for (final entry in grouped.entries) {
-        final service = manager.get(entry.key);
-        if (service == null) continue;
+        final service = await _cdService(entry.key);
         for (final url in entry.value) {
           final files = await service.getFilesByShareUrl(url);
           for (final file in files) {
@@ -292,7 +329,6 @@ class MBridge {
   /// Unified video list: parses encoded URL and gets videos from the correct drive.
   /// The encoded URL format is: [prefix] name$type++fileId++...
   static Future<List<Video>> cloudDriveVideosExtractor(String url) async {
-    final manager = CloudDriveManager.instance;
     // Extract drive type from the encoded URL: [quark] or [uc] or [ali] etc.
     final typeMatch = RegExp(r'\[(\w+)\]').firstMatch(url);
     if (typeMatch == null) return [];
@@ -301,8 +337,7 @@ class MBridge {
     final cloudType = cloud_drive_type.CloudDriveType.fromKey(typeKey);
     if (cloudType == null) return [];
 
-    final service = manager.get(cloudType);
-    if (service == null) return [];
+    final service = await _cdService(cloudType);
 
     try {
       return await service.getVideos(url);

@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'dart:io';
 import 'package:http_interceptor/http_interceptor.dart';
 
 import 'package:mangayomi/models/video.dart';
@@ -65,13 +65,43 @@ class QuarkDriveService implements CloudDriveService {
 
   // ── Interface: lifecycle ───────────────────────────────────────────
 
+  void _writeSharedCookie() {
+    try {
+      File('${Directory.systemTemp.path}/mangayomi_cd_quark.json')
+          .writeAsStringSync('{"cookie":"${_account.cookie}","isLoggedIn":${_account.isLoggedIn}}',
+              flush: true);
+    } catch (_) {}
+  }
+
+  void _readSharedCookie() {
+    try {
+      final f = File('${Directory.systemTemp.path}/mangayomi_cd_quark.json');
+      if (f.existsSync()) {
+        final data = jsonDecode(f.readAsStringSync());
+        final c = data['cookie'] as String?;
+        if (c != null && c.isNotEmpty && _account.cookie != c) {
+          _account.cookie = c;
+          _account.isLoggedIn = data['isLoggedIn'] as bool? ?? false;
+        }
+      }
+    } catch (_) {}
+  }
+
   @override
   Future<void> initialize() async {
-    final saved = await CloudCookieManager.getAccount(CloudDriveType.quark);
+    // Note: Hive is not available in the QuickJS bridge context.
+    // The CloudCookieManager path is tried first but may throw — that's OK,
+    // because _readSharedCookie() provides the fallback.
+    CloudDriveAccount? saved;
+    try {
+      saved = await CloudCookieManager.getAccount(CloudDriveType.quark);
+    } catch (_) {
+      // Hive not available — will use shared file below.
+    }
     if (saved != null) {
       _account = saved;
     }
-
+    _readSharedCookie();
     final cookie = _account.cookie;
     if (cookie != null && cookie.isNotEmpty) {
       await _setCookiesIfChanged(cookie);
@@ -98,6 +128,7 @@ class QuarkDriveService implements CloudDriveService {
     _account.cookie = cookie;
     _account.isLoggedIn = true;
     _account.lastLoginAt = DateTime.now();
+    _writeSharedCookie();
     await CloudCookieManager.saveAccount(_account);
 
     return true;
@@ -135,17 +166,23 @@ class QuarkDriveService implements CloudDriveService {
   ShareData? parseShareUrl(String url) {
     final regex = RegExp(r'https://pan\.quark\.cn/s/([^\\|#/]+)');
     final match = regex.firstMatch(url);
-    if (match == null) return null;
+    if (match == null) {
+      stdout.writeln('[CD_Q] parseShareUrl failed: $url');
+      return null;
+    }
     return ShareData(shareId: match.group(1)!, folderId: '0');
   }
 
   @override
   Future<bool> getShareToken(ShareData shareData) async {
-    if (_shareTokenCache.containsKey(shareData.shareId)) return true;
+    if (_shareTokenCache.containsKey(shareData.shareId)) {
+      stdout.writeln('[CD_Q] getShareToken cache HIT: ${shareData.shareId}');
+      return true;
+    }
 
-    // Remove any stale entry.
     _shareTokenCache.remove(shareData.shareId);
 
+    stdout.writeln('[CD_Q] getShareToken calling API: ${shareData.shareId}');
     final result = await _api(
       'share/sharepage/token?$_pr',
       {
@@ -158,24 +195,32 @@ class QuarkDriveService implements CloudDriveService {
     if (result['data'] != null && result['data']['stoken'] != null) {
       _shareTokenCache[shareData.shareId] =
           Map<String, dynamic>.from(result['data']);
+      stdout.writeln('[CD_Q] getShareToken SUCCESS: ${shareData.shareId}');
       return true;
     }
+    stdout.writeln('[CD_Q] getShareToken FAILED. response keys: ${result.keys}${result['status'] != null ? ", status=${result['status']}" : ''}');
     return false;
   }
 
-  // ── Interface: file listing ────────────────────────────────────────
-
   @override
   Future<List<CloudDriveFile>> getFilesByShareUrl(String url) async {
+    stdout.writeln('[CD_Q] getFilesByShareUrl: $url');
     final shareData = parseShareUrl(url);
-    if (shareData == null) return [];
+    if (shareData == null) {
+      stdout.writeln('[CD_Q] parseShareUrl null');
+      return [];
+    }
 
     final ok = await getShareToken(shareData);
-    if (!ok) return [];
+    if (!ok) {
+      stdout.writeln('[CD_Q] getShareToken failed');
+      return [];
+    }
 
     final videos = <CloudDriveFile>[];
     final subtitles = <CloudDriveFile>[];
 
+    stdout.writeln('[CD_Q] calling _listFilesRecursive...');
     await _listFilesRecursive(
       shareData: shareData,
       videos: videos,
@@ -194,6 +239,7 @@ class QuarkDriveService implements CloudDriveService {
       }
     }
 
+    stdout.writeln('[CD_Q] done: ${videos.length} vids, ${subtitles.length} subs');
     return videos;
   }
 
