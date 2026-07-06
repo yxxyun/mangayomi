@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:mangayomi/services/cloud_drive/cloud_drive_service.dart';
 import 'package:mangayomi/services/cloud_drive/models/cloud_drive_file.dart';
 import 'package:mangayomi/services/cloud_drive/models/cloud_drive_type.dart';
@@ -22,7 +23,7 @@ class CloudDriveManager {
   /// Global singleton instance.
   static CloudDriveManager get instance => _instance;
 
-  final Map<CloudDriveType, CloudDriveService> _services = {};
+  static final Map<CloudDriveType, CloudDriveService> _services = {};
 
   /// Register a [CloudDriveService] implementation.
   ///
@@ -30,10 +31,14 @@ class CloudDriveManager {
   /// second service for the same type silently replaces the previous one.
   void register(CloudDriveService service) {
     _services[service.type] = service;
+    stdout.writeln('[CD_MGR] registered ${service.type.key}: instance=$hashCode total ${_services.length}');
   }
 
   /// Retrieve a registered service by [type], or `null` if not registered.
-  CloudDriveService? get(CloudDriveType type) => _services[type];
+  CloudDriveService? get(CloudDriveType type) {
+    stdout.writeln('[CD_MGR] get ${type.key}: instance=$hashCode services.len=${_services.length}');
+    return _services[type];
+  }
 
   /// Unregister the service for [type], if any.
   void unregister(CloudDriveType type) {

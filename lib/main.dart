@@ -181,6 +181,7 @@ class _StartupErrorApp extends StatelessWidget {
 }
 
 Future<void> _postLaunchInit(StorageProvider storage) async {
+  stdout.writeln('[MAIN] _postLaunchInit start');
   await AppLogger.init();
   unawaited(MDownloader.initializeIsolatePool(poolSize: 6));
   final hivePath = isApple ? "databases" : p.join("Mangayomi", "databases");
@@ -204,6 +205,7 @@ Future<void> _postLaunchInit(StorageProvider storage) async {
     ..register(Yun139DriveService());
   // Initialize cookies in background (async Hive reads)
   unawaited(CloudDriveManager.instance.initializeAll());
+  stdout.writeln('[MAIN] _postLaunchInit done, instance=${CloudDriveManager.instance.hashCode}, ${CloudDriveManager.instance.registeredTypes.length} services');
 }
 
 class MyApp extends ConsumerStatefulWidget {
