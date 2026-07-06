@@ -137,6 +137,8 @@ class QrLoginFlow {
           if (combinedCookie.isNotEmpty) 'Cookie': combinedCookie.toString(),
         },
       );
+      // ignore: avoid_print
+      print('[QR_COOKIE] /account/info status=${cookieRes.statusCode} set-cookie=${cookieRes.headers['set-cookie']?.substring(0, (cookieRes.headers['set-cookie']?.length ?? 200).clamp(0, 200))}');
       final exchangeCookies = _extractSetCookie(cookieRes.headers);
       if (exchangeCookies != null) combinedCookie.write(exchangeCookies);
       // Second request to get drive-specific cookies
@@ -152,8 +154,12 @@ class QrLoginFlow {
           'Referer': 'https://pan.quark.cn/',
         },
       );
+      // ignore: avoid_print
+      print('[QR_COOKIE] drive sort status=${driveRes.statusCode} set-cookie=${driveRes.headers['set-cookie']?.substring(0, (driveRes.headers['set-cookie']?.length ?? 200).clamp(0, 200))}');
       final driveCookies = _extractSetCookie(driveRes.headers);
       if (driveCookies != null) combinedCookie.write('; $driveCookies');
+      // ignore: avoid_print
+      print('[QR_COOKIE] final cookie length=${combinedCookie.length} value=${combinedCookie.length > 200 ? combinedCookie.toString().substring(0, 200) : combinedCookie.toString()}');
       return QrLoginResult(cookie: combinedCookie.toString(), status: 'CONFIRMED');
     } else if (status == 50004002) {
       return const QrLoginResult(status: 'EXPIRED');
@@ -349,14 +355,34 @@ class QrLoginFlow {
   static String? _extractSetCookie(Map<String, String> headers) {
     final setCookie = headers['set-cookie'];
     if (setCookie == null || setCookie.isEmpty) return null;
-    // Dart http package joins duplicate headers with newline (\n)
-    // Split on newline to get individual set-cookie entries
+    // Dart http package joins duplicate headers with newline (\n).
+    // Some servers (Quark, UC) separate multiple cookies with commas
+    // after the path attribute:  cookie1; path=/,cookie2; path=/; max-age=...
+    // Split on newlines first, then commas where the comma precedes
+    // a valid cookie name (contains = before ;).
     final entries = setCookie.split('\n');
-    final parts = entries
-        .map((c) => c.trim().split(';')[0])
-        .where((c) => c.contains('='))
-        .toList();
-    if (parts.isEmpty) return null;
-    return parts.join('; ');
+    final parts = <String>[];
+    for (final entry in entries) {
+      // Split on comma, then filter for valid name=value segments
+      for (final seg in entry.split(',')) {
+        final trimmed = seg.trim();
+        final eqIdx = trimmed.indexOf('=');
+        if (eqIdx > 0 && !trimmed.substring(0, eqIdx).contains(' ')) {
+          // This looks like a valid name=value pair at the start
+          parts.add(trimmed.split(';')[0].trim());
+        }
+      }
+    }
+    // Deduplicate by name (last wins)
+    final cookieMap = <String, String>{};
+    for (final part in parts) {
+      final eqIdx = part.indexOf('=');
+      if (eqIdx > 0) {
+        cookieMap[part.substring(0, eqIdx).trim()] =
+            part.substring(eqIdx + 1).trim();
+      }
+    }
+    if (cookieMap.isEmpty) return null;
+    return cookieMap.entries.map((e) => '${e.key}=${e.value}').join('; ');
   }
 }
