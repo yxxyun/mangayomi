@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_qjs/flutter_qjs.dart';
@@ -5,34 +6,40 @@ import 'package:http_interceptor/http_interceptor.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:http/http.dart' as http;
 
+void _diag(String msg) {
+  try {
+    final f = File('${Directory.systemTemp.path}/mangayomi_diag.log');
+    f.writeAsStringSync('${DateTime.now()}: $msg\n', mode: FileMode.append);
+  } catch (_) {}
+}
+
 class JsHttpClient {
   late JavascriptRuntime runtime;
   JsHttpClient(this.runtime);
 
   void init() {
-    InterceptedClient client(dynamic reqcopyWith) {
-      return MClient.init(
-        reqcopyWith: (reqcopyWith as Map?)?.toMapStringDynamic,
-      );
-    }
+    // Use plain http.Client to avoid MClient/MCookieManager/Isar blocking
+    // in worker isolates. Extensions fetch content from external servers
+    // and don't need cookies from Isar.
+    http.Client client() => http.Client();
 
     runtime.onMessage('http_head', (dynamic args) async {
-      return await _toHttpResponse(client(args[1]), "HEAD", args);
+      return await _toHttpResponse(client(), "HEAD", args);
     });
     runtime.onMessage('http_get', (dynamic args) async {
-      return await _toHttpResponse(client(args[1]), "GET", args);
+      return await _toHttpResponse(client(), "GET", args);
     });
     runtime.onMessage('http_post', (dynamic args) async {
-      return await _toHttpResponse(client(args[1]), "POST", args);
+      return await _toHttpResponse(client(), "POST", args);
     });
     runtime.onMessage('http_put', (dynamic args) async {
-      return await _toHttpResponse(client(args[1]), "PUT", args);
+      return await _toHttpResponse(client(), "PUT", args);
     });
     runtime.onMessage('http_delete', (dynamic args) async {
-      return await _toHttpResponse(client(args[1]), "DELETE", args);
+      return await _toHttpResponse(client(), "DELETE", args);
     });
     runtime.onMessage('http_patch', (dynamic args) async {
-      return await _toHttpResponse(client(args[1]), "PATCH", args);
+      return await _toHttpResponse(client(), "PATCH", args);
     });
     runtime.evaluate('''
 class Client {
@@ -132,7 +139,31 @@ Future<String> _toHttpResponse(Client client, String method, List args) async {
     "DELETE" => client.delete(Uri.parse(url), headers: headers, body: body),
     _ => client.patch(Uri.parse(url), headers: headers, body: body),
   };
-  return jsonEncode((await future).toJson());
+  try {
+    final resp = await future.timeout(const Duration(seconds: 10));
+    _diag('HTTP $method ${url.substring(0, url.length.clamp(0, 80))} → ${resp.statusCode}');
+    return jsonEncode(resp.toJson());
+  } on TimeoutException {
+    _diag('HTTP TIMEOUT $method ${url.substring(0, url.length.clamp(0, 80))}');
+    return jsonEncode({
+      'body': '{"error": "Request timeout"}',
+      'headers': <String, String>{},
+      'isRedirect': false,
+      'persistentConnection': false,
+      'reasonPhrase': 'Request timeout after 20s',
+      'statusCode': 408,
+      'request': {
+        'contentLength': null,
+        'finalized': false,
+        'followRedirects': null,
+        'headers': headers ?? <String, String>{},
+        'maxRedirects': null,
+        'method': method,
+        'persistentConnection': null,
+        'url': url,
+      },
+    });
+  }
 }
 
 extension ResponseExtexsion on Response {

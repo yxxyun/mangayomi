@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:http/http.dart' as http;
 import 'package:http_interceptor/http_interceptor.dart';
 
 import 'package:mangayomi/models/video.dart';
@@ -12,6 +14,13 @@ import 'package:mangayomi/services/cloud_drive/models/share_data.dart';
 import 'package:mangayomi/services/cloud_drive/models/quality_option.dart';
 import 'package:mangayomi/services/cloud_drive/auth/cookie_manager.dart';
 import 'package:mangayomi/services/cloud_drive/lcs_utils.dart';
+
+void _diag(String msg) {
+  try {
+    final f = File('${Directory.systemTemp.path}/mangayomi_diag.log');
+    f.writeAsStringSync('${DateTime.now()}: $msg\n', mode: FileMode.append);
+  } catch (_) {}
+}
 
 class QuarkDriveService implements CloudDriveService {
   // ── Constants ──────────────────────────────────────────────────────
@@ -204,7 +213,7 @@ class QuarkDriveService implements CloudDriveService {
 
   @override
   Future<List<CloudDriveFile>> getFilesByShareUrl(String url) async {
-    stdout.writeln('[CD_Q] getFilesByShareUrl: $url');
+    _diag('QUARK_getFiles: $url');
     final shareData = parseShareUrl(url);
     if (shareData == null) {
       stdout.writeln('[CD_Q] parseShareUrl null');
@@ -379,6 +388,7 @@ class QuarkDriveService implements CloudDriveService {
 
   @override
   Future<List<Video>> getVideos(String encodedUrl) async {
+    _diag('QUARK_getVideos: ${encodedUrl.substring(0, encodedUrl.length.clamp(0, 80))}');
     // Format: [quark] displayName$quark++fileId++shareFileToken++shareId++shareToken[+subtitleInfo]
     final parts = encodedUrl.split('++');
     if (parts.length < 5) return [];
@@ -402,7 +412,7 @@ class QuarkDriveService implements CloudDriveService {
       fileToken: shareFileToken,
     );
 
-    final headers = _getHeaders();
+    final headers = await _getHeadersAsync();
     headers.remove('Content-Type');
 
     if (qualityOptions.isNotEmpty) {
@@ -484,7 +494,7 @@ class QuarkDriveService implements CloudDriveService {
       );
 
       // Check for updated __puus in current cookie and save.
-      final current = _getCurrentCookie();
+      final current = await _getCurrentCookie();
       if (current.isNotEmpty && current != _account.cookie) {
         _account.cookie = current;
         _account.lastLoginAt = DateTime.now();
@@ -730,18 +740,35 @@ class QuarkDriveService implements CloudDriveService {
 
   // ── Internal: cookie helpers ───────────────────────────────────────
 
-  String _getCurrentCookie() {
-    final cookieMap = MClient.getCookiesPref(_host);
-    return cookieMap.isNotEmpty ? cookieMap.values.first : '';
+  /// Read cookie from Isar async — safe for worker isolates.
+  /// Sync getSync() deadlocks; async get() does not.
+  Future<String> _getCurrentCookie() async {
+    try {
+      final cookieMap = await MClient.getCookiesPrefAsync(_host);
+      if (cookieMap.isNotEmpty) return cookieMap.values.first;
+    } catch (_) {}
+    return '';
   }
 
   Map<String, String> _getHeaders() {
     return {
       'User-Agent': _userAgent,
       'Referer': _refererUrl,
-      'Content-Type': 'application/json',
-      'Cookie': _getCurrentCookie(),
     };
+  }
+
+  /// Returns headers with cookie — async because reads Isar.
+  Future<Map<String, String>> _getHeadersAsync() async {
+    final headers = <String, String>{
+      'User-Agent': _userAgent,
+      'Referer': _refererUrl,
+      'Content-Type': 'application/json',
+    };
+    final cookie = await _getCurrentCookie();
+    if (cookie.isNotEmpty) {
+      headers['Cookie'] = cookie;
+    }
+    return headers;
   }
 
   Future<void> _setCookiesIfChanged(String cookie) async {
@@ -756,58 +783,70 @@ class QuarkDriveService implements CloudDriveService {
 
   /// Make an API request to the Quark drive backend.
   ///
-  /// Automatically sets cookies and handles `__puus` refresh from
-  /// `set-cookie` response headers.
+  /// Uses [http.Client] directly — bypasses [MClient.init] which calls
+  /// `isar.settings.getSync(227)` and deadlocks in worker isolates.
   Future<Map<String, dynamic>> _api(
     String url,
     dynamic data,
     String method, {
     String baseUrl = _apiBase,
+    int timeoutSeconds = 10,
   }) async {
-    final client = MClient.init(
-      reqcopyWith: {'useDartHttpClient': true},
-    );
+    _diag('QUARK_API $method $url');
+    final client = http.Client();
 
-    late Response resp;
+    try {
+      final uri = Uri.parse('$baseUrl$url');
+      final reqHeaders = await _getHeadersAsync();
 
-    if (method != 'get') {
-      resp = await client.post(
-        Uri.parse('$baseUrl$url'),
-        body: data != null ? jsonEncode(data) : null,
-        headers: _getHeaders(),
-      );
-    } else {
-      resp = await client.get(
-        Uri.parse('$baseUrl$url'),
-        headers: _getHeaders(),
-      );
-    }
+      http.Response resp;
+      if (method != 'get') {
+        resp = await client
+            .post(uri, body: data != null ? jsonEncode(data) : null, headers: reqHeaders)
+            .timeout(Duration(seconds: timeoutSeconds));
+      } else {
+        resp = await client
+            .get(uri, headers: reqHeaders)
+            .timeout(Duration(seconds: timeoutSeconds));
+      }
 
-    // Handle set-cookie: refresh __puus if the server sends an updated value.
-    if (resp.headers['set-cookie'] != null) {
-      final cookiesHeader = resp.headers['set-cookie']!;
-      final cookieParts = cookiesHeader.split(';;;');
-      for (final part in cookieParts) {
-        if (part.contains('__puus=')) {
-          final newPuus = part.split(';')[0]; // e.g. "__puus=xxxx"
-          var currentCookie = _getCurrentCookie();
-          if (currentCookie.isNotEmpty) {
-            if (currentCookie.contains('__puus=')) {
+      _diag('QUARK_API response: ${resp.statusCode} for $url');
+
+      // Handle set-cookie: refresh __puus
+      final setCookie = resp.headers['set-cookie'];
+      if (setCookie != null) {
+        for (final part in setCookie.split(RegExp(r'[;,]'))) {
+          if (part.contains('__puus=')) {
+            final newPuus = part.split(';')[0].trim();
+            var currentCookie = await _getCurrentCookie();
+            if (currentCookie.isNotEmpty && currentCookie.contains('__puus=')) {
               currentCookie = currentCookie.replaceFirst(
-                RegExp(r'__puus=[^;]+'),
-                newPuus,
+                RegExp(r'__puus=[^;]+'), newPuus,
               );
-            } else {
-              currentCookie = '$currentCookie; $newPuus';
+              unawaited(MClient.setCookie(_host, _userAgent, null, cookie: currentCookie));
             }
-            MClient.setCookie(_host, _userAgent, null, cookie: currentCookie);
           }
-          break;
         }
       }
-    }
 
-    return jsonDecode(resp.body) as Map<String, dynamic>;
+      if (resp.statusCode >= 400) {
+        return {};
+      }
+
+      final decoded = jsonDecode(resp.body);
+      return decoded is Map<String, dynamic> ? decoded : {};
+    } on TimeoutException {
+      _diag('QUARK_API TIMEOUT after ${timeoutSeconds}s: $url');
+      return {};
+    } on SocketException catch (e) {
+      _diag('QUARK_API SOCKET_ERROR: $url → ${e.message}');
+      return {};
+    } catch (e) {
+      _diag('QUARK_API ERROR: $url → ${e.runtimeType}: $e');
+      return {};
+    } finally {
+      client.close();
+    }
   }
 
   // ── Internal: string helpers ───────────────────────────────────────

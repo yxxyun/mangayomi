@@ -8,6 +8,7 @@ import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/browse/sources/widgets/source_list_tile.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/utils/language.dart';
 
 class SourcesScreen extends ConsumerStatefulWidget {
@@ -114,6 +115,33 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
             child: CustomScrollView(
               controller: controller,
               slivers: [
+                // Built-in sources section (at the top).
+                if (BuiltInSources.all.any((s) => s.itemType == widget.itemType))
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 12),
+                          child: Row(
+                            children: [
+                              Text(
+                                '内置源',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        for (final bi in BuiltInSources.all.where((s) => s.itemType == widget.itemType))
+                          SourceListTile(
+                            source: bi.toSource(),
+                            itemType: widget.itemType,
+                          ),
+                      ],
+                    ),
+                  ),
                 CustomSliverGroupedListView<Source, String>(
                   elements: lastUsedEntries,
                   groupBy: (element) => "",
@@ -224,6 +252,11 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
                         ),
                         itemType: widget.itemType,
                       ),
+                      for (final bi in BuiltInSources.all.where((s) => s.itemType == widget.itemType))
+                        SourceListTile(
+                          source: bi.toSource(),
+                          itemType: widget.itemType,
+                        ),
                     ],
                   ),
                 ),

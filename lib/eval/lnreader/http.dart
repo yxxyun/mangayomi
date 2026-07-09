@@ -11,9 +11,8 @@ class JsHttpClient {
   JsHttpClient(this.runtime);
 
   void init() {
-    InterceptedClient client() {
-      return MClient.init();
-    }
+    // Use plain http.Client to avoid MClient/MCookieManager/Isar blocking
+    http.Client client() => http.Client();
 
     runtime.onMessage('http_head', (dynamic args) async {
       return await _toHttpResponse(client(), "HEAD", args);

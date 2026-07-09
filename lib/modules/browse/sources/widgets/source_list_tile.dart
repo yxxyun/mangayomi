@@ -6,6 +6,7 @@ import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/utils/cached_network.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/utils/item_type_localization.dart';
@@ -16,6 +17,7 @@ class SourceListTile extends StatelessWidget {
   final Source source;
 
   bool get isLocal => source.name == "local" && source.lang == "";
+  bool get isBuiltin => isLocal || BuiltInSources.isBuiltIn(source);
 
   const SourceListTile({
     super.key,
@@ -28,7 +30,7 @@ class SourceListTile extends StatelessWidget {
     return Consumer(
       builder: (context, ref, child) => ListTile(
         onTap: () {
-          if (!isLocal) {
+          if (!isBuiltin) {
             final sources = isar.sources
                 .filter()
                 .idIsNotNull()

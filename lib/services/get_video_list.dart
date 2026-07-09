@@ -3,9 +3,12 @@ import 'dart:io';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/video.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
+import 'package:mangayomi/modules/browse/extension/providers/extension_preferences_providers.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
+import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/services/torrent_server.dart';
+import 'package:mangayomi/services/wogg/wogg_service.dart';
 import 'package:mangayomi/utils/utils.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -71,6 +74,17 @@ Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
       episode.manga.value!.source!,
       episode.manga.value!.sourceId,
     );
+
+    // Built-in sources: run in main isolate (no worker isolate HTTP issues).
+    if (source != null && BuiltInSources.isBuiltIn(source)) {
+      final bi = BuiltInSources.getForSource(source)!;
+      if (bi.nameId == 'wogg') {
+        final videos = await WoggService.getVideoList(episode.url!);
+        keepAlive.close();
+        return (videos, false, infoHashes, mpvDirectory);
+      }
+    }
+
     final proxyServer = ref.read(androidProxyServerStateProvider);
 
     final isMihonTorrent =

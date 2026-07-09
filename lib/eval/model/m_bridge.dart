@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -44,6 +45,13 @@ import 'package:mangayomi/services/cloud_drive/services/quark_drive.dart';
 import 'package:mangayomi/services/cloud_drive/services/uc_drive.dart';
 import 'package:mangayomi/services/cloud_drive/services/xunlei_drive.dart';
 import 'package:mangayomi/services/cloud_drive/services/yun139_drive.dart';
+
+void _diag(String msg) {
+  try {
+    final f = File('${Directory.systemTemp.path}/mangayomi_diag.log');
+    f.writeAsStringSync('${DateTime.now()}: $msg\n', mode: FileMode.append);
+  } catch (_) {}
+}
 
 class WordSet {
   final List<String> words;
@@ -256,8 +264,12 @@ class MBridge {
 
   // ── Cloud drive interface ────────────────────────────────────────
 
-  /// Local service registry — uses own map to avoid singleton duplication
-  /// across different Dart compilation contexts.
+  /// Local service cache — creates new instances locally because the
+  /// bridge may run in a distinct Dart isolate (via [GetIsolateService])
+  /// where [CloudDriveManager.instance._services] is empty.
+  ///
+  /// Cookies come from Isar (read every request via [_getCurrentCookie]),
+  /// not from the service instance state, so [initialize] is unnecessary.
   static final Map<cloud_drive_type.CloudDriveType, CloudDriveService> _cdCache = {};
   static bool _cdCacheInit = false;
 
@@ -281,6 +293,7 @@ class MBridge {
   static Future<List<Map<String, String>>> cloudDriveFilesExtractor(
     List<String> shareUrls,
   ) async {
+    _diag('CLOUD_FILES called with ${shareUrls.length} urls');
     if (shareUrls.isEmpty) return [];
 
     // Group URLs by detected drive type — a single list may contain
@@ -319,6 +332,7 @@ class MBridge {
   /// Unified video list: parses encoded URL and gets videos from the correct drive.
   /// The encoded URL format is: [prefix] name$type++fileId++...
   static Future<List<Video>> cloudDriveVideosExtractor(String url) async {
+    _diag('CLOUD_VIDEOS called with url=${url.substring(0, url.length.clamp(0, 100))}');
     // Extract drive type from the encoded URL: [quark] or [uc] or [ali] etc.
     final typeMatch = RegExp(r'\[(\w+)\]').firstMatch(url);
     if (typeMatch == null) return [];

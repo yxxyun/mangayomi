@@ -94,7 +94,23 @@ class MClient {
   }
 
   static Map<String, String> getCookiesPref(String url) {
-    final cookiesList = isar.settings.getSync(227)!.cookiesList ?? [];
+    final cookiesList = isar.settings.getSync(227)?.cookiesList ?? [];
+    if (cookiesList.isEmpty) return {};
+    final host = Uri.parse(url).host;
+    final cookies = cookiesList
+        .firstWhere(
+          (element) => element.host == host || host.contains(element.host!),
+          orElse: () => MCookie(cookie: ""),
+        )
+        .cookie!;
+    if (cookies.isEmpty) return {};
+    return {HttpHeaders.cookieHeader: cookies};
+  }
+
+  /// Async version — safe for worker isolates where getSync may block.
+  static Future<Map<String, String>> getCookiesPrefAsync(String url) async {
+    final settings = await isar.settings.get(227);
+    final cookiesList = settings?.cookiesList ?? [];
     if (cookiesList.isEmpty) return {};
     final host = Uri.parse(url).host;
     final cookies = cookiesList
@@ -182,15 +198,17 @@ class MCookieManager extends InterceptorContract {
 
   @override
   Future<BaseRequest> interceptRequest({required BaseRequest request}) async {
-    final cookie = MClient.getCookiesPref(request.url.toString());
+    // Use async Isar read — sync getSync blocks the event loop in worker isolates.
+    final cookie = await MClient.getCookiesPrefAsync(request.url.toString());
     if (cookie.isNotEmpty) {
       final settings = await isar.settings.get(227);
-      final userAgent = settings!.userAgent!;
-      if (request.headers[HttpHeaders.cookieHeader] == null) {
-        request.headers.addAll(cookie);
-      }
-      if (request.headers[HttpHeaders.userAgentHeader] == null) {
-        request.headers[HttpHeaders.userAgentHeader] = userAgent;
+      if (settings?.userAgent != null) {
+        if (request.headers[HttpHeaders.cookieHeader] == null) {
+          request.headers.addAll(cookie);
+        }
+        if (request.headers[HttpHeaders.userAgentHeader] == null) {
+          request.headers[HttpHeaders.userAgentHeader] = settings!.userAgent!;
+        }
       }
     }
     try {
