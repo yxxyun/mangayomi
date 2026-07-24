@@ -1,9 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mangayomi/modules/main_view/providers/tv_mode_provider.dart';
 import 'package:mangayomi/modules/more/widgets/list_tile_widget.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/utils/platform_utils.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -14,9 +17,11 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n!.settings)),
       body: SingleChildScrollView(
+        padding: tvPageInsets,
         child: Column(
           children: [
             ListTileWidget(
+              autofocus: isTv,
               title: l10n.general,
               icon: Icons.settings,
               onTap: () => context.push('/general'),
@@ -26,10 +31,18 @@ class SettingsScreen extends StatelessWidget {
               icon: Icons.color_lens_rounded,
               onTap: () => context.push('/appearance'),
             ),
-            ListTileWidget(
-              title: l10n.reader,
-              icon: Icons.chrome_reader_mode_rounded,
-              onTap: () => context.push('/readerMode'),
+            // Reader is manga/novel-only — hide it on the anime-only layout.
+            Consumer(
+              builder: (context, ref, _) {
+                if (ref.watch(animeOnlyTvModeProvider)) {
+                  return const SizedBox.shrink();
+                }
+                return ListTileWidget(
+                  title: l10n.reader,
+                  icon: Icons.chrome_reader_mode_rounded,
+                  onTap: () => context.push('/readerMode'),
+                );
+              },
             ),
             ListTileWidget(
               title: l10n.player,

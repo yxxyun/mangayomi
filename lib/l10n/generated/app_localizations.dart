@@ -4343,497 +4343,209 @@ abstract class AppLocalizations {
   /// **'Default'**
   String get tts_default;
 
-  /// Cloud drive management page title
+  /// No description provided for @webtoon_disable_zoom_out.
   ///
   /// In en, this message translates to:
-  /// **'Cloud Drive Management'**
-  String get cloud_drive_management;
+  /// **'Webtoon disable zoom out'**
+  String get webtoon_disable_zoom_out;
 
-  /// Status text when not logged in
+  /// No description provided for @webtoon_double_tap_zoom_enabled.
   ///
   /// In en, this message translates to:
-  /// **'Not logged in'**
-  String get cloud_drive_not_logged_in;
+  /// **'Webtoon double tap zoom'**
+  String get webtoon_double_tap_zoom_enabled;
 
-  /// Indicates authentication has expired
+  /// No description provided for @navigate_to_pan.
   ///
   /// In en, this message translates to:
-  /// **'Expired'**
-  String get cloud_drive_expired;
+  /// **'Navigate to pan'**
+  String get navigate_to_pan;
 
-  /// Status text when logged in
+  /// No description provided for @navigate_to_pan_subtitle.
   ///
   /// In en, this message translates to:
-  /// **'Logged in'**
-  String get cloud_drive_logged_in;
+  /// **'Move zoomed image before turning page'**
+  String get navigate_to_pan_subtitle;
 
-  /// Message when cloud drive service is not registered
+  /// No description provided for @split_wide_pages.
   ///
   /// In en, this message translates to:
-  /// **'Cloud drive service is not registered'**
-  String get cloud_drive_service_not_registered;
+  /// **'Split wide pages'**
+  String get split_wide_pages;
 
-  /// Message when login is successful
+  /// No description provided for @dual_page_invert.
   ///
   /// In en, this message translates to:
-  /// **'Login successful'**
-  String get cloud_drive_login_success;
+  /// **'Invert cut half pages'**
+  String get dual_page_invert;
 
-  /// Message when login fails due to invalid cookie
+  /// No description provided for @dual_page_rotate_to_fit.
   ///
   /// In en, this message translates to:
-  /// **'Login failed, please check your Cookie'**
-  String get cloud_drive_login_failed_cookie;
+  /// **'Rotate to fit'**
+  String get dual_page_rotate_to_fit;
 
-  /// Message when login fails due to invalid credentials
+  /// No description provided for @dual_page_rotate_to_fit_invert.
   ///
   /// In en, this message translates to:
-  /// **'Login failed, please check your credentials'**
-  String get cloud_drive_login_failed_credentials;
+  /// **'Invert rotation direction'**
+  String get dual_page_rotate_to_fit_invert;
 
-  /// Title for logout confirmation dialog
+  /// No description provided for @landscape_zoom.
   ///
   /// In en, this message translates to:
-  /// **'Confirm logout'**
-  String get cloud_drive_confirm_logout;
+  /// **'Automatic landscape zoom'**
+  String get landscape_zoom;
 
-  /// Confirmation dialog for logging out
+  /// No description provided for @zoom_start_position.
   ///
   /// In en, this message translates to:
-  /// **'Are you sure you want to log out of {drive}?'**
-  String cloud_drive_confirm_logout_msg(Object drive);
+  /// **'Zoom start position'**
+  String get zoom_start_position;
 
-  /// Logout action button text
+  /// No description provided for @zoom_start_left.
   ///
   /// In en, this message translates to:
-  /// **'Log out'**
-  String get cloud_drive_logout;
+  /// **'Left'**
+  String get zoom_start_left;
 
-  /// Status text when logged out
+  /// No description provided for @zoom_start_right.
   ///
   /// In en, this message translates to:
-  /// **'Logged out'**
-  String get cloud_drive_logged_out;
+  /// **'Right'**
+  String get zoom_start_right;
 
-  /// Message when logout fails
+  /// No description provided for @zoom_start_center.
   ///
   /// In en, this message translates to:
-  /// **'Logout failed'**
-  String get cloud_drive_logout_failed;
+  /// **'Center'**
+  String get zoom_start_center;
 
-  /// Message when authentication token is refreshed successfully
+  /// No description provided for @automatic_background.
   ///
   /// In en, this message translates to:
-  /// **'Authentication refreshed'**
-  String get cloud_drive_auth_refresh_success;
+  /// **'Automatic background'**
+  String get automatic_background;
 
-  /// Message when authentication refresh fails
+  /// No description provided for @tapping_inversion.
   ///
   /// In en, this message translates to:
-  /// **'Authentication refresh failed'**
-  String get cloud_drive_auth_refresh_failed;
+  /// **'Tapping Inversion'**
+  String get tapping_inversion;
 
-  /// Message when refresh fails
-  ///
-  /// In en, this message translates to:
-  /// **'Refresh failed'**
-  String get cloud_drive_refresh_failed;
-
-  /// Username label
-  ///
-  /// In en, this message translates to:
-  /// **'Username'**
-  String get cloud_drive_username;
-
-  /// Last login time label
-  ///
-  /// In en, this message translates to:
-  /// **'Last login'**
-  String get cloud_drive_last_login;
-
-  /// Expiration time label
-  ///
-  /// In en, this message translates to:
-  /// **'Expires at'**
-  String get cloud_drive_expires_at;
-
-  /// Login information section label
-  ///
-  /// In en, this message translates to:
-  /// **'Login info'**
-  String get cloud_drive_login_info;
-
-  /// Login status label
-  ///
-  /// In en, this message translates to:
-  /// **'Login status'**
-  String get cloud_drive_login_status;
-
-  /// Indicates a valid state
-  ///
-  /// In en, this message translates to:
-  /// **'Valid'**
-  String get cloud_drive_valid;
-
-  /// Login time label
-  ///
-  /// In en, this message translates to:
-  /// **'Login time'**
-  String get cloud_drive_login_time;
-
-  /// Placeholder text for pasting cookie
-  ///
-  /// In en, this message translates to:
-  /// **'Paste Cookie here...'**
-  String get cloud_drive_paste_cookie;
-
-  /// Title for cookie login page
-  ///
-  /// In en, this message translates to:
-  /// **'Login - Paste Cookie'**
-  String get cloud_drive_cookie_login_title;
-
-  /// Indicates cookie has not been set
-  ///
-  /// In en, this message translates to:
-  /// **'Cookie not set'**
-  String get cloud_drive_cookie_not_set;
-
-  /// Button text to copy cookie
-  ///
-  /// In en, this message translates to:
-  /// **'Copy Cookie'**
-  String get cloud_drive_copy_cookie;
-
-  /// Message when cookie is copied
-  ///
-  /// In en, this message translates to:
-  /// **'Cookie copied to clipboard'**
-  String get cloud_drive_cookie_copied;
-
-  /// Button text to update cookie
-  ///
-  /// In en, this message translates to:
-  /// **'Update Cookie'**
-  String get cloud_drive_update_cookie;
-
-  /// Button text to copy token
-  ///
-  /// In en, this message translates to:
-  /// **'Copy Token'**
-  String get cloud_drive_copy_token;
-
-  /// Message when token is copied
-  ///
-  /// In en, this message translates to:
-  /// **'Token copied to clipboard'**
-  String get cloud_drive_token_copied;
-
-  /// Button text to copy refresh token
-  ///
-  /// In en, this message translates to:
-  /// **'Copy Refresh Token'**
-  String get cloud_drive_copy_refresh_token;
-
-  /// Message when refresh token is copied
-  ///
-  /// In en, this message translates to:
-  /// **'Refresh Token copied to clipboard'**
-  String get cloud_drive_refresh_token_copied;
-
-  /// Indicates no value selected
+  /// No description provided for @tapping_inversion_none.
   ///
   /// In en, this message translates to:
   /// **'None'**
-  String get cloud_drive_none;
+  String get tapping_inversion_none;
 
-  /// Cookie login method label
+  /// No description provided for @tapping_inversion_horizontal.
   ///
   /// In en, this message translates to:
-  /// **'Cookie Login'**
-  String get cloud_drive_cookie_login;
+  /// **'Horizontal'**
+  String get tapping_inversion_horizontal;
 
-  /// QR code login method label
+  /// No description provided for @tapping_inversion_vertical.
   ///
   /// In en, this message translates to:
-  /// **'QR Login'**
-  String get cloud_drive_qr_login;
+  /// **'Vertical'**
+  String get tapping_inversion_vertical;
 
-  /// Button to browse cloud drive files
+  /// No description provided for @tapping_inversion_both.
   ///
   /// In en, this message translates to:
-  /// **'Browse Files'**
-  String get cloud_drive_browse_files;
+  /// **'Both'**
+  String get tapping_inversion_both;
 
-  /// Title for file browser page
+  /// No description provided for @flash_on_page_change.
   ///
   /// In en, this message translates to:
-  /// **'{drive} - File Browser'**
-  String cloud_drive_file_browser_title(Object drive);
+  /// **'Flash on page change'**
+  String get flash_on_page_change;
 
-  /// Share link label
+  /// No description provided for @flash_on_page_change_subtitle.
   ///
   /// In en, this message translates to:
-  /// **'Share Link'**
-  String get cloud_drive_share_link;
+  /// **'AMOLED anti-retention helper'**
+  String get flash_on_page_change_subtitle;
 
-  /// Placeholder for entering share link
+  /// No description provided for @flash_color.
   ///
   /// In en, this message translates to:
-  /// **'Enter {drive} share link...'**
-  String cloud_drive_enter_share_link(Object drive);
+  /// **'Flash Color'**
+  String get flash_color;
 
-  /// Hint text for share link input
+  /// No description provided for @flash_color_black.
   ///
   /// In en, this message translates to:
-  /// **'Please enter a share link'**
-  String get cloud_drive_enter_share_link_hint;
+  /// **'Black'**
+  String get flash_color_black;
 
-  /// Error when link type cannot be identified
+  /// No description provided for @flash_color_white.
   ///
   /// In en, this message translates to:
-  /// **'Cannot identify link type, please check the link'**
-  String get cloud_drive_unrecognized_link;
+  /// **'White'**
+  String get flash_color_white;
 
-  /// Error when link type does not match the expected drive
+  /// No description provided for @flash_color_white_black.
   ///
   /// In en, this message translates to:
-  /// **'Link type mismatch, please use a {drive} share link'**
-  String cloud_drive_link_type_mismatch(Object drive);
+  /// **'White & Black'**
+  String get flash_color_white_black;
 
-  /// Message when no files are found
+  /// No description provided for @flash_interval.
   ///
   /// In en, this message translates to:
-  /// **'No files found'**
-  String get cloud_drive_no_files_found;
+  /// **'Flash Interval: {n} pages'**
+  String flash_interval(String n);
 
-  /// Error when loading files fails
+  /// No description provided for @flash_duration.
   ///
   /// In en, this message translates to:
-  /// **'Load failed, please check network and share link'**
-  String get cloud_drive_load_failed;
+  /// **'Flash Duration: {n} ms'**
+  String flash_duration(String n);
 
-  /// Snackbar message when opening a folder
+  /// No description provided for @show_navigation_overlay_on_start.
   ///
   /// In en, this message translates to:
-  /// **'Open folder: {name}'**
-  String cloud_drive_open_folder(Object name);
+  /// **'Show Navigation Overlay on startup'**
+  String get show_navigation_overlay_on_start;
 
-  /// Error when a file type is not supported
+  /// No description provided for @reader_hide_threshold.
   ///
   /// In en, this message translates to:
-  /// **'Unsupported file type: {name}'**
-  String cloud_drive_unsupported_file_type(Object name);
+  /// **'Reader Hide Threshold'**
+  String get reader_hide_threshold;
 
-  /// Loading indicator when loading video
+  /// No description provided for @reader_hide_threshold_highest.
   ///
   /// In en, this message translates to:
-  /// **'Loading video...'**
-  String get cloud_drive_loading_video;
+  /// **'Highest (5 px)'**
+  String get reader_hide_threshold_highest;
 
-  /// Error when video source cannot be retrieved
+  /// No description provided for @reader_hide_threshold_high.
   ///
   /// In en, this message translates to:
-  /// **'Cannot get video source'**
-  String get cloud_drive_cannot_get_video;
+  /// **'High (13 px)'**
+  String get reader_hide_threshold_high;
 
-  /// Error when video load fails
+  /// No description provided for @reader_hide_threshold_low.
   ///
   /// In en, this message translates to:
-  /// **'Video load failed, please check network and login status'**
-  String get cloud_drive_video_load_failed;
+  /// **'Low (31 px)'**
+  String get reader_hide_threshold_low;
 
-  /// Label for quality selection
+  /// No description provided for @reader_hide_threshold_lowest.
   ///
   /// In en, this message translates to:
-  /// **'Select quality'**
-  String get cloud_drive_select_quality;
+  /// **'Lowest (47 px)'**
+  String get reader_hide_threshold_lowest;
 
-  /// Default quality option
+  /// No description provided for @error_no_pages_available.
   ///
   /// In en, this message translates to:
-  /// **'Default quality'**
-  String get cloud_drive_default_quality;
-
-  /// Label for video URL field
-  ///
-  /// In en, this message translates to:
-  /// **'Video URL:'**
-  String get cloud_drive_video_url_label;
-
-  /// Close button text
-  ///
-  /// In en, this message translates to:
-  /// **'Close'**
-  String get cloud_drive_close;
-
-  /// Message when URL is copied
-  ///
-  /// In en, this message translates to:
-  /// **'URL copied to clipboard'**
-  String get cloud_drive_url_copied;
-
-  /// Total file count in a folder
-  ///
-  /// In en, this message translates to:
-  /// **'{count} files total'**
-  String cloud_drive_total_files(Object count);
-
-  /// Load button text
-  ///
-  /// In en, this message translates to:
-  /// **'Load'**
-  String get cloud_drive_load;
-
-  /// Hint when no files are loaded yet
-  ///
-  /// In en, this message translates to:
-  /// **'Enter share link and tap Load'**
-  String get cloud_drive_not_loaded_hint;
-
-  /// Folder file type
-  ///
-  /// In en, this message translates to:
-  /// **'Folder'**
-  String get cloud_drive_folder;
-
-  /// Video file type
-  ///
-  /// In en, this message translates to:
-  /// **'Video'**
-  String get cloud_drive_video;
-
-  /// Generic file type
-  ///
-  /// In en, this message translates to:
-  /// **'File'**
-  String get cloud_drive_file_type;
-
-  /// Instruction for QR code scanning
-  ///
-  /// In en, this message translates to:
-  /// **'Scan QR code with mobile app to login'**
-  String get cloud_drive_qr_scan_with_app;
-
-  /// Message when QR code has been scanned
-  ///
-  /// In en, this message translates to:
-  /// **'Scanned, please confirm on mobile'**
-  String get cloud_drive_qr_scanned_confirm;
-
-  /// Message when QR login succeeds
-  ///
-  /// In en, this message translates to:
-  /// **'Login successful!'**
-  String get cloud_drive_qr_login_success_msg;
-
-  /// Status when QR login is cancelled
-  ///
-  /// In en, this message translates to:
-  /// **'Cancelled'**
-  String get cloud_drive_qr_cancelled;
-
-  /// Status when QR code has expired
-  ///
-  /// In en, this message translates to:
-  /// **'QR code expired'**
-  String get cloud_drive_qr_expired;
-
-  /// Loading indicator when getting QR code
-  ///
-  /// In en, this message translates to:
-  /// **'Getting QR code...'**
-  String get cloud_drive_qr_getting_code;
-
-  /// Error when getting QR code fails
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to get QR code'**
-  String get cloud_drive_qr_get_failed;
-
-  /// Message when QR code expires and needs rescan
-  ///
-  /// In en, this message translates to:
-  /// **'QR code expired, please scan again'**
-  String get cloud_drive_qr_expired_rescan;
-
-  /// Status when waiting for QR scan
-  ///
-  /// In en, this message translates to:
-  /// **'Waiting for scan...'**
-  String get cloud_drive_qr_waiting;
-
-  /// Title for QR login page
-  ///
-  /// In en, this message translates to:
-  /// **'{drive} QR Login'**
-  String cloud_drive_qr_login_title(Object drive);
-
-  /// Error description when QR code cannot be loaded
-  ///
-  /// In en, this message translates to:
-  /// **'Cannot load QR code\nCheck network connection'**
-  String get cloud_drive_qr_load_failed_desc;
-
-  /// Hint text for scanning QR code
-  ///
-  /// In en, this message translates to:
-  /// **'Scan with {drive} mobile app'**
-  String cloud_drive_qr_scan_hint(Object drive);
-
-  /// Button text to regenerate QR code
-  ///
-  /// In en, this message translates to:
-  /// **'Regenerate QR code'**
-  String get cloud_drive_qr_regenerate;
-
-  /// Button to manually enter cookie
-  ///
-  /// In en, this message translates to:
-  /// **'Enter Cookie manually'**
-  String get cloud_drive_enter_cookie_manually;
-
-  /// QR login failed error message
-  ///
-  /// In en, this message translates to:
-  /// **'Login failed, please check your Cookie'**
-  String get cloud_drive_qr_login_failed;
-
-  /// Button tooltip to show hidden token values
-  ///
-  /// In en, this message translates to:
-  /// **'Show'**
-  String get cloud_drive_show_tokens;
-
-  /// Button tooltip to hide token values
-  ///
-  /// In en, this message translates to:
-  /// **'Hide'**
-  String get cloud_drive_hide_tokens;
-
-  /// Button label to copy a URL link
-  ///
-  /// In en, this message translates to:
-  /// **'Copy link'**
-  String get cloud_drive_copy_link;
-
-  /// Generic loading indicator text
-  ///
-  /// In en, this message translates to:
-  /// **'Loading...'**
-  String get cloud_drive_loading;
-
-  /// Message when tapping a folder in file browser
-  ///
-  /// In en, this message translates to:
-  /// **'{name} - Folder browsing coming soon'**
-  String cloud_drive_folder_browsing_coming_soon(Object name);
-
-  /// Retry button text for QR login
-  ///
-  /// In en, this message translates to:
-  /// **'Retry'**
-  String get cloud_drive_qr_retry;
+  /// **'Error: no pages available'**
+  String get error_no_pages_available;
 }
 
 class _AppLocalizationsDelegate

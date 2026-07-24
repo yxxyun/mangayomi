@@ -6,6 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/settings.dart';
+import 'package:mangayomi/modules/library/tv_home/tv_anime_home_view.dart';
+import 'package:mangayomi/modules/main_view/providers/tv_mode_provider.dart';
+import 'package:mangayomi/utils/platform_utils.dart';
 import 'package:mangayomi/modules/library/providers/add_torrent.dart';
 import 'package:mangayomi/modules/library/providers/isar_providers.dart';
 import 'package:mangayomi/modules/library/providers/library_filter_provider.dart';
@@ -88,11 +91,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   Widget _buildWithSettings(Settings settings) {
+    // On Android TV the anime library shows the dedicated rows-based home
+    // instead of the flat grid - a d-pad-first, cover-forward shelf. Toggleable
+    // via tvHomeStyleProvider; every other surface keeps the grid.
+    if (isTv &&
+        widget.itemType == ItemType.anime &&
+        ref.watch(tvHomeStyleProvider)) {
+      return TvAnimeHomeView(settings: settings);
+    }
     final categories = ref.watch(
       getMangaCategorieStreamProvider(itemType: widget.itemType),
-    );
-    final withoutCategories = ref.watch(
-      getAllMangaWithoutCategoriesStreamProvider(itemType: widget.itemType),
     );
     final downloadedOnly = ref.watch(downloadedOnlyStateProvider);
     final mangaAll = ref.watch(
@@ -217,75 +225,72 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     return Scaffold(
       body: mangaAll.when(
         data: (man) {
-          return withoutCategories.when(
-            data: (withoutCategory) {
-              return categories.when(
-                data: (data) {
-                  // Get the number of items for the app bar
-                  final numberOfItemsList = ref.watch(
-                    filteredLibraryMangaProvider(
-                      data: man,
-                      downloadFilterType: downloadFilterType,
-                      unreadFilterType: unreadFilterType,
-                      startedFilterType: startedFilterType,
-                      bookmarkedFilterType: bookmarkedFilterType,
-                      completedFilterType: completedFilterType,
-                      trackingFilterType: trackingFilterType,
-                      sortType: sortType,
-                      downloadedOnly: downloadedOnly,
-                      searchQuery: searchQuery,
-                      ignoreFiltersOnSearch: _ignoreFiltersOnSearch,
-                    ),
-                  );
+          return categories.when(
+            data: (data) {
+              final withoutCategory = man
+                  .where((m) => m.categories == null || m.categories!.isEmpty)
+                  .toList();
+              // Get the number of items for the app bar
+              final numberOfItemsList = ref.watch(
+                filteredLibraryMangaProvider(
+                  data: man,
+                  downloadFilterType: downloadFilterType,
+                  unreadFilterType: unreadFilterType,
+                  startedFilterType: startedFilterType,
+                  bookmarkedFilterType: bookmarkedFilterType,
+                  completedFilterType: completedFilterType,
+                  trackingFilterType: trackingFilterType,
+                  sortType: sortType,
+                  downloadedOnly: downloadedOnly,
+                  searchQuery: searchQuery,
+                  ignoreFiltersOnSearch: _ignoreFiltersOnSearch,
+                ),
+              );
 
-                  if (data.isNotEmpty && showCategoryTabs) {
-                    return _buildWithCategories(
-                      data: data,
-                      withoutCategory: withoutCategory,
-                      settings: settings,
-                      showNumbersOfItems: showNumbersOfItems,
-                      isNotFiltering: isNotFiltering,
-                      numberOfItems: numberOfItemsList.length,
-                      bodyForCategory: bodyForCategory,
-                      badgeForCategory: badgeForCategory,
-                      downloadFilterType: downloadFilterType,
-                      downloadedOnly: downloadedOnly,
-                    );
-                  }
+              if (data.isNotEmpty && showCategoryTabs) {
+                return _buildWithCategories(
+                  data: data,
+                  withoutCategory: withoutCategory,
+                  settings: settings,
+                  showNumbersOfItems: showNumbersOfItems,
+                  isNotFiltering: isNotFiltering,
+                  numberOfItems: numberOfItemsList.length,
+                  bodyForCategory: bodyForCategory,
+                  badgeForCategory: badgeForCategory,
+                  downloadFilterType: downloadFilterType,
+                  downloadedOnly: downloadedOnly,
+                );
+              }
 
-                  return Scaffold(
-                    appBar: LibraryAppBar(
-                      itemType: widget.itemType,
-                      isNotFiltering: isNotFiltering,
-                      showNumbersOfItems: showNumbersOfItems,
-                      numberOfItems: numberOfItemsList.length,
-                      entries: _entries,
-                      isCategory: false,
-                      categoryId: null,
-                      settings: settings,
-                      isSearch: _isSearch,
-                      ignoreFiltersOnSearch: _ignoreFiltersOnSearch,
-                      textEditingController: _textEditingController,
-                      onSearchToggle: () =>
-                          setState(() => _isSearch = !_isSearch),
-                      onSearchClear: () {
-                        _searchDebounce?.cancel();
-                        _searchDebounce = Timer(
-                          const Duration(milliseconds: 300),
-                          () {
-                            if (mounted) setState(() {});
-                          },
-                        );
+              return Scaffold(
+                appBar: LibraryAppBar(
+                  itemType: widget.itemType,
+                  isNotFiltering: isNotFiltering,
+                  showNumbersOfItems: showNumbersOfItems,
+                  numberOfItems: numberOfItemsList.length,
+                  entries: _entries,
+                  isCategory: false,
+                  categoryId: null,
+                  settings: settings,
+                  isSearch: _isSearch,
+                  ignoreFiltersOnSearch: _ignoreFiltersOnSearch,
+                  textEditingController: _textEditingController,
+                  onSearchToggle: () =>
+                      setState(() => _isSearch = !_isSearch),
+                  onSearchClear: () {
+                    _searchDebounce?.cancel();
+                    _searchDebounce = Timer(
+                      const Duration(milliseconds: 300),
+                      () {
+                        if (mounted) setState(() {});
                       },
-                      onIgnoreFiltersChanged: (val) =>
-                          setState(() => _ignoreFiltersOnSearch = val),
-                      vsync: this,
-                    ),
-                    body: bodyForCategory(),
-                  );
-                },
-                error: (error, _) => ErrorText(error),
-                loading: () => const ProgressCenter(),
+                    );
+                  },
+                  onIgnoreFiltersChanged: (val) =>
+                      setState(() => _ignoreFiltersOnSearch = val),
+                  vsync: this,
+                ),
+                body: bodyForCategory(),
               );
             },
             error: (error, _) => ErrorText(error),
@@ -333,7 +338,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       );
       _tabIndex = newTabIndex;
       tabBarController!.addListener(() {
-        setState(() => _tabIndex = tabBarController!.index);
+        if (_tabIndex != tabBarController!.index) {
+          setState(() => _tabIndex = tabBarController!.index);
+        }
       });
     }
 
@@ -366,27 +373,36 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
               setState(() => _ignoreFiltersOnSearch = val),
           vsync: this,
         ),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildCategoryTabs(
-              entr: entr,
-              withoutCategory: withoutCategory,
-              showNumbersOfItems: showNumbersOfItems,
-              badgeForCategory: badgeForCategory,
-            ),
-            Flexible(
-              child: TabBarView(
-                controller: tabBarController,
-                children: _buildCategoryBodies(
-                  entr: entr,
-                  withoutCategory: withoutCategory,
-                  bodyForCategory: bodyForCategory,
-                ),
+        // A single category doesn't need the tab bar + TabBarView. The
+        // TabBarView (a PageView) blocks directional d-pad focus from crossing
+        // into/out of the grid - which is why the anime tab couldn't reach the
+        // grid while Browse (a direct grid) works. So for one category, render
+        // the grid directly like Browse; keep the tabs only for 2+ categories.
+        body: tabCount <= 1
+            ? (withoutCategory.isEmpty && entr.isNotEmpty
+                  ? bodyForCategory(categoryId: entr.first.id!)
+                  : bodyForCategory())
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildCategoryTabs(
+                    entr: entr,
+                    withoutCategory: withoutCategory,
+                    showNumbersOfItems: showNumbersOfItems,
+                    badgeForCategory: badgeForCategory,
+                  ),
+                  Flexible(
+                    child: TabBarView(
+                      controller: tabBarController,
+                      children: _buildCategoryBodies(
+                        entr: entr,
+                        withoutCategory: withoutCategory,
+                        bodyForCategory: bodyForCategory,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -506,9 +522,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   void _invalidateStreams() {
     ref.invalidate(
-      getAllMangaWithoutCategoriesStreamProvider(itemType: widget.itemType),
-    );
-    ref.invalidate(
       getAllMangaStreamProvider(categoryId: null, itemType: widget.itemType),
     );
   }
@@ -522,20 +535,25 @@ class _DefaultCategoryBadge extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mangas = ref.watch(
-      getAllMangaWithoutCategoriesStreamProvider(itemType: itemType),
+      getAllMangaStreamProvider(categoryId: null, itemType: itemType),
     );
     return mangas.when(
-      data: (data) => CircleAvatar(
-        backgroundColor: Theme.of(context).focusColor,
-        radius: 8,
-        child: Text(
-          data.length.toString(),
-          style: TextStyle(
-            fontSize: 10,
-            color: Theme.of(context).textTheme.bodySmall!.color,
+      data: (data) {
+        final count = data
+            .where((m) => m.categories == null || m.categories!.isEmpty)
+            .length;
+        return CircleAvatar(
+          backgroundColor: Theme.of(context).focusColor,
+          radius: 8,
+          child: Text(
+            count.toString(),
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(context).textTheme.bodySmall!.color,
+            ),
           ),
-        ),
-      ),
+        );
+      },
       error: (_, _) => const SizedBox.shrink(),
       loading: () => const SizedBox.shrink(),
     );

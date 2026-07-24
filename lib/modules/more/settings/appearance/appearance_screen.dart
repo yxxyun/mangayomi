@@ -13,6 +13,8 @@ import 'package:mangayomi/modules/more/settings/appearance/providers/pure_black_
 import 'package:mangayomi/modules/more/settings/appearance/widgets/blend_level_slider.dart';
 import 'package:mangayomi/modules/more/settings/appearance/widgets/dark_mode_button.dart';
 import 'package:mangayomi/modules/more/settings/appearance/widgets/theme_selector.dart';
+import 'package:mangayomi/modules/main_view/providers/tv_mode_provider.dart';
+import 'package:mangayomi/utils/platform_utils.dart';
 import 'package:mangayomi/l10n/generated/app_localizations.dart';
 import 'package:mangayomi/utils/language.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
@@ -71,6 +73,7 @@ class AppearanceScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n!.appearance)),
       body: SingleChildScrollView(
+        padding: tvPageInsets,
         child: Column(
           children: [
             SettingsSection(
@@ -96,6 +99,18 @@ class AppearanceScreen extends ConsumerWidget {
             SettingsSection(
               title: l10n.appearance,
               children: [
+                if (isTv)
+                  SwitchListTile(
+                    secondary: const Icon(Icons.grid_view_outlined),
+                    title: const Text('TV home (beta)'),
+                    subtitle: const Text(
+                      'Rows-based anime home (Continue · New Episodes · '
+                      'categories) instead of the flat grid',
+                    ),
+                    value: ref.watch(tvHomeStyleProvider),
+                    onChanged: (v) =>
+                        ref.read(tvHomeStyleProvider.notifier).set(v),
+                  ),
                 _buildLanguageTile(context, ref, l10n),
                 _buildFontTile(context, ref, l10n),
                 ListTile(

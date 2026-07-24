@@ -23,7 +23,6 @@ import 'package:mangayomi/models/track.dart' as track;
 import 'package:mangayomi/models/track_preference.dart';
 import 'package:mangayomi/models/track_search.dart';
 import 'package:mangayomi/modules/manga/detail/providers/track_state_providers.dart';
-import 'package:mangayomi/modules/manga/reader/providers/crop_borders_provider.dart';
 import 'package:mangayomi/modules/more/data_and_storage/providers/storage_usage.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/general/providers/general_state_provider.dart';
@@ -60,6 +59,7 @@ import 'package:mangayomi/services/cloud_drive/services/uc_drive.dart';
 import 'package:mangayomi/services/cloud_drive/services/xunlei_drive.dart';
 import 'package:mangayomi/services/cloud_drive/services/yun139_drive.dart';
 import 'package:mangayomi/services/cloud_drive/cloud_drive_manager.dart';
+import 'package:mangayomi/modules/manga/reader/subsampling_scale_image_view/subsampling_scale_image_view.dart';
 
 late Isar isar;
 DiscordRPC? discordRpc;
@@ -101,8 +101,11 @@ void main(List<String> args) async {
 
       MediaKit.ensureInitialized();
       await RustLib.init();
-      await imgCropIsolate.start();
+      // Detect Android TV / leanback so the UI can branch on form factor.
+      // No-op on other platforms. See #729.
+      await initIsTv();
       await getIsolateService.start();
+      await ffiImageDecoder.start();
       if (!isMobile) {
         await windowManager.ensureInitialized();
         await WindowGeometry.restore();
@@ -122,7 +125,11 @@ void main(List<String> args) async {
         }
       }
       final storage = StorageProvider();
-      await storage.requestPermission();
+      // Don't force the Android "all files access" (MANAGE_EXTERNAL_STORAGE)
+      // prompt at launch. The database lives in scoped app storage, so the app
+      // can start, browse and read online without it. The permission is still
+      // requested lazily by `createDirectorySafely` / `initDB` the first time a
+      // public path actually needs to be written (e.g. a download). See #740.
       Object? startupError;
       try {
         isar = await storage.initDB(null, inspector: kDebugMode);
@@ -496,8 +503,9 @@ class _MyAppState extends ConsumerState<MyApp>
   }
 
   Future<void> _setupMpvConfig() async {
-    final provider = StorageProvider();
-    final dir = await provider.getMpvDirectory();
+    try {
+      final provider = StorageProvider();
+      final dir = await provider.getMpvDirectory();
     final mpvFile = File('${dir!.path}/mpv.conf');
     final inputFile = File('${dir.path}/input.conf');
     final filesMissing =
@@ -524,6 +532,13 @@ class _MyAppState extends ConsumerState<MyApp>
           await scriptFile.writeAsBytes(file.content);
         }
       }
+    }
+    } catch (e) {
+      // Best-effort: on Android the mpv config dir is in shared storage, which
+      // may not be writable until the all-files permission is granted (now
+      // requested lazily, not forced at launch). Skip setup rather than throw;
+      // it's retried on a later launch once the directory is writable. See #740.
+      if (kDebugMode) debugPrint('mpv config setup skipped: $e');
     }
   }
 

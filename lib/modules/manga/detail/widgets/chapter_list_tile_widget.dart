@@ -17,6 +17,7 @@ import 'package:mangayomi/modules/manga/detail/providers/state_providers.dart';
 import 'package:mangayomi/modules/manga/download/download_page_widget.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import 'package:mangayomi/utils/platform_utils.dart';
 
 class ChapterListTileWidget extends ConsumerWidget {
   final Chapter chapter;
@@ -77,7 +78,7 @@ class ChapterListTileWidget extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Icon(
-          chapter.isRead! ? Icons.visibility_off : Icons.done_all,
+          chapter.isRead! ? Icons.remove_done_sharp : Icons.done_all,
           color: Colors.white,
         ),
       ),
@@ -234,7 +235,10 @@ class ChapterListTileWidget extends ConsumerWidget {
               ],
             ),
             trailing:
-                !sourceExist || (chapter.manga.value!.isLocalArchive ?? false)
+                // Downloads are hidden on TV (no offline use case there).
+                isTv ||
+                    !sourceExist ||
+                    (chapter.manga.value!.isLocalArchive ?? false)
                 ? null
                 : ChapterPageDownload(chapter: chapter),
           ),

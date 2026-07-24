@@ -2347,280 +2347,111 @@ class AppLocalizationsHi extends AppLocalizations {
   String get tts_default => 'Default';
 
   @override
-  String get cloud_drive_management => 'Cloud Drive Management';
+  String get webtoon_disable_zoom_out => 'वेबटून ज़ूम आउट अक्षम करें';
 
   @override
-  String get cloud_drive_not_logged_in => 'Not logged in';
+  String get webtoon_double_tap_zoom_enabled =>
+      'वेबटून ज़ूम के लिए डबल-टैप करें';
 
   @override
-  String get cloud_drive_expired => 'Expired';
+  String get navigate_to_pan => 'पैन करने के लिए नेविगेट करें';
 
   @override
-  String get cloud_drive_logged_in => 'Logged in';
+  String get navigate_to_pan_subtitle =>
+      'पेज पलटने से पहले ज़ूम की गई छवि को स्थानांतरित करें';
 
   @override
-  String get cloud_drive_service_not_registered =>
-      'Cloud drive service is not registered';
+  String get split_wide_pages => 'चौड़े पन्नों को विभाजित करें';
 
   @override
-  String get cloud_drive_login_success => 'Login successful';
+  String get dual_page_invert => 'विभाजित पन्नों के हिस्सों को उलटें';
 
   @override
-  String get cloud_drive_login_failed_cookie =>
-      'Login failed, please check your Cookie';
+  String get dual_page_rotate_to_fit => 'फिट करने के लिए घुमाएं';
 
   @override
-  String get cloud_drive_login_failed_credentials =>
-      'Login failed, please check your credentials';
+  String get dual_page_rotate_to_fit_invert => 'घूर्णन की दिशा उलटें';
 
   @override
-  String get cloud_drive_confirm_logout => 'Confirm logout';
+  String get landscape_zoom => 'स्वचालित लैंडस्केप ज़ूम';
 
   @override
-  String cloud_drive_confirm_logout_msg(Object drive) {
-    return 'Are you sure you want to log out of $drive?';
+  String get zoom_start_position => 'ज़ूम प्रारंभ स्थिति';
+
+  @override
+  String get zoom_start_left => 'बायें';
+
+  @override
+  String get zoom_start_right => 'दायें';
+
+  @override
+  String get zoom_start_center => 'केंद्र';
+
+  @override
+  String get automatic_background => 'स्वचालित पृष्ठभूमि';
+
+  @override
+  String get tapping_inversion => 'टैपिंग प्रतिलोम';
+
+  @override
+  String get tapping_inversion_none => 'कोई नहीं';
+
+  @override
+  String get tapping_inversion_horizontal => 'क्षैतिज';
+
+  @override
+  String get tapping_inversion_vertical => 'लंबवत';
+
+  @override
+  String get tapping_inversion_both => 'दोनों';
+
+  @override
+  String get flash_on_page_change => 'पेज बदलने पर फ़्लैश';
+
+  @override
+  String get flash_on_page_change_subtitle => 'AMOLED एंटी-रिटेंशन सहायक';
+
+  @override
+  String get flash_color => 'फ़्लैश का रंग';
+
+  @override
+  String get flash_color_black => 'काला';
+
+  @override
+  String get flash_color_white => 'सफेद';
+
+  @override
+  String get flash_color_white_black => 'सफेद और काला';
+
+  @override
+  String flash_interval(String n) {
+    return 'फ़्लैश अंतराल: $n पन्ने';
   }
 
   @override
-  String get cloud_drive_logout => 'Log out';
-
-  @override
-  String get cloud_drive_logged_out => 'Logged out';
-
-  @override
-  String get cloud_drive_logout_failed => 'Logout failed';
-
-  @override
-  String get cloud_drive_auth_refresh_success => 'Authentication refreshed';
-
-  @override
-  String get cloud_drive_auth_refresh_failed => 'Authentication refresh failed';
-
-  @override
-  String get cloud_drive_refresh_failed => 'Refresh failed';
-
-  @override
-  String get cloud_drive_username => 'Username';
-
-  @override
-  String get cloud_drive_last_login => 'Last login';
-
-  @override
-  String get cloud_drive_expires_at => 'Expires at';
-
-  @override
-  String get cloud_drive_login_info => 'Login info';
-
-  @override
-  String get cloud_drive_login_status => 'Login status';
-
-  @override
-  String get cloud_drive_valid => 'Valid';
-
-  @override
-  String get cloud_drive_login_time => 'Login time';
-
-  @override
-  String get cloud_drive_paste_cookie => 'Paste Cookie here...';
-
-  @override
-  String get cloud_drive_cookie_login_title => 'Login - Paste Cookie';
-
-  @override
-  String get cloud_drive_cookie_not_set => 'Cookie not set';
-
-  @override
-  String get cloud_drive_copy_cookie => 'Copy Cookie';
-
-  @override
-  String get cloud_drive_cookie_copied => 'Cookie copied to clipboard';
-
-  @override
-  String get cloud_drive_update_cookie => 'Update Cookie';
-
-  @override
-  String get cloud_drive_copy_token => 'Copy Token';
-
-  @override
-  String get cloud_drive_token_copied => 'Token copied to clipboard';
-
-  @override
-  String get cloud_drive_copy_refresh_token => 'Copy Refresh Token';
-
-  @override
-  String get cloud_drive_refresh_token_copied =>
-      'Refresh Token copied to clipboard';
-
-  @override
-  String get cloud_drive_none => 'None';
-
-  @override
-  String get cloud_drive_cookie_login => 'Cookie Login';
-
-  @override
-  String get cloud_drive_qr_login => 'QR Login';
-
-  @override
-  String get cloud_drive_browse_files => 'Browse Files';
-
-  @override
-  String cloud_drive_file_browser_title(Object drive) {
-    return '$drive - File Browser';
+  String flash_duration(String n) {
+    return 'फ़्लैश अवधि: $n ms';
   }
 
   @override
-  String get cloud_drive_share_link => 'Share Link';
+  String get show_navigation_overlay_on_start =>
+      'स्टार्टअप पर नेविगेशन ओवरले दिखाएं';
 
   @override
-  String cloud_drive_enter_share_link(Object drive) {
-    return 'Enter $drive share link...';
-  }
+  String get reader_hide_threshold => 'रीडर छिपाने की सीमा';
 
   @override
-  String get cloud_drive_enter_share_link_hint => 'Please enter a share link';
+  String get reader_hide_threshold_highest => 'उच्चतम (5 px)';
 
   @override
-  String get cloud_drive_unrecognized_link =>
-      'Cannot identify link type, please check the link';
+  String get reader_hide_threshold_high => 'उच्च (13 px)';
 
   @override
-  String cloud_drive_link_type_mismatch(Object drive) {
-    return 'Link type mismatch, please use a $drive share link';
-  }
+  String get reader_hide_threshold_low => 'निम्न (31 px)';
 
   @override
-  String get cloud_drive_no_files_found => 'No files found';
+  String get reader_hide_threshold_lowest => 'न्यूनतम (47 px)';
 
   @override
-  String get cloud_drive_load_failed =>
-      'Load failed, please check network and share link';
-
-  @override
-  String cloud_drive_open_folder(Object name) {
-    return 'Open folder: $name';
-  }
-
-  @override
-  String cloud_drive_unsupported_file_type(Object name) {
-    return 'Unsupported file type: $name';
-  }
-
-  @override
-  String get cloud_drive_loading_video => 'Loading video...';
-
-  @override
-  String get cloud_drive_cannot_get_video => 'Cannot get video source';
-
-  @override
-  String get cloud_drive_video_load_failed =>
-      'Video load failed, please check network and login status';
-
-  @override
-  String get cloud_drive_select_quality => 'Select quality';
-
-  @override
-  String get cloud_drive_default_quality => 'Default quality';
-
-  @override
-  String get cloud_drive_video_url_label => 'Video URL:';
-
-  @override
-  String get cloud_drive_close => 'Close';
-
-  @override
-  String get cloud_drive_url_copied => 'URL copied to clipboard';
-
-  @override
-  String cloud_drive_total_files(Object count) {
-    return '$count files total';
-  }
-
-  @override
-  String get cloud_drive_load => 'Load';
-
-  @override
-  String get cloud_drive_not_loaded_hint => 'Enter share link and tap Load';
-
-  @override
-  String get cloud_drive_folder => 'Folder';
-
-  @override
-  String get cloud_drive_video => 'Video';
-
-  @override
-  String get cloud_drive_file_type => 'File';
-
-  @override
-  String get cloud_drive_qr_scan_with_app =>
-      'Scan QR code with mobile app to login';
-
-  @override
-  String get cloud_drive_qr_scanned_confirm =>
-      'Scanned, please confirm on mobile';
-
-  @override
-  String get cloud_drive_qr_login_success_msg => 'Login successful!';
-
-  @override
-  String get cloud_drive_qr_cancelled => 'Cancelled';
-
-  @override
-  String get cloud_drive_qr_expired => 'QR code expired';
-
-  @override
-  String get cloud_drive_qr_getting_code => 'Getting QR code...';
-
-  @override
-  String get cloud_drive_qr_get_failed => 'Failed to get QR code';
-
-  @override
-  String get cloud_drive_qr_expired_rescan =>
-      'QR code expired, please scan again';
-
-  @override
-  String get cloud_drive_qr_waiting => 'Waiting for scan...';
-
-  @override
-  String cloud_drive_qr_login_title(Object drive) {
-    return '$drive QR Login';
-  }
-
-  @override
-  String get cloud_drive_qr_load_failed_desc =>
-      'Cannot load QR code\nCheck network connection';
-
-  @override
-  String cloud_drive_qr_scan_hint(Object drive) {
-    return 'Scan with $drive mobile app';
-  }
-
-  @override
-  String get cloud_drive_qr_regenerate => 'Regenerate QR code';
-
-  @override
-  String get cloud_drive_enter_cookie_manually => 'Enter Cookie manually';
-
-  @override
-  String get cloud_drive_qr_login_failed =>
-      'Login failed, please check your Cookie';
-
-  @override
-  String get cloud_drive_show_tokens => 'Show';
-
-  @override
-  String get cloud_drive_hide_tokens => 'Hide';
-
-  @override
-  String get cloud_drive_copy_link => 'Copy link';
-
-  @override
-  String get cloud_drive_loading => 'Loading...';
-
-  @override
-  String cloud_drive_folder_browsing_coming_soon(Object name) {
-    return '$name - Folder browsing coming soon';
-  }
-
-  @override
-  String get cloud_drive_qr_retry => 'Retry';
+  String get error_no_pages_available => 'त्रुटि: कोई पन्ने उपलब्ध नहीं हैं';
 }

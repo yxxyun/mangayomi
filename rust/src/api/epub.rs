@@ -44,14 +44,13 @@ pub fn parse_epub_from_path(epub_path: String, full_data: bool) -> Result<EpubNo
 }
 
 pub fn parse_epub_from_bytes(epub_bytes: Vec<u8>, full_data: bool) -> Result<EpubNovel, String> {
-    let cursor = Cursor::new(epub_bytes.clone());
+    let shared: std::sync::Arc<[u8]> = epub_bytes.into();
 
-    // Try to parse as ZIP archive first to extract metadata
+    let cursor = Cursor::new(std::sync::Arc::clone(&shared));
     let mut doc =
         EpubDoc::from_reader(cursor).map_err(|e| format!("Failed to parse EPUB: {}", e))?;
 
-    // Parse using common logic (no file path available for resource extraction)
-    parse_epub_with_doc(&mut doc, None, Some(epub_bytes), full_data)
+    parse_epub_with_doc(&mut doc, None, Some(shared), full_data)
 }
 
 /// Internal function to parse EPUB from EpubDoc
@@ -59,7 +58,7 @@ pub fn parse_epub_from_bytes(epub_bytes: Vec<u8>, full_data: bool) -> Result<Epu
 fn parse_epub_with_doc<R: Read + Seek>(
     doc: &mut EpubDoc<R>,
     epub_path: Option<&str>,
-    epub_bytes: Option<Vec<u8>>,
+    epub_bytes: Option<std::sync::Arc<[u8]>>,
     full_data: bool,
 ) -> Result<EpubNovel, String> {
     // Extract metadata
@@ -102,9 +101,11 @@ fn parse_epub_with_doc<R: Read + Seek>(
         // Extract resources with content only if we have a file path
         let (stylesheets, images) = if let Some(path) = epub_path {
             extract_resources_with_content(path).unwrap_or_else(|_| (vec![], vec![]))
-        } else {
-            extract_resources_with_content_from_bytes(epub_bytes.unwrap_or_default())
+        } else if let Some(bytes_arc) = epub_bytes {
+            extract_resources_with_content_from_bytes(&bytes_arc)
                 .unwrap_or_else(|_| (vec![], vec![]))
+        } else {
+            (vec![], vec![])
         };
 
         (chapters, images, stylesheets)
@@ -136,7 +137,7 @@ fn extract_resources_with_content(
 
 /// Extract CSS and image files with their binary content from EPUB (bytes version)
 fn extract_resources_with_content_from_bytes(
-    epub_bytes: Vec<u8>,
+    epub_bytes: &[u8],
 ) -> Result<(Vec<EpubResource>, Vec<EpubResource>), String> {
     let cursor = Cursor::new(epub_bytes);
     let archive = ZipArchive::new(cursor).map_err(|e| format!("Invalid ZIP archive: {}", e))?;

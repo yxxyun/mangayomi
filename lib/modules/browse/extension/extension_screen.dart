@@ -12,6 +12,7 @@ import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/fetch_sources_list.dart';
 import 'package:mangayomi/utils/language.dart';
 import 'package:mangayomi/modules/browse/extension/widgets/extension_list_tile_widget.dart';
+import 'package:mangayomi/utils/platform_utils.dart';
 
 class ExtensionScreen extends ConsumerStatefulWidget {
   final ItemType itemType;
@@ -79,7 +80,12 @@ class _ExtensionScreenState extends ConsumerState<ExtensionScreen> {
     return RefreshIndicator(
       onRefresh: _refreshSources,
       child: Padding(
-        padding: const EdgeInsets.only(top: 10),
+        // Match the sources tab's inset so the two Browse tabs line up on TV.
+        padding: EdgeInsets.only(
+          top: 10,
+          left: isTv ? 8 : 0,
+          right: isTv ? 8 : 0,
+        ),
         child: streamExtensions.when(
           data: (data) {
             final filteredData = widget.query.isEmpty
@@ -201,8 +207,10 @@ class _ExtensionScreenState extends ConsumerState<ExtensionScreen> {
           );
         },
       ),
-      itemBuilder: (context, Source element) =>
-          ref.watch(extensionListTileWidget(element)),
+      itemBuilder: (context, Source element) => Consumer(
+        builder: (context, ref, _) =>
+            ref.watch(extensionListTileWidget(element)),
+      ),
       groupComparator: (group1, group2) => group1.compareTo(group2),
       itemComparator: (item1, item2) =>
           item1.name?.compareTo(item2.name ?? '') ?? 0,
@@ -221,8 +229,10 @@ class _ExtensionScreenState extends ConsumerState<ExtensionScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         ),
       ),
-      itemBuilder: (context, Source element) =>
-          ref.watch(extensionListTileWidget(element)),
+      itemBuilder: (context, Source element) => Consumer(
+        builder: (context, ref, _) =>
+            ref.watch(extensionListTileWidget(element)),
+      ),
       groupComparator: (group1, group2) => group1.compareTo(group2),
       itemComparator: (item1, item2) =>
           item1.name?.compareTo(item2.name ?? '') ?? 0,
@@ -242,8 +252,10 @@ class _ExtensionScreenState extends ConsumerState<ExtensionScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         ),
       ),
-      itemBuilder: (context, Source element) =>
-          ref.watch(extensionListTileWidget(element)),
+      itemBuilder: (context, Source element) => Consumer(
+        builder: (context, ref, _) =>
+            ref.watch(extensionListTileWidget(element)),
+      ),
       groupComparator: (group1, group2) => group1.compareTo(group2),
       itemComparator: (item1, item2) =>
           item1.name?.compareTo(item2.name ?? '') ?? 0,

@@ -6,7 +6,8 @@ import 'package:mangayomi/modules/more/widgets/downloaded_only_widget.dart';
 import 'package:mangayomi/modules/more/widgets/incognito_mode_widget.dart';
 import 'package:mangayomi/modules/more/widgets/list_tile_widget.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
-
+import 'package:mangayomi/utils/platform_utils.dart';
+import 'package:mangayomi/models/manga.dart';
 
 class MoreScreen extends ConsumerStatefulWidget {
   const MoreScreen({super.key});
@@ -17,17 +18,12 @@ class MoreScreen extends ConsumerStatefulWidget {
 
 class MoreScreenState extends ConsumerState<MoreScreen> {
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final l10n = l10nLocalizations(context);
-    if (l10n == null) return const SizedBox.shrink();
+    final l10n = l10nLocalizations(context)!;
     final hiddenItems = ref.watch(hideItemsStateProvider);
     return Scaffold(
       body: SingleChildScrollView(
+        padding: tvPageInsets,
         child: Column(
           children: [
             SizedBox(height: AppBar().preferredSize.height),
@@ -64,6 +60,16 @@ class MoreScreenState extends ConsumerState<MoreScreen> {
                 icon: Icons.history,
                 title: l10n.history,
               ),
+            // Downloads are hidden on TV: no offline use case, and the download
+            // buttons are hidden there too, so a queue entry would just dangle.
+            if (!isTv)
+              ListTileWidget(
+                onTap: () {
+                  context.push('/downloadQueue');
+                },
+                icon: Icons.download_outlined,
+                title: l10n.download_queue,
+              ),
             ListTileWidget(
               onTap: () {
                 context.push('/cloudDrives');
@@ -71,20 +77,26 @@ class MoreScreenState extends ConsumerState<MoreScreen> {
               icon: Icons.cloud_outlined,
               title: l10n.cloud_drive_management,
             ),
-            ListTileWidget(
-              onTap: () {
-                context.push('/updates');
-              },
-              icon: Icons.new_releases_outlined,
-              title: l10n.updates,
-            ),
-            ListTileWidget(
-              onTap: () {
-                context.push('/downloadQueue');
-              },
-              icon: Icons.download_outlined,
-              title: l10n.download_queue,
-            ),
+            // Mass migration is otherwise only reachable from a manga's
+            // overflow menu, which the TV detail view does not have. It is a
+            // library-wide tool anyway: it lists every source in the library,
+            // and only uses a manga to float that source to the top. Seeded
+            // with anime because the TV build is anime-first; the per-source
+            // shortcut on the TV detail view covers the other libraries.
+            // Mass migration is otherwise only reachable from a manga's overflow
+            // menu, which the TV anime detail lacks. It is a library-wide tool
+            // (lists every source in the library), seeded with anime here since
+            // the TV build is anime-first; the TV detail's per-source shortcut
+            // covers the other libraries.
+            if (isTv)
+              ListTileWidget(
+                onTap: () => context.push(
+                  '/massMigration',
+                  extra: (ItemType.anime, null),
+                ),
+                icon: Icons.swap_horiz,
+                title: l10n.mass_migration_title,
+              ),
             ListTileWidget(
               onTap: () {
                 context.push('/categories', extra: (false, 0));
