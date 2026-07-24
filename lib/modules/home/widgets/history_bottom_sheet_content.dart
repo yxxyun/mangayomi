@@ -73,13 +73,15 @@ class _HistoryBottomSheetContentState
               if (entries.isEmpty) {
                 return Center(child: Text(l10n.nothing_read_recently));
               }
+              final reversed = entries.reversed.toList();
               return ListView.builder(
                 controller: widget.scrollController,
-                itemCount: entries.length,
+                itemCount: reversed.length,
                 itemBuilder: (context, index) {
-                  final element = entries[index];
-                  final chapter = element.chapter.value!;
-                  final manga = chapter.manga.value!;
+                  final element = reversed[index];
+                  final chapter = element.chapter.value;
+                  final manga = chapter?.manga.value;
+                  if (chapter == null || manga == null) return const SizedBox.shrink();
                   return _HistoryItem(
                     manga: manga,
                     chapter: chapter,

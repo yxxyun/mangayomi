@@ -140,8 +140,9 @@ class _HistoryTabState extends ConsumerState<HistoryTab>
                   ),
                 ),
                 itemBuilder: (context, History element) {
-                  final chapter = element.chapter.value!;
-                  final manga = chapter.manga.value!;
+                  final chapter = element.chapter.value;
+                  final manga = chapter?.manga.value;
+                  if (chapter == null || manga == null) return const SizedBox.shrink();
                   return ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.all(0),

@@ -26,7 +26,7 @@ Future<dynamic> updateMangaDetail(
     manga.chapters.loadSync();
 
     if ((manga.isLocalArchive ?? false) ||
-        (manga.chapters.isNotEmpty && isInit)) {
+        (manga.chapters.isNotEmpty && isInit && !(manga.source == '玩偶哥哥'))) {
       return;
     }
     final source = getSource(
@@ -82,9 +82,27 @@ Future<dynamic> updateMangaDetail(
 
       if (chaps == null || chaps.isEmpty) return;
 
+      // For built-in sources: delete all old chapters first (URL encodes
+      // ephemeral tokens — duplicates are created on every refresh).
+      // But preserve playback progress by name.
+      final Map<String, Chapter> oldByName = {};
+      final isBuiltIn = manga.source == '玩偶哥哥';
+      if (isBuiltIn) {
+        final oldChapters = manga.chapters.toList();
+        final oldIds = oldChapters.map((c) => c.id!).toList();
+        for (final c in oldChapters) {
+          if (c.name != null) oldByName[c.name!] = c;
+        }
+        if (oldIds.isNotEmpty) {
+          await isar.chapters.deleteAll(oldIds);
+        }
+      }
+
       // loadSync() was called before the transaction; the set is still valid
       // here because we haven't written to chapters yet.
-      final existingChapters = manga.chapters.toList();
+      final existingChapters = isBuiltIn
+          ? <Chapter>[]
+          : manga.chapters.toList();
       final existingByUrl = <String, Chapter>{
         for (final c in existingChapters)
           if (c.url?.isNotEmpty == true) c.url!.trim(): c,
@@ -139,6 +157,15 @@ Future<dynamic> updateMangaDetail(
           if (alreadyRead) {
             newChapter.isRead = alreadyRead;
             newChapter.lastPageRead = "1";
+          }
+          // For built-in sources: carry over playback progress by name.
+          if (isBuiltIn && chap.name != null) {
+            final old = oldByName[chap.name!];
+            if (old != null) {
+              if (old.isRead == true) newChapter.isRead = true;
+              if (old.lastPageRead != null) newChapter.lastPageRead = old.lastPageRead;
+              if (old.isBookmarked == true) newChapter.isBookmarked = true;
+            }
           }
 
           newChapters.add(newChapter);

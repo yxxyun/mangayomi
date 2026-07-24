@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/video.dart';
@@ -15,7 +16,15 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:path/path.dart' as p;
 
 import '../models/source.dart';
+
 part 'get_video_list.g.dart';
+
+void _diag(String msg) {
+  try {
+    final f = File('${Directory.systemTemp.path}/mangayomi_diag.log');
+    f.writeAsStringSync('${DateTime.now()}: $msg\n', mode: FileMode.append);
+  } catch (_) {}
+}
 
 @riverpod
 Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
@@ -69,17 +78,23 @@ Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
         mpvDirectory,
       );
     }
+    _diag('getVideoList: mangaId=${episode.mangaId}, manga=${episode.manga.value?.name}, source=${episode.manga.value?.source}, lang=${episode.manga.value?.lang}');
     final source = getSource(
       episode.manga.value!.lang!,
       episode.manga.value!.source!,
       episode.manga.value!.sourceId,
     );
+    _diag('getVideoList: resolved source=${source?.name}, isBuiltIn=${source != null ? BuiltInSources.isBuiltIn(source) : "N/A"}');
 
     // Built-in sources: run in main isolate (no worker isolate HTTP issues).
     if (source != null && BuiltInSources.isBuiltIn(source)) {
       final bi = BuiltInSources.getForSource(source)!;
       if (bi.nameId == 'wogg') {
         final videos = await WoggService.getVideoList(episode.url!);
+        _diag('getVideoList WOGG: ${videos.length} videos');
+        for (int i = 0; i < videos.length && i < 3; i++) {
+          _diag('  video[$i]: url=${videos[i].url.substring(0, videos[i].url.length.clamp(0, 80))}, quality=${videos[i].quality}, headers=${videos[i].headers}');
+        }
         keepAlive.close();
         return (videos, false, infoHashes, mpvDirectory);
       }

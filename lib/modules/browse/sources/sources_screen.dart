@@ -73,6 +73,12 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
                     label: Text(context.l10n.show_extensions),
                   ),
                 ),
+                // Show built-in sources even when no extensions installed.
+                for (final bi in BuiltInSources.all.where((s) => s.itemType == widget.itemType))
+                  SourceListTile(
+                    source: bi.toSource(),
+                    itemType: widget.itemType,
+                  ),
                 Padding(
                   padding: const EdgeInsets.only(left: 12),
                   child: Row(
@@ -252,11 +258,6 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
                         ),
                         itemType: widget.itemType,
                       ),
-                      for (final bi in BuiltInSources.all.where((s) => s.itemType == widget.itemType))
-                        SourceListTile(
-                          source: bi.toSource(),
-                          itemType: widget.itemType,
-                        ),
                     ],
                   ),
                 ),

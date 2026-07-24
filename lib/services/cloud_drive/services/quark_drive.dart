@@ -98,19 +98,13 @@ class QuarkDriveService implements CloudDriveService {
 
   @override
   Future<void> initialize() async {
-    // Note: Hive is not available in the QuickJS bridge context.
-    // The CloudCookieManager path is tried first but may throw — that's OK,
-    // because _readSharedCookie() provides the fallback.
     CloudDriveAccount? saved;
     try {
       saved = await CloudCookieManager.getAccount(CloudDriveType.quark);
-    } catch (_) {
-      // Hive not available — will use shared file below.
-    }
+    } catch (_) {}
     if (saved != null) {
       _account = saved;
     }
-    _readSharedCookie();
     final cookie = _account.cookie;
     if (cookie != null && cookie.isNotEmpty) {
       await _setCookiesIfChanged(cookie);
@@ -120,8 +114,6 @@ class QuarkDriveService implements CloudDriveService {
   @override
   Future<bool> loginByCookie(String cookie) async {
     if (cookie.isEmpty) return false;
-
-    await _setCookiesIfChanged(cookie);
 
     // Verify by hitting a simple API endpoint.
     try {
@@ -137,9 +129,7 @@ class QuarkDriveService implements CloudDriveService {
     _account.cookie = cookie;
     _account.isLoggedIn = true;
     _account.lastLoginAt = DateTime.now();
-    _writeSharedCookie();
     await CloudCookieManager.saveAccount(_account);
-
     return true;
   }
 
@@ -214,6 +204,9 @@ class QuarkDriveService implements CloudDriveService {
   @override
   Future<List<CloudDriveFile>> getFilesByShareUrl(String url) async {
     _diag('QUARK_getFiles: $url');
+    // Clear stale caches — the save dir will be rebuilt for this share.
+    _saveFileIdCache.clear();
+    _saveDirId = null;
     final shareData = parseShareUrl(url);
     if (shareData == null) {
       stdout.writeln('[CD_Q] parseShareUrl null');
@@ -274,11 +267,12 @@ class QuarkDriveService implements CloudDriveService {
     required String fileId,
     required String fileToken,
   }) async {
-    if (!_saveFileIdCache.containsKey(fileId)) {
-      final savedId = await _save(shareId, stoken, fileId, fileToken, true);
-      if (savedId == null) return [];
-      _saveFileIdCache[fileId] = savedId;
-    }
+    _diag('getLiveTranscoding: fileId=$fileId, shareId=$shareId');
+    // Always save — cached file IDs may be stale (files were deleted by a previous clean:true).
+    final savedId = await _save(shareId, stoken, fileId, fileToken, true);
+    _diag('getLiveTranscoding: _save returned ${savedId ?? "NULL"}');
+    if (savedId == null) return [];
+    _saveFileIdCache[fileId] = savedId;
 
     final result = await _api(
       'file/v2/play?$_pr',
@@ -290,11 +284,15 @@ class QuarkDriveService implements CloudDriveService {
       'post',
     );
 
+    _diag('getLiveTranscoding: result keys=${result.keys}, data=${result["data"] != null ? "exists" : "null"}');
+
     if (result['data'] == null || result['data']['video_list'] == null) {
+      _diag('getLiveTranscoding: video_list is null or empty');
       return [];
     }
 
     final list = result['data']['video_list'] as List;
+    _diag('getLiveTranscoding: video_list has ${list.length} items');
     return list.map((v) {
       final info = v['video_info'] as Map<String, dynamic>;
       return QualityOption(
@@ -333,7 +331,7 @@ class QuarkDriveService implements CloudDriveService {
   /// No-save download: acquire a direct download token for a shared file
   /// without first saving it to personal drive.
   ///
-  /// This mirrors the `getUrl()` + `getToken()` flow from quark.js
+  /// This mirrors the `getUrl() + getToken()` flow from quark.js
   /// (the "unlimited speed" download channel using the social API).
   Future<Map<String, dynamic>?> getUrl({
     required String shareId,
@@ -342,46 +340,65 @@ class QuarkDriveService implements CloudDriveService {
     required String fileToken,
   }) async {
     const socialBase = 'https://drive-social-api.quark.cn/1/clouddrive/';
+    final cookie = await _getCurrentCookie();
 
-    // Step 1: Get acquire_dl_token from the social API
-    // (same as quark.js getToken())
-    final t = (DateTime.now().millisecondsSinceEpoch / 1000).floor().toString();
-    final convId = '300000$t';
-    final msgId = '${t}000';
+    // Headers matching drpy-node's getUrl/getToken exactly.
+    final socialHeaders = <String, String>{
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) quark-cloud-drive/3.20.0 Chrome/112.0.5615.165 Electron/24.1.3.8 Safari/537.36 Channel/pckk_other_ch',
+      'Connection': 'keep-alive',
+      'Accept': '*/*,application/json;charset=utf-8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Content-Type': 'application/json',
+      'origin': 'https://pan.quark.cn',
+      'referer': 'https://pan.quark.cn/',
+      'Cookie': cookie,
+    };
 
-    final tokenResult = await _api(
-      'chat/conv/file/acquire_dl_token?pr=ucpro&fr=pc&sys=win32',
-      {
-        'conversation_id': convId,
-        'conversation_type': 3,
-        'msg_id': msgId,
-      },
-      'post',
-      baseUrl: socialBase,
-    );
+    final client = http.Client();
+    try {
+      // Step 1: acquire_dl_token (getToken).
+      final t = (DateTime.now().millisecondsSinceEpoch / 1000).floor().toString();
+      final tokenResp = await client
+          .post(
+            Uri.parse('${socialBase}chat/conv/file/acquire_dl_token?pr=ucpro&fr=pc&sys=win32'),
+            headers: socialHeaders,
+            body: jsonEncode({
+              'conversation_id': '300000$t',
+              'conversation_type': 3,
+              'msg_id': '${t}000',
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (tokenResp.statusCode != 200) return null;
+      final tokenData = jsonDecode(tokenResp.body);
+      final token = tokenData['data']?['token'] as String?;
+      if (token == null || token.isEmpty) return null;
 
-    final token = tokenResult['data']?['token'] as String?;
-    if (token == null || token.isEmpty) return null;
-
-    // Step 2: Get download URL using the token
-    // (same as quark.js getUrl())
-    final downResult = await _api(
-      'file/download?pr=ucpro&fr=pc',
-      {
-        'fids': [fileId],
-        'fids_token': [fileToken],
-        'pwd_id': shareId,
-        'stoken': stoken,
-        'speedup_session': '',
-        'token': token,
-      },
-      'post',
-    );
-
-    final dataList = downResult['data'] as List?;
-    if (dataList == null || dataList.isEmpty) return null;
-
-    return Map<String, dynamic>.from(dataList[0] as Map);
+      // Step 2: Get download URL (getUrl).
+      final downResp = await client
+          .post(
+            Uri.parse('https://drive-pc.quark.cn/1/clouddrive/file/download?pr=ucpro&fr=pc'),
+            headers: socialHeaders,
+            body: jsonEncode({
+              'fids': [fileId],
+              'fids_token': [fileToken],
+              'pwd_id': shareId,
+              'stoken': stoken,
+              'speedup_session': '',
+              'token': token,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (downResp.statusCode != 200) return null;
+      final downData = jsonDecode(downResp.body);
+      final dataList = downData['data'] as List?;
+      if (dataList == null || dataList.isEmpty) return null;
+      return Map<String, dynamic>.from(dataList[0] as Map);
+    } catch (_) {
+      return null;
+    } finally {
+      client.close();
+    }
   }
 
   // ── Interface: videos ──────────────────────────────────────────────
@@ -412,18 +429,23 @@ class QuarkDriveService implements CloudDriveService {
       fileToken: shareFileToken,
     );
 
-    final headers = await _getHeadersAsync();
-    headers.remove('Content-Type');
+    // Video playback headers: only Cookie (matching drpy-node).
+    final videoHeaders = <String, String>{};
+    final videoCookie = await _getCurrentCookie();
+    if (videoCookie.isNotEmpty) {
+      videoHeaders['Cookie'] = videoCookie;
+    }
 
     if (qualityOptions.isNotEmpty) {
       final originalUrl = qualityOptions.first.url;
+      _diag('getVideos: qualityOptions=${qualityOptions.length}, first URL=${originalUrl.substring(0, originalUrl.length.clamp(0, 100))}');
 
       for (final q in qualityOptions) {
         videos.add(Video(
           q.url,
           q.quality,
           originalUrl,
-          headers: Map<String, String>.from(headers),
+          headers: Map<String, String>.from(videoHeaders),
         ));
       }
     } else {
@@ -440,7 +462,7 @@ class QuarkDriveService implements CloudDriveService {
           url,
           'original',
           url,
-          headers: Map<String, String>.from(headers),
+          headers: Map<String, String>.from(videoHeaders),
         ));
       }
     }
@@ -701,7 +723,7 @@ class QuarkDriveService implements CloudDriveService {
       if (effectiveStoken.isEmpty) return null;
     }
 
-    final saveResult = await _api('share/sharepage/save?$_pr', {
+    var saveResult = await _api('share/sharepage/save?$_pr', {
       'fid_list': [fileId],
       'fid_token_list': [fileToken],
       'to_pdir_fid': _saveDirId,
@@ -710,6 +732,24 @@ class QuarkDriveService implements CloudDriveService {
       'pdir_fid': '0',
       'scene': 'link',
     }, 'post');
+
+    // Retry with fresh token if first attempt failed.
+    if (saveResult['data'] == null || saveResult['data']['task_id'] == null) {
+      _diag('_save: first attempt failed, retrying with fresh token');
+      _shareTokenCache.remove(shareId);
+      await getShareToken(ShareData(shareId: shareId));
+      effectiveStoken = _shareTokenCache[shareId]?['stoken'] ?? '';
+      if (effectiveStoken.isEmpty) return null;
+      saveResult = await _api('share/sharepage/save?$_pr', {
+        'fid_list': [fileId],
+        'fid_token_list': [fileToken],
+        'to_pdir_fid': _saveDirId,
+        'pwd_id': shareId,
+        'stoken': effectiveStoken,
+        'pdir_fid': '0',
+        'scene': 'link',
+      }, 'post');
+    }
 
     if (saveResult['data'] != null &&
         saveResult['data']['task_id'] != null) {
@@ -740,12 +780,13 @@ class QuarkDriveService implements CloudDriveService {
 
   // ── Internal: cookie helpers ───────────────────────────────────────
 
-  /// Read cookie from Isar async — safe for worker isolates.
-  /// Sync getSync() deadlocks; async get() does not.
+  /// Read cookie from CloudCookieManager (Hive).
   Future<String> _getCurrentCookie() async {
     try {
-      final cookieMap = await MClient.getCookiesPrefAsync(_host);
-      if (cookieMap.isNotEmpty) return cookieMap.values.first;
+      final account = await CloudCookieManager.getAccount(CloudDriveType.quark);
+      if (account != null && account.cookie != null && account.cookie!.isNotEmpty) {
+        return account.cookie!;
+      }
     } catch (_) {}
     return '';
   }
@@ -764,10 +805,7 @@ class QuarkDriveService implements CloudDriveService {
       'Referer': _refererUrl,
       'Content-Type': 'application/json',
     };
-    final cookie = await _getCurrentCookie();
-    if (cookie.isNotEmpty) {
-      headers['Cookie'] = cookie;
-    }
+    headers['Cookie'] = await _getCurrentCookie();
     return headers;
   }
 
@@ -812,7 +850,7 @@ class QuarkDriveService implements CloudDriveService {
 
       _diag('QUARK_API response: ${resp.statusCode} for $url');
 
-      // Handle set-cookie: refresh __puus
+      // Handle set-cookie: refresh __puus (update both Hive and Isar).
       final setCookie = resp.headers['set-cookie'];
       if (setCookie != null) {
         for (final part in setCookie.split(RegExp(r'[;,]'))) {
@@ -823,7 +861,11 @@ class QuarkDriveService implements CloudDriveService {
               currentCookie = currentCookie.replaceFirst(
                 RegExp(r'__puus=[^;]+'), newPuus,
               );
-              unawaited(MClient.setCookie(_host, _userAgent, null, cookie: currentCookie));
+              final account = await CloudCookieManager.getAccount(CloudDriveType.quark);
+              if (account != null) {
+                account.cookie = currentCookie;
+                await CloudCookieManager.saveAccount(account);
+              }
             }
           }
         }

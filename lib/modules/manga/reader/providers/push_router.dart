@@ -5,11 +5,18 @@ import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/source.dart';
+import 'package:mangayomi/services/built_in_sources.dart';
 
 Future<void> pushMangaReaderView({
   required BuildContext context,
   required Chapter chapter,
 }) async {
+  // Built-in sources are always accessible.
+  final isBuiltIn = BuiltInSources.isBuiltIn(Source(
+    name: chapter.manga.value!.source!,
+    lang: chapter.manga.value!.lang!,
+    itemType: chapter.manga.value!.itemType,
+  ));
   final sourceExist = isar.sources
       .filter()
       .langContains(chapter.manga.value!.lang!, caseSensitive: false)
@@ -23,7 +30,7 @@ Future<void> pushMangaReaderView({
       .isAddedEqualTo(true)
       .findAllSync()
       .isNotEmpty;
-  if (sourceExist || chapter.manga.value!.isLocalArchive!) {
+  if (isBuiltIn || sourceExist || chapter.manga.value!.isLocalArchive!) {
     switch (chapter.manga.value!.itemType) {
       case ItemType.manga:
         await context.push('/mangaReaderView', extra: chapter.id!);

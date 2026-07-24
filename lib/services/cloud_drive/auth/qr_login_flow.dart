@@ -1,6 +1,14 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/cloud_drive/models/cloud_drive_type.dart';
+
+void _qrDiag(String msg) {
+  try {
+    final f = File('${Directory.systemTemp.path}/mangayomi_qr.log');
+    f.writeAsStringSync('${DateTime.now()}: $msg\n', mode: FileMode.append);
+  } catch (_) {}
+}
 
 /// Result of a QR login flow step.
 class QrLoginResult {
@@ -107,12 +115,14 @@ class QrLoginFlow {
   }
 
   static Future<QrLoginResult> _checkQuarkStatus(Map<String, dynamic> state) async {
+    _qrDiag('_checkQuarkStatus called');
     final client = MClient.init(reqcopyWith: {'useDartHttpClient': true});
+    _qrDiag('_checkQuarkStatus MClient.init done');
     final token = state['token'] as String;
     final requestId = state['request_id'] as String;
-    // Cookies from the start scan (must be sent with subsequent requests)
     final startCookies = state['startCookies'] as String? ?? '';
 
+    _qrDiag('_checkQuarkStatus polling request_id=$requestId token=${token.substring(0, token.length.clamp(0, 20))}...');
     final res = await client.get(
       Uri.parse('https://uop.quark.cn/cas/ajax/getServiceTicketByQrcodeToken?request_id=$requestId&client_id=532&v=1.2&token=$token'),
       headers: {
@@ -121,7 +131,9 @@ class QrLoginFlow {
         if (startCookies.isNotEmpty) 'Cookie': startCookies,
       },
     );
+    _qrDiag('_checkQuarkStatus response status=${res.statusCode} body=${res.body.substring(0, res.body.length.clamp(0, 200))}');
     final data = jsonDecode(res.body);
+    _qrDiag('_checkQuarkStatus data status=${data['status']}');
     final status = data['status'];
     if (status == 2000000) {
       // Scanned — exchange serviceTicket for cookies
@@ -129,6 +141,7 @@ class QrLoginFlow {
       if (ticket == null) return const QrLoginResult(status: 'NEW');
       // Build combined cookie from all sources
       final combinedCookie = StringBuffer(startCookies.isNotEmpty ? '$startCookies; ' : '');
+      _qrDiag('_checkQuarkStatus exchanging ticket=$ticket for cookies...');
       final cookieRes = await client.get(
         Uri.parse('https://pan.quark.cn/account/info?st=$ticket&lw=scan'),
         headers: {
@@ -138,10 +151,13 @@ class QrLoginFlow {
         },
       );
       // ignore: avoid_print
+      _qrDiag('_checkQuarkStatus /account/info status=${cookieRes.statusCode} set-cookie=${cookieRes.headers['set-cookie']?.substring(0, (cookieRes.headers['set-cookie']?.length ?? 200).clamp(0, 200))}');
       print('[QR_COOKIE] /account/info status=${cookieRes.statusCode} set-cookie=${cookieRes.headers['set-cookie']?.substring(0, (cookieRes.headers['set-cookie']?.length ?? 200).clamp(0, 200))}');
       final exchangeCookies = _extractSetCookie(cookieRes.headers);
+      _qrDiag('_checkQuarkStatus exchangeCookies=${exchangeCookies?.substring(0, exchangeCookies?.length.clamp(0, 100) ?? 0)}');
       if (exchangeCookies != null) combinedCookie.write(exchangeCookies);
       // Second request to get drive-specific cookies
+      _qrDiag('_checkQuarkStatus fetching drive cookies from drive-pc.quark.cn...');
       final driveRes = await client.get(
         Uri.parse(
           'https://drive-pc.quark.cn/1/clouddrive/file/sort?pr=ucpro&fr=pc&pdir_fid=0&_page=1&_size=50&_sort=file_type:asc,updated_at:desc',
@@ -155,6 +171,7 @@ class QrLoginFlow {
         },
       );
       // ignore: avoid_print
+      _qrDiag('_checkQuarkStatus drive sort status=${driveRes.statusCode} set-cookie=${driveRes.headers['set-cookie']?.substring(0, (driveRes.headers['set-cookie']?.length ?? 200).clamp(0, 200))}');
       print('[QR_COOKIE] drive sort status=${driveRes.statusCode} set-cookie=${driveRes.headers['set-cookie']?.substring(0, (driveRes.headers['set-cookie']?.length ?? 200).clamp(0, 200))}');
       final driveCookies = _extractSetCookie(driveRes.headers);
       if (driveCookies != null) combinedCookie.write('; $driveCookies');
