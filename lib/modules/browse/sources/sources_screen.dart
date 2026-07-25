@@ -29,13 +29,13 @@ final getSourcesStreamProvider = StreamProvider.family<List<Source>, ItemType>((
 });
 
 class SourcesScreen extends ConsumerStatefulWidget {
-  final Function(int) tabIndex;
-  final List<BrowseTab> tabs;
+  final Function(int)? tabIndex;
+  final List<BrowseTab>? tabs;
   final ItemType itemType;
   const SourcesScreen({
-    required this.tabIndex,
+    this.tabIndex,
     required this.itemType,
-    required this.tabs,
+    this.tabs,
     super.key,
   });
 
@@ -113,23 +113,24 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
                   padding: const EdgeInsets.all(8.0),
                   child: Text(context.l10n.no_sources_installed),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      final extensionIndex = widget.tabs.indexWhere(
-                        (t) =>
-                            t.type == widget.itemType &&
-                            t.kind == BrowseTabKind.extensions,
-                      );
-                      if (extensionIndex != -1) {
-                        widget.tabIndex(extensionIndex);
-                      }
-                    },
-                    icon: const Icon(Icons.extension_rounded),
-                    label: Text(context.l10n.show_extensions),
+                if (widget.tabs != null && widget.tabIndex != null)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final extensionIndex = widget.tabs!.indexWhere(
+                          (t) =>
+                              t.type == widget.itemType &&
+                              t.kind == BrowseTabKind.extensions,
+                        );
+                        if (extensionIndex != -1) {
+                          widget.tabIndex!(extensionIndex);
+                        }
+                      },
+                      icon: const Icon(Icons.extension_rounded),
+                      label: Text(context.l10n.show_extensions),
+                    ),
                   ),
-                ),
                 // Show built-in sources even when no extensions installed.
                 for (final bi in BuiltInSources.all.where((s) => s.itemType == widget.itemType))
                   SourceListTile(

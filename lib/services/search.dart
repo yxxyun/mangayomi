@@ -9,6 +9,7 @@ import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/services/isolate_service.dart';
+import 'package:mangayomi/services/jmcomic/jmcomic_service.dart';
 import 'package:mangayomi/services/wogg/wogg_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'search.g.dart';
@@ -51,8 +52,7 @@ Future<MPages?> search(
       try {
         List<Map<String, String>> items;
         if (query.isEmpty && filterList.isNotEmpty) {
-          // Category browsing: extract the selected category value.
-          String category = '1'; // Default to 电影.
+          String category = '1';
           for (final f in filterList) {
             if (f is SelectFilter && f.type == 'categories') {
               final selected = f.values[f.state] as SelectFilterOption;
@@ -75,6 +75,39 @@ Future<MPages?> search(
         return MPages(list: [], hasNextPage: false);
       } finally {
         woggService.dispose();
+      }
+    } else if (bi.nameId == 'jmcomic') {
+      final jmcomicService = JmcomicService(baseUrl: bi.baseUrl);
+      try {
+        List<Map<String, String>> items;
+        if (query.isEmpty && filterList.isNotEmpty) {
+          String category = 'all';
+          for (final f in filterList) {
+            if (f is SelectFilter && f.type == 'categories') {
+              final selected = f.values[f.state] as SelectFilterOption;
+              category = selected.value;
+            }
+          }
+          if (category == 'all') {
+            items = await jmcomicService.getLatestUpdates(page);
+          } else {
+            items = await jmcomicService.getCategoryList(category, page);
+          }
+        } else {
+          items = await jmcomicService.search(query, page);
+        }
+        final result = items
+            .map((e) => MManga(
+                  name: e['name'],
+                  imageUrl: e['imageUrl'],
+                  link: e['link'],
+                ))
+            .toList();
+        return MPages(list: result, hasNextPage: true);
+      } catch (e) {
+        return MPages(list: [], hasNextPage: false);
+      } finally {
+        jmcomicService.dispose();
       }
     }
   }

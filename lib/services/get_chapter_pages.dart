@@ -3,7 +3,9 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:mangayomi/modules/manga/reader/u_chap_data_preload.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
+import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/services/isolate_service.dart';
+import 'package:mangayomi/services/jmcomic/jmcomic_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:mangayomi/eval/javascript/http.dart';
 import 'package:mangayomi/main.dart';
@@ -76,12 +78,26 @@ Future<GetChapterPagesModel> getChapterPages(
           pageUrls.add(PageUrl(isarPageUrls.urls![i], headers: headers));
         }
       } else {
-        pageUrls = await getIsolateService.get<List<PageUrl>>(
-          url: chapter.url!,
-          source: source,
-          serviceType: 'getPageList',
-          proxyServer: ref.read(androidProxyServerStateProvider),
-        );
+        // Built-in manga sources: bypass isolate service to avoid Isar deadlock.
+        if (BuiltInSources.isBuiltIn(source)) {
+          final bi = BuiltInSources.getForSource(source)!;
+          if (bi.nameId == 'jmcomic') {
+            final jmcomicService = JmcomicService(baseUrl: bi.baseUrl);
+            try {
+              pageUrls = await jmcomicService.getPageList(chapter.url!);
+            } finally {
+              jmcomicService.dispose();
+            }
+          }
+        }
+        if (pageUrls.isEmpty) {
+          pageUrls = await getIsolateService.get<List<PageUrl>>(
+            url: chapter.url!,
+            source: source,
+            serviceType: 'getPageList',
+            proxyServer: ref.read(androidProxyServerStateProvider),
+          );
+        }
       }
     }
 

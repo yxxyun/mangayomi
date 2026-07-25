@@ -49,8 +49,19 @@ class BuiltInSources {
     itemType: ItemType.anime,
   );
 
+  static const jmcomic = BuiltInSource(
+    nameId: 'jmcomic',
+    name: '禁漫天堂',
+    lang: 'zh',
+    baseUrl: 'https://www.jmeadpoolcdn.life',
+    iconUrl:
+        'https://cdn-msp.jmapiproxy3.cc/media/albums/511146_3x4.jpg',
+    itemType: ItemType.manga,
+    isNsfw: true,
+  );
+
   /// All built-in sources.
-  static const all = [wogg];
+  static const all = [wogg, jmcomic];
 
   /// Lookup by [nameId].
   static BuiltInSource? findById(String nameId) {

@@ -38,10 +38,6 @@ class _TypeHomeScreenState extends ConsumerState<TypeHomeScreen>
     super.dispose();
   }
 
-  void _switchToManageTab() {
-    _tabController.animateTo(1);
-  }
-
   void _showLibrarySheet() {
     showModalBottomSheet(
       context: context,
@@ -126,7 +122,7 @@ class _TypeHomeScreenState extends ConsumerState<TypeHomeScreen>
         children: [
           SourcesScreen(
             itemType: widget.itemType,
-            onSwitchToExtensions: _switchToManageTab,
+            tabIndex: (i) => _tabController.animateTo(i),
           ),
           ExtensionScreen(
             itemType: widget.itemType,
