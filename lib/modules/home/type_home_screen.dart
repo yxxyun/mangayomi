@@ -122,7 +122,8 @@ class _TypeHomeScreenState extends ConsumerState<TypeHomeScreen>
         children: [
           SourcesScreen(
             itemType: widget.itemType,
-            tabIndex: (i) => _tabController.animateTo(i),
+            tabIndex: (i) => _tabController!.animateTo(i),
+            tabs: const [],
           ),
           ExtensionScreen(
             itemType: widget.itemType,

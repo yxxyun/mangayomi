@@ -58,7 +58,7 @@ final class GetDetailProvider
   }
 }
 
-String _$getDetailHash() => r'7eab7d00e6ad61a9bafaee855eae1f49b127af9f';
+String _$getDetailHash() => r'b63132961961ca873999d4eab0c5c4eda5e395c9';
 
 final class GetDetailFamily extends $Family
     with

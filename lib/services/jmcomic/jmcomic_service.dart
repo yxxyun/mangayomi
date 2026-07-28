@@ -3,12 +3,18 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as enc;
-import 'package:http/http.dart' as http;
 import 'package:mangayomi/eval/model/filter.dart';
 import 'package:mangayomi/eval/model/m_chapter.dart';
 import 'package:mangayomi/eval/model/m_manga.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/page.dart';
+
+void _jmDiag(String msg) {
+  try {
+    final f = File('${Directory.systemTemp.path}/mangayomi_jmcomic.log');
+    f.writeAsStringSync('${DateTime.now()}: $msg\n', mode: FileMode.append);
+  } catch (_) {}
+}
 
 /// Built-in 禁漫天堂 (jmcomic) source — 18+ manga.
 ///
@@ -16,24 +22,35 @@ import 'package:mangayomi/models/page.dart';
 /// All requests use time-based auth tokens that must match the decryption key.
 class JmcomicService {
   // Multiple fallback API domains.
+  // These are the mobile API endpoints, not the web site domain.
+  // Mobile API proxy/CDN domains (NOT the website).
+  // These are the correct endpoints for the encrypted mobile API.
   static const List<String> fallbackUrls = [
-    'https://www.jmeadpoolcdn.one',
-    'https://www.jmeadpoolcdn.life',
-    'https://www.jmapiproxyxxx.one',
-    'https://www.jmfreedomproxy.xyz',
+    'https://www.cdnhjk.net',
+    'https://www.cdngwc.cc',
+    'https://www.cdngwc.net',
+    'https://www.cdngwc.club',
+    'https://www.cdnutc.me',
   ];
 
   // CDN image base URLs (cover & page images).
   static const List<String> cdnUrls = [
+    'https://cdn-msp.jmapiproxy1.cc',
     'https://cdn-msp.jmapiproxy3.cc',
-    'https://cdn-msp3.jmapiproxy3.cc',
+    'https://cdn-msp.jmapinodeudzn.net',
+    'https://cdn-msp.jmdanjonproxy.xyz',
     'https://cdn-msp2.jmapiproxy1.cc',
-    'https://cdn-msp3.jmapiproxy3.cc',
-    'https://cdn-msp2.jmapiproxy4.cc',
     'https://cdn-msp2.jmapiproxy3.cc',
+    'https://cdn-msp2.jmapinodeudzn.net',
+    'https://cdn-msp3.jmapinodeudzn.net',
+    'https://cdn-msp3.jmapiproxy1.cc',
+    'https://cdn-msp3.jmapiproxy3.cc',
   ];
 
-  static const _jmAuthKey = '18comicAPPContent';
+  // Auth secret for standard API calls (getHeader in reference implementations).
+  static const _jmAuthKey = '18comicAPP';
+  // Decryption secret for AES-ECB encrypted response data.
+  // Used as: MD5("$time$_jmSecret") → hex → UTF-8 key bytes → AES-256.
   static const _jmSecret = '185Hcomic3PAPP7R';
   static const _jmVersion = '1.7.2';
 
@@ -42,14 +59,11 @@ class JmcomicService {
       'AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 '
       'Chrome/114.0.5735.196 Safari/537.36';
 
-  final http.Client _client;
   String _baseUrl;
 
-  JmcomicService({String? baseUrl, http.Client? client})
-      : _client = client ?? http.Client(),
-        _baseUrl = baseUrl ?? fallbackUrls[0];
+  JmcomicService({String? baseUrl}) : _baseUrl = baseUrl ?? fallbackUrls[0];
 
-  void dispose() => _client.close();
+  void dispose() {}
 
   void setBaseUrl(String url) => _baseUrl = url;
 
@@ -97,29 +111,58 @@ class JmcomicService {
   // ── HTTP ──────────────────────────────────────────────────────────
 
   /// Execute an authenticated GET request and return the decrypted JSON.
+  /// Iterates through fallbackUrls on failure.
+  /// Uses dart:io HttpClient directly to avoid Content-Type parsing issues
+  /// in http.Client() when servers send invalid headers like
+  /// "application/json; charset=utf-8;" (trailing semicolon).
   Future<dynamic> _get(String path) async {
-    final time = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final url = '$_baseUrl$path';
-    final uri = Uri.parse(url);
+    final urlsToTry = <String>[_baseUrl, ...fallbackUrls.where((u) => u != _baseUrl)];
+    dynamic lastError;
 
-    final response = await _client
-        .get(uri, headers: _authHeaders(time))
-        .timeout(const Duration(seconds: 15));
-    if (response.statusCode != 200) {
-      throw HttpException(
-        'jmcomic API error: ${response.statusCode}',
-        uri: uri,
-      );
+    for (final base in urlsToTry) {
+      try {
+        final time = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+        final url = '$base$path';
+        final uri = Uri.parse(url);
+
+        final request = await HttpClient().getUrl(uri);
+        final headers = _authHeaders(time);
+        headers.forEach((k, v) => request.headers.set(k, v));
+        final httpResponse = await request.close().timeout(const Duration(seconds: 15));
+
+        if (httpResponse.statusCode != 200) {
+          lastError = HttpException('jmcomic ${httpResponse.statusCode}', uri: uri);
+          continue;
+        }
+
+        final bodyStr = await httpResponse.transform(utf8.decoder).join();
+        final body = jsonDecode(bodyStr) as Map<String, dynamic>;
+
+        if (body['code'] is int && body['code'] != 200) {
+          lastError = Exception('jmcomic code=${body['code']}');
+          continue;
+        }
+
+        final data = body['data'] as String?;
+        if (data == null || data.isEmpty) {
+          lastError = Exception('jmcomic empty data from $base');
+          continue;
+        }
+
+        final decrypted = _decryptData(data, time);
+        final parsed = jsonDecode(decrypted);
+        _jmDiag('_get OK $base$path, decryptedType=${parsed.runtimeType}, keys=${parsed is Map ? parsed.keys.join(",") : "N/A"}');
+        return parsed;
+      } catch (e) {
+        _jmDiag('_get FAIL $path on $base: $e');
+        lastError = e;
+        // Continue to next fallback URL.
+      }
     }
 
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final data = body['data'] as String?;
-    if (data == null || data.isEmpty) {
-      throw Exception('Empty or invalid jmcomic response');
-    }
-
-    final decrypted = _decryptData(data, time);
-    return jsonDecode(decrypted);
+    // All domains failed.
+    _jmDiag('_get ALL FAILED: all $urlsToTry failed, last=$lastError');
+    throw Exception('jmcomic unreachable: $lastError');
   }
 
   // ── Comic list parser ─────────────────────────────────────────────
@@ -225,10 +268,27 @@ class JmcomicService {
     try {
       final json = await _get('/chapter?&id=$chapterId');
       final images = json['images'] as List? ?? [];
-      return images
-          .map((name) => PageUrl(_getPageUrl(name.toString(), chapterId)))
-          .toList();
+      _jmDiag('getPageList chapter=$chapterId, images=${images.length}');
+      if (images.isEmpty) {
+        _jmDiag('getPageList chapter=$chapterId, json keys=${json.keys.join(",")}');
+      }
+      final pageUrls = <PageUrl>[];
+      for (var i = 0; i < images.length; i++) {
+        final url = _getPageUrl(images[i].toString(), chapterId);
+        if (i < 3) {
+          _jmDiag('getPageList page${i}Url=$url');
+        }
+        pageUrls.add(PageUrl(
+          url,
+          headers: {
+            'Referer': 'https://jmcomic1.me/',
+            'User-Agent': _userAgent,
+          },
+        ));
+      }
+      return pageUrls;
     } catch (e) {
+      _jmDiag('getPageList chapter=$chapterId FAILED: $e');
       return [];
     }
   }
@@ -242,11 +302,14 @@ class JmcomicService {
         0,
         [
           SelectFilterOption('全部', 'all', 'SelectOption'),
-          SelectFilterOption('成人A漫', '成人A漫', 'SelectOption'),
-          SelectFilterOption('主題A漫', '主題A漫', 'SelectOption'),
-          SelectFilterOption('角色扮演', '角色扮演', 'SelectOption'),
-          SelectFilterOption('特殊PLAY', '特殊PLAY', 'SelectOption'),
-          SelectFilterOption('其他', '其他', 'SelectOption'),
+          SelectFilterOption('同人', 'doujin', 'SelectOption'),
+          SelectFilterOption('單行本', 'single', 'SelectOption'),
+          SelectFilterOption('短篇', 'short', 'SelectOption'),
+          SelectFilterOption('韓漫', 'hanman', 'SelectOption'),
+          SelectFilterOption('美漫', 'meiman', 'SelectOption'),
+          SelectFilterOption('同人cosplay', 'doujin_cosplay', 'SelectOption'),
+          SelectFilterOption('3D', '3D', 'SelectOption'),
+          SelectFilterOption('其他', 'another', 'SelectOption'),
         ],
         'SelectFilter',
       ),

@@ -261,15 +261,52 @@ class _MinSubsamplingImageState extends ConsumerState<MinSubsamplingImage> {
         img.dispose();
       }
     } catch (e) {
+      // FFI decoder failed (e.g. WebP format not supported).
+      // Fall back to ImageProvider path.
+      _cleanStream();
       if (mounted) {
-        setState(() {
-          _hasError = true;
-          _isLoading = false;
-          _loadingProgress = null;
-        });
-        widget.failedToLoadImage(true);
+        final provider = widget.data.getImageProvider(ref, true);
+        _loadFromProvider(provider);
       }
     }
+  }
+
+  Future<void> _loadFromProvider(ImageProvider provider) async {
+    _imageStream = provider.resolve(ImageConfiguration.empty);
+    _streamListener = ImageStreamListener(
+      (info, syncCall) async {
+        _cleanStream();
+        if (mounted) {
+          widget.data.decodedImage = info.image.clone();
+          setState(() {
+            _uiImage = info.image.clone();
+            _isLoading = false;
+            _hasError = false;
+            _loadingProgress = null;
+          });
+          widget.failedToLoadImage(false);
+        }
+      },
+      onChunk: (ImageChunkEvent event) {
+        if (mounted) {
+          setState(() {
+            _loadingProgress = event;
+          });
+        }
+      },
+      onError: (err, stack) {
+        _cleanStream();
+        if (mounted) {
+          setState(() {
+            _hasError = true;
+            _isLoading = false;
+            _loadingProgress = null;
+          });
+          widget.failedToLoadImage(true);
+        }
+      },
+    );
+    _imageStream!.addListener(_streamListener!);
   }
 
   @override

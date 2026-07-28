@@ -452,6 +452,9 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
   String? _resolvedFilePath;
   ImageStream? _activeImageStream;
   ImageStreamListener? _activeImageStreamListener;
+  /// Fallback ui.Image from ImageStream, used when the FFI decoder
+  /// cannot decode the cached file format (e.g. WebP on Windows).
+  ui.Image? _fallbackImage;
 
   // Gestures
   double _scaleStart = 1.0;
@@ -513,6 +516,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     widget.controller?._detach();
     _animationController.dispose();
     _tilingEngine.dispose();
+    _fallbackImage?.dispose();
     super.dispose();
   }
 
@@ -618,6 +622,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
   }
 
   Future<void> _loadFromProvider() async {
+    print('SSIV: _loadFromProvider resolvedFilePath=${widget.resolvedFilePath}');
     _cancelImageStream();
 
     if (mounted) {
@@ -630,8 +635,8 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
 
     if (widget.resolvedFilePath != null) {
       _resolvedFilePath = widget.resolvedFilePath;
-      await _initImage();
-      return;
+      if (await _tryInitImage()) return;
+      // FFI decoder failed (e.g. WebP). Fall through to ImageStream path.
     }
 
     final provider = widget.image;
@@ -639,8 +644,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     // 1. Fast path: FileImage
     if (provider is FileImage) {
       _resolvedFilePath = provider.file.path;
-      await _initImage();
-      return;
+      if (await _tryInitImage()) return;
     }
 
     // Duck-typing for ExtendedFileImageProvider (or any provider exposing a File)
@@ -648,8 +652,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
       final dynamic dynProvider = provider;
       if (dynProvider.file is File) {
         _resolvedFilePath = dynProvider.file.path;
-        await _initImage();
-        return;
+        if (await _tryInitImage()) return;
       }
     } catch (_) {}
 
@@ -663,8 +666,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
         final tempFile = File('${tempDir.path}/ssiv_cache_$cacheKey.png');
         await tempFile.writeAsBytes(bytes, flush: true);
         _resolvedFilePath = tempFile.path;
-        await _initImage();
-        return;
+        if (await _tryInitImage()) return;
       }
     } catch (_) {}
 
@@ -681,12 +683,12 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
       final cachedFile = await _findCachedFile(networkUrl, cacheFolderName);
       if (cachedFile != null) {
         _resolvedFilePath = cachedFile.path;
-        await _initImage();
-        return;
+        if (await _tryInitImage()) return;
       }
     }
 
     // 4. General path: resolution via ImageStream
+    print('SSIV: falling back to ImageStream for $networkUrl');
     final completer = Completer<ui.Image>();
 
     final stream = provider.resolve(ImageConfiguration.empty);
@@ -694,11 +696,13 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
 
     final listener = ImageStreamListener(
       (ImageInfo info, bool _) {
+        print('SSIV: ImageStream onResult success url=$networkUrl');
         if (!completer.isCompleted) {
           completer.complete(info.image);
         }
       },
       onError: (Object e, StackTrace? st) {
+        print('SSIV: ImageStream onResult ERROR url=$networkUrl e=$e');
         if (!completer.isCompleted) {
           completer.completeError(e, st ?? StackTrace.empty);
         }
@@ -715,43 +719,38 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
 
     try {
       final ui.Image loadedImage = await completer.future;
+      print('SSIV: ImageStream completer resolved url=$networkUrl');
+      _fallbackImage = loadedImage;
       _cancelImageStream();
 
       if (!mounted) return;
 
-      // If it was a network provider, it probably wrote the image to disk during loading.
-      // We re-check the cache before doing the heavy re-encoding fallback.
+      // Initialise tile dimensions from the decoded ImageStream result.
+      _sWidth = widget.srcRect != null
+          ? widget.srcRect!.width.toInt()
+          : loadedImage.width;
+      _sHeight = widget.srcRect != null
+          ? widget.srcRect!.height.toInt()
+          : loadedImage.height;
+
+      // Try the fast file-based init first (supports JPEG already cached).
       if (networkUrl != null) {
         final cachedFile = await _findCachedFile(networkUrl, cacheFolderName);
         if (cachedFile != null) {
           _resolvedFilePath = cachedFile.path;
-          await _initImage();
-          return;
+          if (await _tryInitImage()) return;
+          // FFI decoder failed on cached WebP. Tile loading will fall
+          // back to [_fallbackImage].
         }
       }
 
-      // Fallback: Encode the image to PNG to save it to disk
-      final byteData = await loadedImage.toByteData(
-        format: ui.ImageByteFormat.png,
-      );
-      if (byteData == null) {
-        throw Exception('Failed to convert image to PNG bytes');
-      }
-
-      final bytes = byteData.buffer.asUint8List();
-
-      // Uses the platform's temporary directory
-      final tempDir = await getTemporaryDirectory();
-      final cacheKey = provider.hashCode.abs();
-      final tempFile = File('${tempDir.path}/ssiv_cache_$cacheKey.png');
-      await tempFile.writeAsBytes(bytes, flush: true);
-
-      _resolvedFilePath = tempFile.path;
-
-      if (mounted) {
-        await _initImage();
+      // Initialise the tile engine directly from ImageStream dimensions.
+      if (mounted && _viewSize.width > 0 && _viewSize.height > 0) {
+        _setupInitialViewState();
+        if (mounted) setState(() => _loadState = LoadState.completed);
       }
     } catch (e, st) {
+      print('SSIV: _loadFromProvider CATCH url=$networkUrl e=$e');
       if (kDebugMode) {
         debugPrint('SubsamplingScaleImageView: Failed to load image: $e\n$st');
       }
@@ -912,6 +911,35 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
 
   // ── Initialization ──────────────────────────────────────────────────────────
 
+  /// Tries to initialize using the FFI decoder.
+  /// Returns `true` on success, `false` if the file format is unsupported (e.g. WebP).
+  Future<bool> _tryInitImage() async {
+    final path = _resolvedFilePath;
+    if (path == null) return false;
+    try {
+      final outSize = await ffiImageDecoder.getImageDimensionsAsync(
+        path,
+        cropBorders: widget.cropBorders,
+      );
+      if (outSize == null || outSize[0] == 0 || outSize[1] == 0) {
+        return false;
+      }
+      _sWidth = widget.srcRect != null
+          ? widget.srcRect!.width.toInt()
+          : outSize[0];
+      _sHeight = widget.srcRect != null
+          ? widget.srcRect!.height.toInt()
+          : outSize[1];
+      if (mounted && _viewSize.width > 0 && _viewSize.height > 0) {
+        _setupInitialViewState();
+        if (mounted) setState(() => _loadState = LoadState.completed);
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _initImage() async {
     final path = _resolvedFilePath;
     if (path == null) return;
@@ -944,12 +972,9 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
         ? widget.srcRect!.height.toInt()
         : outSize[1];
 
-    if (widget.preloadData != null) {
-      widget.preloadData!.resolvedFilePath = path;
-    }
-
     if (mounted && _viewSize.width > 0 && _viewSize.height > 0) {
       _setupInitialViewState();
+      if (mounted) setState(() => _loadState = LoadState.completed);
     }
   }
 
@@ -1165,6 +1190,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     ffiImageDecoder.decodeRegionAsync(params, cancelToken: tile).then((result) {
       if (result == null) return;
       if (result.pointerAddress != null) {
+        // ... same FFI success path ...
         final int left = fileRect.left.toInt();
         final int top = fileRect.top.toInt();
         final int right = fileRect.right.toInt();
@@ -1212,6 +1238,10 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
             setState(() {});
           }
         }
+      } else if (_fallbackImage != null) {
+        // FFI decoder failed. Use the fallback ImageStream image.
+        tile.loading = false;
+        _loadTileFromFallback(tile);
       } else {
         tile.loading = false;
         final msg = result.error ?? 'Unknown error';
@@ -1223,6 +1253,85 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
         }
       }
     });
+  }
+
+  /// Loads a tile region from [_fallbackImage] when the FFI decoder
+  /// cannot handle the cached file format (e.g. WebP).
+  Future<void> _loadTileFromFallback(Tile tile) async {
+    if (_fallbackImage == null) return;
+    final transformer = CoordinateTransformer(
+      scale: _scale,
+      vTranslate: _vTranslate,
+      rotation: widget.rotation,
+      sWidth: _sWidth,
+      sHeight: _sHeight,
+    );
+    var fileRect = transformer.fileSRect(tile.sRect);
+    if (widget.srcRect != null) {
+      fileRect = fileRect.translate(widget.srcRect!.left, widget.srcRect!.top);
+    }
+
+    final int left = fileRect.left.toInt().clamp(0, _sWidth);
+    final int top = fileRect.top.toInt().clamp(0, _sHeight);
+    final int r = fileRect.right.toInt().clamp(0, _sWidth);
+    final int b = fileRect.bottom.toInt().clamp(0, _sHeight);
+    final int tileW = (r - left) ~/ tile.sampleSize;
+    final int tileH = (b - top) ~/ tile.sampleSize;
+    if (tileW <= 0 || tileH <= 0) return;
+
+    try {
+      final byteData = await _fallbackImage!.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      );
+      if (byteData == null) return;
+      final Uint8List fullPixels = byteData.buffer.asUint8List();
+      final int sw = _fallbackImage!.width;
+      final Uint8List region = Uint8List(tileW * tileH * 4);
+      for (int y = 0; y < tileH; y++) {
+        final int sy = (top + y * tile.sampleSize).clamp(0, _sHeight - 1);
+        final int si = (sy * sw + left) * 4;
+        final int di = y * tileW * 4;
+        for (int x = 0; x < tileW; x++) {
+          final int sx = (left + x * tile.sampleSize).clamp(0, sw - 1);
+          final int sip = si + sx * 4;
+          final int dip = di + x * 4;
+          region[dip] = fullPixels[sip];
+          region[dip + 1] = fullPixels[sip + 1];
+          region[dip + 2] = fullPixels[sip + 2];
+          region[dip + 3] = fullPixels[sip + 3];
+        }
+      }
+
+      if (!mounted) return;
+      ui.decodeImageFromPixels(
+        region,
+        tileW,
+        tileH,
+        ui.PixelFormat.rgba8888,
+        (ui.Image img) {
+          if (!mounted) {
+            img.dispose();
+            return;
+          }
+          setState(() {
+            tile.image = img;
+            tile.loading = false;
+            if (_loadState != LoadState.completed) {
+              _loadState = LoadState.completed;
+              _notifyStateChanged();
+              widget.onReady?.call();
+              widget.onImageLoaded?.call(_sWidth, _sHeight);
+            }
+          });
+          _refreshTiles(load: true);
+        },
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('_loadTileFromFallback FAIL: $e');
+      }
+      tile.loading = false;
+    }
   }
 
   // ── Gesture handlers ─────────────────────────────────────────────────────────
@@ -1431,13 +1540,19 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
             if (_sWidth > 0 && _sHeight > 0) {
               _setupInitialViewState();
             } else if (_resolvedFilePath != null) {
-              _initImage();
+              _tryInitImage().then((ok) {
+                if (mounted && !ok) {
+                  // FFI decoder failed (e.g. WebP). Reload via ImageProvider.
+                  _loadFromProvider();
+                }
+              });
             }
           });
         }
 
         // Displays custom state widget if image is not ready
         if (_loadState != LoadState.completed || !_isInitialized) {
+          print('SSIV: build _loadState=$_loadState _isInitialized=$_isInitialized _resolvedFilePath=$_resolvedFilePath');
           final stateWidget = widget.loadStateChanged?.call(_makeImageState());
           if (stateWidget != null) return stateWidget;
 

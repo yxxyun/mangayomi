@@ -192,12 +192,6 @@ class NavigationOrderState extends _$NavigationOrderState {
     '/more',
   ];
 
-  final _legacyRoutes = {
-    '/browseS', '/browse', '/updates', '/history',
-    '/categories', '/statistics', '/calendarScreen', '/dataAndStorage',
-    '/trackerLibrary',
-  };
-
   @override
   List<String> build() {
     return _checkMissingItems(
@@ -206,8 +200,9 @@ class NavigationOrderState extends _$NavigationOrderState {
   }
 
   List<String> _checkMissingItems(List<String> navigationOrder) {
-    // Remove legacy routes that no longer exist
-    navigationOrder.removeWhere((e) => _legacyRoutes.contains(e));
+    // Remove any routes not in the canonical items list
+    // (handles stale Isar data from upstream versions with different routes).
+    navigationOrder.removeWhere((e) => !items.contains(e));
     // Add any new items that aren't already present
     navigationOrder.addAll(
       items.where((e) => !navigationOrder.contains(e)).toList(),

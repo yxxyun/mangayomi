@@ -20,14 +20,10 @@ import 'package:mangayomi/utils/language.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 
 final navigationItems = {
-  "/MangaLibrary": "Manga",
-  "/AnimeLibrary": "Anime",
-  "/NovelLibrary": "Novel",
-  "/updates": "Updates",
-  "/history": "History",
-  "/browse": "Browse",
+  "/anime": "Anime",
+  "/manga": "Manga",
+  "/novel": "Novel",
   "/more": "More",
-  "/trackerLibrary": "Tracking",
 };
 
 class SettingsSection extends StatelessWidget {

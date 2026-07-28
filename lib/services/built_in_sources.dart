@@ -53,7 +53,7 @@ class BuiltInSources {
     nameId: 'jmcomic',
     name: '禁漫天堂',
     lang: 'zh',
-    baseUrl: 'https://www.jmeadpoolcdn.life',
+    baseUrl: 'https://www.cdnhjk.net',
     iconUrl:
         'https://cdn-msp.jmapiproxy3.cc/media/albums/511146_3x4.jpg',
     itemType: ItemType.manga,

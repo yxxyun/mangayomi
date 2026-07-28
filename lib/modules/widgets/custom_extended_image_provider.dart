@@ -1,5 +1,6 @@
 // ignore_for_file: non_nullable_equals_parameter, depend_on_referenced_packages, implementation_imports
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui show Codec;
 import 'package:extended_image_library/src/extended_image_provider.dart';
@@ -12,6 +13,13 @@ import 'package:mangayomi/services/http/m_client.dart';
 import 'package:path/path.dart';
 import 'package:extended_image_library/src/network/extended_network_image_provider.dart'
     as image_provider;
+
+void _imgDiag(String msg) {
+  try {
+    final f = File('${Directory.systemTemp.path}/mangayomi_img.log');
+    f.writeAsStringSync('${DateTime.now()}: $msg\n', mode: FileMode.append);
+  } catch (_) {}
+}
 
 /// LRU Memory Cache for decoded image data
 class _LRUCache<K, V> {
@@ -225,6 +233,7 @@ class CustomExtendedNetworkImageProvider
     image_provider.ExtendedNetworkImageProvider key,
     ImageDecoderCallback decode,
   ) {
+    print('CUSTOM_IMAGE: loadImage called for url=$url');
     // Ownership of this controller is handed off to [_loadAsync]; it is that
     // method's responsibility to close the controller's stream when the image
     // has been loaded or an error is thrown.
@@ -237,8 +246,8 @@ class CustomExtendedNetworkImageProvider
         chunkEvents,
         decode,
       ),
-      scale: key.scale,
       chunkEvents: chunkEvents.stream,
+      scale: key.scale,
       debugLabel: key.url,
       informationCollector: () {
         return <DiagnosticsNode>[
@@ -265,6 +274,7 @@ class CustomExtendedNetworkImageProvider
     ImageDecoderCallback decode,
   ) async {
     assert(key == this);
+    _imgDiag('_loadAsync ENTERED url=$url');
     final String md5Key = cacheKey ?? keyToMd5(key.url);
     ui.Codec? result;
     if (cache) {
@@ -284,9 +294,12 @@ class CustomExtendedNetworkImageProvider
       try {
         final Uint8List? data = await _loadNetwork(key, chunkEvents);
         if (data != null) {
+          _imgDiag('_loadAsync: calling instantiateImageCodec for $url');
           result = await instantiateImageCodec(data, decode);
+          _imgDiag('_loadAsync: instantiateImageCodec OK for $url');
         }
       } catch (e) {
+        _imgDiag('_loadAsync FAIL url=$url e=$e');
         if (kDebugMode) {
           print(e);
         }
@@ -363,11 +376,15 @@ class CustomExtendedNetworkImageProvider
   ) async {
     try {
       final Uri resolved = Uri.base.resolve(key.url);
+      _imgDiag('_loadNetwork start url=$resolved');
       final StreamedResponse? response = await _tryGetResponse(resolved);
 
       if (response == null || response.statusCode != HttpStatus.ok) {
+        _imgDiag('_loadNetwork FAIL status=${response?.statusCode} body="${response == null ? 'null' : response.runtimeType}" url=$resolved');
         return null;
       }
+
+      _imgDiag('_loadNetwork OK status=${response.statusCode} length=${response.contentLength} url=$resolved');
 
       // Pre-allocate list if content length is known
       final int total = response.contentLength ?? 0;
@@ -376,7 +393,6 @@ class CustomExtendedNetworkImageProvider
           : [];
       int received = 0;
 
-      response.stream.asBroadcastStream();
       await for (var chunk in response.stream) {
         if (total > 0 && received + chunk.length <= total) {
           // Copy directly to pre-allocated list
@@ -396,11 +412,13 @@ class CustomExtendedNetworkImageProvider
       }
 
       if (bytes.isEmpty) {
+        _imgDiag('_loadNetwork EMPTY: received=$received url=$resolved');
         return Future<Uint8List>.error(
           StateError('NetworkImage is an empty file: $resolved'),
         );
       }
 
+      _imgDiag('_loadNetwork DONE: received=$received bytes=${bytes.length} url=$resolved');
       return Uint8List.fromList(bytes);
     } on OperationCanceledError catch (_) {
       if (kDebugMode) {
@@ -408,6 +426,7 @@ class CustomExtendedNetworkImageProvider
       }
       return Future<Uint8List>.error(StateError('User cancel request $url.'));
     } catch (e) {
+      _imgDiag('_loadNetwork CATCH url=$url e=$e');
       if (kDebugMode) {
         print(e);
       }
@@ -423,25 +442,75 @@ class CustomExtendedNetworkImageProvider
     // Optimize headers for better caching and compression
     final optimizedHeaders = {
       ...?headers,
-      'Accept-Encoding': 'gzip, deflate, br',
+      'Accept-Encoding': 'gzip, deflate',
       'Accept': 'image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
       'Connection': 'keep-alive',
     };
     request.headers.addAll(optimizedHeaders);
+    _imgDiag('_getResponse url=$resolved headers=$optimizedHeaders');
 
-    StreamedResponse response = await MClient.init(
-      showCloudFlareError: showCloudFlareError,
-    ).send(request);
+    // Try with dart:io HttpClient directly (useDartHttpClient) first,
+    // avoiding InterceptedClient which can choke on invalid Content-Type headers
+    // (e.g. "application/json; charset=utf-8;" with trailing semicolon).
+    StreamedResponse response;
+    try {
+      response = await MClient.init(
+        showCloudFlareError: showCloudFlareError,
+      ).send(request);
+      _imgDiag('_getResponse MClient OK status=${response.statusCode} url=$resolved');
+    } catch (e) {
+      _imgDiag('_getResponse MClient FAIL e=$e url=$resolved');
+      // Fallback: use raw dart:io HttpClient directly, bypassing all middleware.
+      return await _rawHttpResponse(request, optimizedHeaders);
+    }
 
     if (response.statusCode != 200) {
-      final res = await MClient.init(
-        reqcopyWith: {'useDartHttpClient': true},
-        showCloudFlareError: showCloudFlareError,
-      ).send(response.request!);
-      return res;
+      _imgDiag('_getResponse status=${response.statusCode} retrying url=$resolved');
+      try {
+        final res = await MClient.init(
+          reqcopyWith: {'useDartHttpClient': true},
+          showCloudFlareError: showCloudFlareError,
+        ).send(response.request!);
+        _imgDiag('_getResponse retry OK status=${res.statusCode} url=$resolved');
+        return res;
+      } catch (e) {
+        _imgDiag('_getResponse retry FAIL e=$e url=$resolved');
+        return await _rawHttpResponse(request, optimizedHeaders);
+      }
     }
 
     return response;
+  }
+
+  /// Fallback HTTP using raw dart:io HttpClient — no MClient, no InterceptedClient,
+  /// no Content-Type validation. Useful for CDNs that return invalid headers.
+  Future<StreamedResponse> _rawHttpResponse(
+    Request request,
+    Map<String, String> optimizedHeaders,
+  ) async {
+    _imgDiag('_rawHttpResponse url=${request.url}');
+    final rawClient = HttpClient();
+    try {
+      final rawRequest = await rawClient.getUrl(request.url);
+      optimizedHeaders.forEach((k, v) => rawRequest.headers.set(k, v));
+      final rawResponse = await rawRequest.close();
+      _imgDiag('_rawHttpResponse status=${rawResponse.statusCode} url=${request.url}');
+      final body = await rawResponse.transform(utf8.decoder).join();
+      final headersMap = <String, String>{};
+      rawResponse.headers.forEach((name, values) {
+        headersMap[name] = values.join(', ');
+      });
+      return StreamedResponse(
+        Stream.fromIterable([utf8.encode(body)]),
+        rawResponse.statusCode,
+        headers: headersMap,
+      );
+    } catch (e) {
+      _imgDiag('_rawHttpResponse FAIL e=$e url=${request.url}');
+      rethrow;
+    } finally {
+      rawClient.close();
+    }
   }
 
   // Http get with cancel, exponential backoff retry
@@ -451,10 +520,8 @@ class CustomExtendedNetworkImageProvider
     int attempt = 0;
     while (attempt < retries) {
       try {
-        return await CancellationTokenSource.register(
-          cancelToken,
-          _getResponse(resolved),
-        );
+        cancelToken?.throwIfCancellationRequested();
+        return await _getResponse(resolved);
       } catch (e) {
         attempt++;
         if (attempt >= retries) {

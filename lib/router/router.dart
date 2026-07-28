@@ -128,22 +128,39 @@ class RouterCurrentLocationState extends _$RouterCurrentLocationState {
 
 class RouterNotifier extends ChangeNotifier {
   List<RouteBase> get _routes => [
-    ShellRoute(
-      builder: (context, state, child) => MainScreen(child: child),
-      routes: [
-        _genericRoute(
-          name: "anime",
-          child: const TypeHomeScreen(itemType: ItemType.anime),
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) =>
+          MainScreen(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            _genericRoute(
+              name: "anime",
+              child: const TypeHomeScreen(itemType: ItemType.anime),
+            ),
+          ],
         ),
-        _genericRoute(
-          name: "manga",
-          child: const TypeHomeScreen(itemType: ItemType.manga),
+        StatefulShellBranch(
+          routes: [
+            _genericRoute(
+              name: "manga",
+              child: const TypeHomeScreen(itemType: ItemType.manga),
+            ),
+          ],
         ),
-        _genericRoute(
-          name: "novel",
-          child: const TypeHomeScreen(itemType: ItemType.novel),
+        StatefulShellBranch(
+          routes: [
+            _genericRoute(
+              name: "novel",
+              child: const TypeHomeScreen(itemType: ItemType.novel),
+            ),
+          ],
         ),
-        _genericRoute(name: "more", child: const MoreScreen()),
+        StatefulShellBranch(
+          routes: [
+            _genericRoute(name: "more", child: const MoreScreen()),
+          ],
+        ),
       ],
     ),
     // Full-screen routes (no bottom nav)
@@ -268,12 +285,10 @@ class RouterNotifier extends ChangeNotifier {
       name: "migrate",
       builder: (manga) => MigrationScreen(manga: manga),
     ),
-    _genericRoute<(ItemType, Manga?)>(
+    _genericRoute<Manga>(
       name: "massMigration",
-      builder: (data) => MassMigrationSourceSelectionScreen(
-        itemType: data.$1,
-        prioritizedManga: data.$2,
-      ),
+      builder: (manga) =>
+          MassMigrationSourceSelectionScreen(itemType: manga.itemType!, prioritizedManga: manga),
     ),
     _genericRoute<(Manga, TrackSearch)>(
       name: "migrate/tracker",

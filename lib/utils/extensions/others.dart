@@ -153,15 +153,14 @@ extension UChapDataPreloadExtensions on UChapDataPreload {
                 showCloudFlareError: showCloudFlareError,
                 imageCacheFolderName: "cacheimagemanga",
                 headers: {
-                  ...data.pageUrl!.headers ?? {},
-                  if (ref.context.mounted)
-                    ...ref.watch(
-                      headersProvider(
-                        source: data.chapter!.manga.value!.source!,
-                        lang: data.chapter!.manga.value!.lang!,
-                        sourceId: data.chapter!.manga.value!.sourceId,
-                      ),
+                  ...ref.watch(
+                    headersProvider(
+                      source: data.chapter!.manga.value!.source!,
+                      lang: data.chapter!.manga.value!.lang!,
+                      sourceId: data.chapter!.manga.value!.sourceId,
                     ),
+                  ),
+                  ...data.pageUrl!.headers ?? {},
                 },
               )
               as ImageProvider<Object>;
