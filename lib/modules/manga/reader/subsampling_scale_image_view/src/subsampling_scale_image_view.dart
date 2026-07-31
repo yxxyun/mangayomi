@@ -530,7 +530,8 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     }
 
     // Reloads if the provider or critical options change
-    final imageChanged = widget.resolvedFilePath != oldWidget.resolvedFilePath ||
+    final imageChanged =
+        widget.resolvedFilePath != oldWidget.resolvedFilePath ||
         (widget.resolvedFilePath == null && widget.image != oldWidget.image);
     final cropChanged = widget.cropBorders != oldWidget.cropBorders;
     final scaleTypeChanged =

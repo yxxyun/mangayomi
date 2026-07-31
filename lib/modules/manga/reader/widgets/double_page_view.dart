@@ -281,7 +281,6 @@ class _DoublePageViewState extends State<DoublePageView>
         widget.onFailedToLoadImage?.call(val);
       },
       onLongPressData: onLongPress,
-      isVisible: ValueNotifier<bool>(true),
       isHorizontal: true,
       loadStateChanged: (state) {
         switch (state.loadState) {

@@ -255,11 +255,14 @@ class _MangaDetailViewState extends ConsumerState<MangaDetailView>
   Widget _buildWidget({required List<Chapter> chapters}) {
     final chapterList = ref.watch(chaptersListStateProvider);
     final isLongPressed = ref.watch(isLongPressedStateProvider);
-    final checkCategoryList = ref
-        .watch(getMangaCategorieStreamProvider(itemType: widget.manga!.itemType))
-        .asData
-        ?.value
-        .isNotEmpty ??
+    final checkCategoryList =
+        ref
+            .watch(
+              getMangaCategorieStreamProvider(itemType: widget.manga!.itemType),
+            )
+            .asData
+            ?.value
+            .isNotEmpty ??
         false;
     return Stack(
       children: [

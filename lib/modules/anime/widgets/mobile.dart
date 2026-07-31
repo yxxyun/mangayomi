@@ -217,7 +217,6 @@ class _MobileControllerWidgetState
     }
   }
 
-
   void _restartHideTimer() {
     _timer?.cancel();
     _timer = Timer(controlsHoverDuration, () {

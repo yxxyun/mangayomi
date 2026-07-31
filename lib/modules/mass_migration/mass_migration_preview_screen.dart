@@ -108,8 +108,9 @@ class _MassMigrationPreviewScreenState
                   ),
                   child: Card(
                     color: selected
-                        ? Theme.of(context).colorScheme.primaryContainer
-                              .withValues(alpha: 0.4)
+                        ? Theme.of(
+                            context,
+                          ).colorScheme.primaryContainer.withValues(alpha: 0.4)
                         : null,
                     child: Padding(
                       padding: const EdgeInsets.all(12),

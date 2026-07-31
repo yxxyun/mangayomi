@@ -21,7 +21,6 @@ class MinSubsamplingImage extends ConsumerStatefulWidget {
   final bool cropBorders;
   final bool isHorizontal;
   final Function(bool) failedToLoadImage;
-  final ValueNotifier<bool> isVisible;
 
   final Widget? Function(SubsamplingImageState)? loadStateChanged;
   final int rotation;
@@ -36,7 +35,6 @@ class MinSubsamplingImage extends ConsumerStatefulWidget {
     required this.cropBorders,
     required this.isHorizontal,
     required this.failedToLoadImage,
-    required this.isVisible,
     this.loadStateChanged,
     this.rotation = 0,
     this.onImageLoaded,
@@ -65,9 +63,14 @@ class _MinSubsamplingImageState extends ConsumerState<MinSubsamplingImage> {
   void didUpdateWidget(MinSubsamplingImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     final bool dataChanged = widget.data != oldWidget.data;
-    final bool imageLoaded = _uiImage == null && widget.data.decodedImage != null;
-    if (dataChanged || imageLoaded || widget.cropBorders != oldWidget.cropBorders) {
-      _loadImage(refresh: dataChanged || widget.cropBorders != oldWidget.cropBorders);
+    final bool imageLoaded =
+        _uiImage == null && widget.data.decodedImage != null;
+    if (dataChanged ||
+        imageLoaded ||
+        widget.cropBorders != oldWidget.cropBorders) {
+      _loadImage(
+        refresh: dataChanged || widget.cropBorders != oldWidget.cropBorders,
+      );
     }
   }
 
@@ -336,7 +339,7 @@ class _MinSubsamplingImageState extends ConsumerState<MinSubsamplingImage> {
     final placeholderHeight = widget.data.loadedHeight ?? context.height(0.8);
     final placeholderWidth = widget.isHorizontal
         ? (widget.data.loadedWidth ?? context.width(0.8))
-        : null;
+        : double.infinity;
 
     if (_isLoading && _uiImage == null) {
       final double progress = _loadingProgress?.expectedTotalBytes != null
@@ -368,6 +371,7 @@ class _MinSubsamplingImageState extends ConsumerState<MinSubsamplingImage> {
               padding: const EdgeInsets.all(8.0),
               child: GestureDetector(
                 onTap: _loadImage,
+                onLongPress: _loadImage,
                 child: Container(
                   decoration: BoxDecoration(
                     color: context.primaryColor,

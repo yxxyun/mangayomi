@@ -275,8 +275,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                   isSearch: _isSearch,
                   ignoreFiltersOnSearch: _ignoreFiltersOnSearch,
                   textEditingController: _textEditingController,
-                  onSearchToggle: () =>
-                      setState(() => _isSearch = !_isSearch),
+                  onSearchToggle: () => setState(() => _isSearch = !_isSearch),
                   onSearchClear: () {
                     _searchDebounce?.cancel();
                     _searchDebounce = Timer(

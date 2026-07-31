@@ -21,7 +21,9 @@ class TvRowFocusScope extends InheritedNotifier<ValueNotifier<Object?>> {
 
   /// Reads without subscribing, for focus callbacks and dispose.
   static ValueNotifier<Object?>? notifierOf(BuildContext context) =>
-      (context.getElementForInheritedWidgetOfExactType<TvRowFocusScope>()?.widget
+      (context
+                  .getElementForInheritedWidgetOfExactType<TvRowFocusScope>()
+                  ?.widget
               as TvRowFocusScope?)
           ?.notifier;
 }

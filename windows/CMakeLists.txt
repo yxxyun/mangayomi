@@ -30,7 +30,8 @@ set(CMAKE_C_FLAGS_PROFILE "${CMAKE_C_FLAGS_RELEASE}")
 set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 
 # Use Unicode for all projects.
-add_definitions(-DUNICODE -D_UNICODE)
+add_definitions(-DUNICODE -D_UNICODE -D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+
 
 # Compilation settings that should be applied to most targets.
 #
@@ -82,6 +83,12 @@ install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/libmtorrentserver.dll" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
+
+set(NATIVE_ASSETS_DLL "${CMAKE_CURRENT_SOURCE_DIR}/../build/native_assets/windows/subsampling_scale_image_view.dll")
+if(EXISTS "${NATIVE_ASSETS_DLL}")
+  install(FILES "${NATIVE_ASSETS_DLL}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    COMPONENT Runtime)
+endif()
 
 if(PLUGIN_BUNDLED_LIBRARIES)
   install(FILES "${PLUGIN_BUNDLED_LIBRARIES}"

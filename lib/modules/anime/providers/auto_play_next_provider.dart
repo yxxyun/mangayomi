@@ -5,8 +5,9 @@ import 'package:mangayomi/models/settings.dart';
 /// Whether the player should automatically start the next episode when the
 /// current one finishes. Defaults to `true` (the previous always-on behavior).
 /// Toggled from a button in the player and persisted on the Settings collection.
-final autoPlayNextEpisodeProvider =
-    NotifierProvider<AutoPlayNextEpisode, bool>(AutoPlayNextEpisode.new);
+final autoPlayNextEpisodeProvider = NotifierProvider<AutoPlayNextEpisode, bool>(
+  AutoPlayNextEpisode.new,
+);
 
 class AutoPlayNextEpisode extends Notifier<bool> {
   @override

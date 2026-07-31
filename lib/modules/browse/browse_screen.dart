@@ -332,8 +332,10 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen>
   }
 }
 
-final extensionUpdateCountProvider =
-    StreamProvider.family<int, ItemType>((ref, itemType) {
+final extensionUpdateCountProvider = StreamProvider.family<int, ItemType>((
+  ref,
+  itemType,
+) {
   return isar.sources
       .filter()
       .idIsNotNull()
@@ -341,10 +343,14 @@ final extensionUpdateCountProvider =
       .isActiveEqualTo(true)
       .itemTypeEqualTo(itemType)
       .watch(fireImmediately: true)
-      .map((list) => list
-          .where((element) =>
-              compareVersions(element.version!, element.versionLast!) < 0)
-          .length);
+      .map(
+        (list) => list
+            .where(
+              (element) =>
+                  compareVersions(element.version!, element.versionLast!) < 0,
+            )
+            .length,
+      );
 });
 
 class ExtensionUpdateNumbersBadge extends ConsumerWidget {

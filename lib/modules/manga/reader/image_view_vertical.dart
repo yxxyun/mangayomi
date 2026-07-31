@@ -11,7 +11,6 @@ class ImageViewVertical extends ConsumerWidget {
   final UChapDataPreload data;
   final Function(UChapDataPreload data) onLongPressData;
   final bool isHorizontal;
-  final ValueNotifier<bool> isVisible;
   final Function(bool) failedToLoadImage;
   final Widget? Function(SubsamplingImageState)? loadStateChanged;
   final int rotation;
@@ -23,7 +22,6 @@ class ImageViewVertical extends ConsumerWidget {
     required this.onLongPressData,
     required this.failedToLoadImage,
     required this.isHorizontal,
-    required this.isVisible,
     this.loadStateChanged,
     this.rotation = 0,
     this.onImageLoaded,
@@ -42,7 +40,6 @@ class ImageViewVertical extends ConsumerWidget {
       cropBorders: cropBorders,
       isHorizontal: isHorizontal,
       failedToLoadImage: failedToLoadImage,
-      isVisible: isVisible,
       loadStateChanged: loadStateChanged,
       rotation: rotation,
       onImageLoaded: onImageLoaded,

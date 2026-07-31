@@ -189,8 +189,7 @@ class _TvMenuRowState extends State<_TvMenuRow> {
                   ),
                 ),
               ),
-              if (o.selected)
-                Icon(Icons.check, size: 18, color: widget.accent),
+              if (o.selected) Icon(Icons.check, size: 18, color: widget.accent),
             ],
           ),
         ),

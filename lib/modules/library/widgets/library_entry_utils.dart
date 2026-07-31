@@ -10,6 +10,7 @@ import 'package:mangayomi/utils/cached_network.dart';
 import 'package:mangayomi/utils/constant.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/utils/headers.dart';
+import 'package:mangayomi/utils/extensions/manga_extensions.dart';
 
 /// Resolves the correct [ImageProvider] for a manga entry, preferring a custom
 /// local cover over the remote URL. Remote covers are wrapped in
@@ -77,7 +78,6 @@ Future<void> onTapEntry({
     source: entry.source ?? '',
     sourceId: entry.sourceId,
   );
-
 }
 
 /// A small rounded chip using the theme's hint colour as its background.
@@ -159,7 +159,8 @@ class LibraryBadgeWidget extends ConsumerWidget {
     int downloadCount = 0;
     if (showDownloaded) {
       final downloadedIds =
-          ref.watch(downloadedChapterIdsProvider).asData?.value ?? const <int>{};
+          ref.watch(downloadedChapterIdsProvider).asData?.value ??
+          const <int>{};
       for (final c in entry.chapters) {
         if (c.id != null && downloadedIds.contains(c.id)) {
           downloadCount++;
@@ -167,12 +168,8 @@ class LibraryBadgeWidget extends ConsumerWidget {
       }
     }
 
-    int unreadCount = 0;
-    for (final e in entry.chapters) {
-      if (!e.isRead!) {
-        unreadCount++;
-      }
-    }
+    // Scanlator-aware: the badge count respects the per-manga scanlator filter.
+    final unreadCount = entry.unreadChaptersCount;
 
     // If there is nothing to show (no local, no download, no unread), return empty
     if (!hasLocal && downloadCount == 0 && unreadCount == 0) {
@@ -188,8 +185,7 @@ class LibraryBadgeWidget extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (hasLocal)
-            const EntryBadgeChip(label: 'Local'),
+          if (hasLocal) const EntryBadgeChip(label: 'Local'),
           if (downloadCount > 0)
             EntryBadgeChip(label: downloadCount.toString()),
           if (unreadCount > 0)

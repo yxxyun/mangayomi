@@ -44,6 +44,7 @@ class Settings {
   List<ChapterFilterBookmarked>? chapterFilterBookmarkedList;
 
   double? flexColorSchemeBlendLevel;
+  double? appUiScale;
 
   String? dateFormat;
 
@@ -70,6 +71,9 @@ class Settings {
   /// The last library update's failures, kept so they can be reviewed later.
   List<UpdateError>? updateErrorsList;
 
+  /// User's saved searches (per source; each entry carries its sourceId).
+  List<SavedSearch>? savedSearchesList;
+
   @enumerated
   late ReaderMode defaultReaderMode;
 
@@ -90,6 +94,9 @@ class Settings {
   bool? deleteDownloadAfterReading;
 
   int? concurrentDownloads;
+  bool? allowConcurrentDownloads;
+  int? downloadDelaySeconds;
+  List<int>? downloadQueueOrder;
 
   String? downloadLocation;
 
@@ -183,6 +190,10 @@ class Settings {
   bool? doHEnabled;
 
   int? doHProviderId;
+
+  String? customDohUrl;
+
+  String? cfProxyUrl;
 
   String? btServerAddress;
 
@@ -357,6 +368,9 @@ class Settings {
 
   bool? showNSFW;
 
+  /// Show a small source badge on library covers. Off by default.
+  bool? showSourceBadge;
+
   double? ttsSpeechRate;
 
   double? ttsPitch;
@@ -408,6 +422,7 @@ class Settings {
     this.sortChapterList,
     this.chapterFilterDownloadedList,
     this.flexColorSchemeBlendLevel = 10.0,
+    this.appUiScale = 1.0,
     this.dateFormat = "M/d/y",
     this.relativeTimesTamps = 2,
     this.flexSchemeColorIndex = 2,
@@ -420,6 +435,7 @@ class Settings {
     this.userAgent = defaultUserAgent,
     this.cookiesList,
     this.updateErrorsList,
+    this.savedSearchesList,
     this.defaultReaderMode = ReaderMode.vertical,
     this.personalReaderModeList,
     this.animatePageTransitions = true,
@@ -430,6 +446,9 @@ class Settings {
     this.saveAsCBZArchive = false,
     this.deleteDownloadAfterReading = false,
     this.concurrentDownloads = 2,
+    this.allowConcurrentDownloads = true,
+    this.downloadDelaySeconds = 0,
+    this.downloadQueueOrder,
     this.downloadLocation = "",
     this.cropBorders = false,
     this.libraryLocalSource,
@@ -472,6 +491,8 @@ class Settings {
     this.customDns = "",
     this.doHEnabled = false,
     this.doHProviderId = 0,
+    this.customDohUrl = "",
+    this.cfProxyUrl = "",
     this.btServerAddress = "127.0.0.1",
     this.btServerPort,
     this.fullScreenReader = true,
@@ -554,6 +575,7 @@ class Settings {
     this.readerNavigationLayout = 0,
     this.backupCompressionLevel,
     this.showNSFW = false,
+    this.showSourceBadge = false,
     this.ttsSpeechRate = 0.5,
     this.ttsPitch = 1.0,
     this.ttsLanguage,
@@ -637,6 +659,11 @@ class Settings {
           .map((e) => UpdateError.fromJson(e))
           .toList();
     }
+    if (json['savedSearchesList'] != null) {
+      savedSearchesList = (json['savedSearchesList'] as List)
+          .map((e) => SavedSearch.fromJson(e))
+          .toList();
+    }
     cropBorders = json['cropBorders'];
     dateFormat = json['dateFormat'];
     defaultReaderMode = ReaderMode
@@ -646,12 +673,16 @@ class Settings {
     downloadLocation = json['downloadLocation'];
     downloadOnlyOnWifi = json['downloadOnlyOnWifi'];
     concurrentDownloads = json['concurrentDownloads'];
+    allowConcurrentDownloads = json['allowConcurrentDownloads'] ?? true;
+    downloadDelaySeconds = json['downloadDelaySeconds'] ?? 0;
+    downloadQueueOrder = json['downloadQueueOrder']?.cast<int>();
     filterScanlatorList = (json['filterScanlatorList'] as List?)
         ?.map((e) => FilterScanlator.fromJson(e))
         .toList();
     flexColorSchemeBlendLevel = json['flexColorSchemeBlendLevel'] is double
         ? json['flexColorSchemeBlendLevel']
         : (json['flexColorSchemeBlendLevel'] as int).toDouble();
+    appUiScale = (json['appUiScale'] as num?)?.toDouble() ?? 1.0;
     flexSchemeColorIndex = json['flexSchemeColorIndex'];
     id = json['id'];
     incognitoMode = json['incognitoMode'];
@@ -734,6 +765,8 @@ class Settings {
     customDns = json['customDns'];
     doHEnabled = json['doHEnabled'];
     doHProviderId = json['doHProviderId'];
+    customDohUrl = json['customDohUrl'];
+    cfProxyUrl = json['cfProxyUrl'];
     btServerAddress = json['btServerAddress'];
     btServerPort = json['btServerPort'];
     customColorFilter = json['customColorFilter'] != null
@@ -865,6 +898,7 @@ class Settings {
     readerNavigationLayout = json['readerNavigationLayout'];
     backupCompressionLevel = json['backupCompressionLevel'];
     showNSFW = json['showNSFW'];
+    showSourceBadge = json['showSourceBadge'];
     ttsSpeechRate = json['ttsSpeechRate']?.toDouble();
     ttsPitch = json['ttsPitch']?.toDouble();
     ttsLanguage = json['ttsLanguage'];
@@ -924,6 +958,7 @@ class Settings {
     'checkForExtensionUpdates': checkForExtensionUpdates,
     'cookiesList': cookiesList,
     'updateErrorsList': updateErrorsList,
+    'savedSearchesList': savedSearchesList,
     'cropBorders': cropBorders,
     'dateFormat': dateFormat,
     'defaultReaderMode': defaultReaderMode.index,
@@ -932,8 +967,12 @@ class Settings {
     'downloadLocation': downloadLocation,
     'downloadOnlyOnWifi': downloadOnlyOnWifi,
     'concurrentDownloads': concurrentDownloads,
+    'allowConcurrentDownloads': allowConcurrentDownloads,
+    'downloadDelaySeconds': downloadDelaySeconds,
+    'downloadQueueOrder': downloadQueueOrder,
     'filterScanlatorList': filterScanlatorList,
     'flexColorSchemeBlendLevel': flexColorSchemeBlendLevel,
+    'appUiScale': appUiScale,
     'flexSchemeColorIndex': flexSchemeColorIndex,
     'id': id,
     'incognitoMode': incognitoMode,
@@ -992,6 +1031,8 @@ class Settings {
     'customDns': customDns,
     'doHEnabled': doHEnabled,
     'doHProviderId': doHProviderId,
+    'customDohUrl': customDohUrl,
+    'cfProxyUrl': cfProxyUrl,
     'btServerAddress': btServerAddress,
     'btServerPort': btServerPort,
     'fullScreenReader': fullScreenReader,
@@ -1078,6 +1119,7 @@ class Settings {
     'readerNavigationLayout': readerNavigationLayout,
     'backupCompressionLevel': backupCompressionLevel,
     'showNSFW': showNSFW,
+    'showSourceBadge': showSourceBadge,
     'ttsSpeechRate': ttsSpeechRate,
     'ttsPitch': ttsPitch,
     'ttsLanguage': ttsLanguage,
@@ -1150,6 +1192,23 @@ class UpdateError {
     'mangaId': mangaId,
     'name': name,
     'error': error,
+  };
+}
+
+@embedded
+class SavedSearch {
+  int? sourceId;
+  String name;
+  String query;
+  SavedSearch({this.sourceId, this.name = '', this.query = ''});
+  SavedSearch.fromJson(Map<String, dynamic> json)
+    : sourceId = json['sourceId'],
+      name = json['name'] ?? '',
+      query = json['query'] ?? '';
+  Map<String, dynamic> toJson() => {
+    'sourceId': sourceId,
+    'name': name,
+    'query': query,
   };
 }
 

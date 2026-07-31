@@ -226,11 +226,7 @@ class _TvPlayerSettingsPanelState extends ConsumerState<TvPlayerSettingsPanel> {
           ),
         );
       case 'quality':
-        return _trackList(
-          accent,
-          widget.qualityOptions,
-          'No other quality',
-        );
+        return _trackList(accent, widget.qualityOptions, 'No other quality');
       case 'subtitles':
         return _trackList(accent, widget.subtitleOptions, 'No subtitles');
       case 'audio':
@@ -246,8 +242,7 @@ class _TvPlayerSettingsPanelState extends ConsumerState<TvPlayerSettingsPanel> {
                   autofocus: i == 0,
                   label: sh.$1,
                   selected: current == sh.$1,
-                  onTap: () =>
-                      _native.command(['script-message', sh.$2]),
+                  onTap: () => _native.command(['script-message', sh.$2]),
                 ),
             ],
           ),
@@ -384,10 +379,7 @@ class _NavRowState extends State<_NavRow> {
               Icon(widget.icon, size: 20, color: widget.accent),
               const SizedBox(width: 14),
               Expanded(
-                child: Text(
-                  widget.label,
-                  style: const TextStyle(fontSize: 15),
-                ),
+                child: Text(widget.label, style: const TextStyle(fontSize: 15)),
               ),
               if (widget.trailing != null) widget.trailing!,
             ],

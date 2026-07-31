@@ -19,6 +19,7 @@ import 'package:mangayomi/services/get_filter_list.dart';
 import 'package:mangayomi/services/get_latest_updates.dart';
 import 'package:mangayomi/services/get_popular.dart';
 import 'package:mangayomi/services/get_source_baseurl.dart';
+import 'package:mangayomi/modules/manga/home/providers/saved_searches_provider.dart';
 import 'package:mangayomi/services/search.dart';
 import 'package:mangayomi/services/supports_latest.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
@@ -157,6 +158,8 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _textEditingController.dispose();
+    _searchFieldFocus.dispose();
+    _postSearchFocus.dispose();
     super.dispose();
   }
 
@@ -180,7 +183,106 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
     }
   }
 
+  void _promptSaveSearch() {
+    final query = _query.trim();
+    if (query.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.enter_search_to_save_first)),
+      );
+      return;
+    }
+    final controller = TextEditingController(text: query);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(context.l10n.save_search),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(labelText: context.l10n.name),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(context.l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              ref
+                  .read(savedSearchesProvider.notifier)
+                  .add(source.id!, controller.text, query);
+              Navigator.pop(ctx);
+            },
+            child: Text(context.l10n.save),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSavedSearches() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => Consumer(
+        builder: (ctx, ref, _) {
+          final saved =
+              ref.watch(savedSearchesProvider)[source.id] ??
+              const <SavedSearch>[];
+          if (saved.isEmpty) {
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                context.l10n.no_saved_searches,
+                textAlign: TextAlign.center,
+              ),
+            );
+          }
+          return ListView(
+            shrinkWrap: true,
+            children: [
+              for (final s in saved)
+                ListTile(
+                  leading: const Icon(Icons.bookmark_outline),
+                  title: Text(s.name),
+                  subtitle: Text(
+                    s.query,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => ref
+                        .read(savedSearchesProvider.notifier)
+                        .remove(source.id!, s.name),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _runSavedSearch(s.query);
+                  },
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _runSavedSearch(String query) {
+    _mangaList.clear();
+    _textEditingController.text = query;
+    setState(() {
+      _isSearch = true;
+      _selectedIndex = 2;
+      _query = query;
+      _page = 1;
+    });
+  }
+
   late final _textEditingController = TextEditingController(text: widget.query);
+  // TV search focus flow: opening search puts focus on the field; submitting
+  // hands focus to the next button in the row, so it never reverts to Popular /
+  // Latest (which, on revert, would re-select and close the search field).
+  final _searchFieldFocus = FocusNode();
+  final _postSearchFocus = FocusNode();
   late String _query = widget.query;
   late bool _isSearch = widget.isSearch;
   AsyncValue<MPages?>? _getManga;
@@ -217,13 +319,9 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
           filterList: filters,
         ),
       );
-    } else if (_selectedIndex == 1 &&
-        (!_isSearch || isTv) &&
-        _query.isEmpty) {
+    } else if (_selectedIndex == 1 && (!_isSearch || isTv) && _query.isEmpty) {
       _getManga = ref.watch(getLatestUpdatesProvider(source: source, page: 1));
-    } else if (_selectedIndex == 0 &&
-        (!_isSearch || isTv) &&
-        _query.isEmpty) {
+    } else if (_selectedIndex == 0 && (!_isSearch || isTv) && _query.isEmpty) {
       _getManga = ref.watch(getPopularProvider(source: source, page: 1));
     }
     final l10n = context.l10n;
@@ -277,6 +375,13 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
                       }
                       _page = 1;
                     });
+                    // Hand focus to the next button in the row so it never
+                    // reverts to Popular / Latest.
+                    if (isTv) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) _postSearchFocus.requestFocus();
+                      });
+                    }
                   },
                   onChanged: (value) {},
                   onSuffixPressed: () {
@@ -301,6 +406,7 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
                     });
                   },
                   controller: _textEditingController,
+                  focusNode: _searchFieldFocus,
                 )
               : IconButton(
                   splashRadius: 20,
@@ -308,6 +414,13 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
                     setState(() {
                       _isSearch = true;
                     });
+                    // Force focus onto the field so it doesn't revert to the
+                    // previously focused pill while the search button unmounts.
+                    if (isTv) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) _searchFieldFocus.requestFocus();
+                      });
+                    }
                   },
                   focusColor: isTv
                       ? context.primaryColor.withValues(alpha: 0.4)
@@ -316,6 +429,7 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
                 ),
           if (isTv)
             IconButton(
+              focusNode: _postSearchFocus,
               focusColor: context.primaryColor.withValues(alpha: 0.4),
               icon: Icon(displayTypeIcon),
               onPressed: () async {
@@ -329,12 +443,18 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
                   context,
                   title: context.l10n.display_mode,
                   options: [
-                    TvMenuOption(context.l10n.comfortable_grid,
-                        selected: current == DisplayType.comfortableGrid),
-                    TvMenuOption(context.l10n.compact_grid,
-                        selected: current == DisplayType.compactGrid),
-                    TvMenuOption(context.l10n.list,
-                        selected: current == DisplayType.list),
+                    TvMenuOption(
+                      context.l10n.comfortable_grid,
+                      selected: current == DisplayType.comfortableGrid,
+                    ),
+                    TvMenuOption(
+                      context.l10n.compact_grid,
+                      selected: current == DisplayType.compactGrid,
+                    ),
+                    TvMenuOption(
+                      context.l10n.list,
+                      selected: current == DisplayType.list,
+                    ),
                   ],
                 );
                 if (picked != null) {
@@ -346,45 +466,81 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
             )
           else
             PopupMenuButton(
-            popUpAnimationStyle: popupAnimationStyle,
-            icon: Icon(displayTypeIcon),
-            itemBuilder: (context) {
-              final displayType = ref.watch(mangaHomeDisplayTypeStateProvider);
-              final displayTypeNotifier = ref.read(
-                mangaHomeDisplayTypeStateProvider.notifier,
-              );
-              return [
-                PopupMenuItem<int>(
-                  value: 0,
-                  child: RadioGroup(
-                    groupValue: displayType,
-                    onChanged: (a) {
-                      context.pop();
-                      displayTypeNotifier.setMangaHomeDisplayType(a!);
-                    },
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        RadioListTile(
-                          title: Text(context.l10n.comfortable_grid),
-                          value: DisplayType.comfortableGrid,
-                        ),
-                        RadioListTile(
-                          title: Text(context.l10n.compact_grid),
-                          value: DisplayType.compactGrid,
-                        ),
-                        RadioListTile(
-                          title: Text(context.l10n.list),
-                          value: DisplayType.list,
-                        ),
-                      ],
+              popUpAnimationStyle: popupAnimationStyle,
+              icon: Icon(displayTypeIcon),
+              itemBuilder: (context) {
+                final displayType = ref.watch(
+                  mangaHomeDisplayTypeStateProvider,
+                );
+                final displayTypeNotifier = ref.read(
+                  mangaHomeDisplayTypeStateProvider.notifier,
+                );
+                return [
+                  PopupMenuItem<int>(
+                    value: 0,
+                    child: RadioGroup(
+                      groupValue: displayType,
+                      onChanged: (a) {
+                        context.pop();
+                        displayTypeNotifier.setMangaHomeDisplayType(a!);
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          RadioListTile(
+                            title: Text(context.l10n.comfortable_grid),
+                            value: DisplayType.comfortableGrid,
+                          ),
+                          RadioListTile(
+                            title: Text(context.l10n.compact_grid),
+                            value: DisplayType.compactGrid,
+                          ),
+                          RadioListTile(
+                            title: Text(context.l10n.list),
+                            value: DisplayType.list,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ];
-            },
-            onSelected: (value) {},
-          ),
+                  PopupMenuItem<int>(
+                    value: 2,
+                    child: Text(context.l10n.save_search),
+                  ),
+                  PopupMenuItem<int>(
+                    value: 3,
+                    child: Text(context.l10n.saved_searches),
+                  ),
+                ];
+              },
+              onSelected: (value) async {
+                if (value == 0) {
+                  final baseUrl = ref.watch(
+                    sourceBaseUrlProvider(source: source),
+                  );
+                  Map<String, dynamic> data = {
+                    'url': baseUrl,
+                    'sourceId': source.id.toString(),
+                    'title': '',
+                  };
+                  context.push("/mangawebview", extra: data);
+                } else if (value == 1) {
+                  final res = await context.push(
+                    '/extension_detail',
+                    extra: source,
+                  );
+                  if (res != null && mounted) {
+                    setState(() {
+                      source = res as Source;
+                    });
+                  }
+                } else if (value == 2) {
+                  _promptSaveSearch();
+                } else if (value == 3) {
+                  _showSavedSearches();
+                }
+              },
+            ),
           if (!isLocal)
             if (isTv)
               IconButton(

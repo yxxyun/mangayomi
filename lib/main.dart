@@ -48,7 +48,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:path/path.dart' as p;
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show rootBundle, LogicalKeyboardKey;
 import 'package:mangayomi/utils/window_geometry.dart';
 import 'package:mangayomi/services/cloud_drive/services/ali_drive.dart';
 import 'package:mangayomi/services/cloud_drive/services/baidu_drive.dart';
@@ -60,6 +60,8 @@ import 'package:mangayomi/services/cloud_drive/services/xunlei_drive.dart';
 import 'package:mangayomi/services/cloud_drive/services/yun139_drive.dart';
 import 'package:mangayomi/services/cloud_drive/cloud_drive_manager.dart';
 import 'package:mangayomi/modules/manga/reader/subsampling_scale_image_view/subsampling_scale_image_view.dart';
+import 'package:mangayomi/modules/widgets/app_ui_scale.dart';
+import 'package:mangayomi/modules/more/settings/appearance/providers/app_ui_scale_state_provider.dart';
 
 late Isar isar;
 DiscordRPC? discordRpc;
@@ -287,7 +289,29 @@ class _MyAppState extends ConsumerState<MyApp>
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       builder: (context, child) {
-        final base = BotToastInit()(context, child);
+        Widget content = child ?? const SizedBox.shrink();
+        // On TV, a single-line text field consumes Up/Down for the text cursor,
+        // trapping focus so the remote can't reach the surrounding buttons (a
+        // dialog's Cancel/Add, etc.). Remap Up/Down to move focus app-wide: a
+        // no-op everywhere except inside a text field, where it frees the field.
+        if (isTv) {
+          content = Shortcuts(
+            shortcuts: const <ShortcutActivator, Intent>{
+              SingleActivator(LogicalKeyboardKey.arrowDown):
+                  DirectionalFocusIntent(TraversalDirection.down),
+              SingleActivator(LogicalKeyboardKey.arrowUp):
+                  DirectionalFocusIntent(TraversalDirection.up),
+            },
+            child: content,
+          );
+        }
+        // Normalize the TV UI to a fixed reference width so it looks consistent
+        // across TVs regardless of the density the device reports. No-op off-TV.
+        final scaledChild = AppUiScale(
+          scale: ref.watch(appUiScaleStateProvider),
+          child: content,
+        );
+        final base = BotToastInit()(context, scaledChild);
         final withBackHandler = !isMobile
             ? _MouseBackButtonHandler(router: router, child: base)
             : base;
@@ -506,33 +530,33 @@ class _MyAppState extends ConsumerState<MyApp>
     try {
       final provider = StorageProvider();
       final dir = await provider.getMpvDirectory();
-    final mpvFile = File('${dir!.path}/mpv.conf');
-    final inputFile = File('${dir.path}/input.conf');
-    final filesMissing =
-        !(await mpvFile.exists()) && !(await inputFile.exists());
-    if (filesMissing) {
-      final bytes = await rootBundle.load("assets/mangayomi_mpv.zip");
-      final archive = ZipDecoder().decodeBytes(bytes.buffer.asUint8List());
-      String shadersDir = p.join(dir.path, 'shaders');
-      await Directory(shadersDir).create(recursive: true);
-      String scriptsDir = p.join(dir.path, 'scripts');
-      await Directory(scriptsDir).create(recursive: true);
-      for (final file in archive.files) {
-        if (file.name == "mpv.conf") {
-          await mpvFile.writeAsBytes(file.content);
-        } else if (file.name == "input.conf") {
-          await inputFile.writeAsBytes(file.content);
-        } else if (file.name.startsWith("shaders/") &&
-            file.name.endsWith(".glsl")) {
-          final shaderFile = File('$shadersDir/${file.name.split("/").last}');
-          await shaderFile.writeAsBytes(file.content);
-        } else if (file.name.startsWith("scripts/") &&
-            (file.name.endsWith(".js") || file.name.endsWith(".lua"))) {
-          final scriptFile = File('$scriptsDir/${file.name.split("/").last}');
-          await scriptFile.writeAsBytes(file.content);
+      final mpvFile = File('${dir!.path}/mpv.conf');
+      final inputFile = File('${dir.path}/input.conf');
+      final filesMissing =
+          !(await mpvFile.exists()) && !(await inputFile.exists());
+      if (filesMissing) {
+        final bytes = await rootBundle.load("assets/mangayomi_mpv.zip");
+        final archive = ZipDecoder().decodeBytes(bytes.buffer.asUint8List());
+        String shadersDir = p.join(dir.path, 'shaders');
+        await Directory(shadersDir).create(recursive: true);
+        String scriptsDir = p.join(dir.path, 'scripts');
+        await Directory(scriptsDir).create(recursive: true);
+        for (final file in archive.files) {
+          if (file.name == "mpv.conf") {
+            await mpvFile.writeAsBytes(file.content);
+          } else if (file.name == "input.conf") {
+            await inputFile.writeAsBytes(file.content);
+          } else if (file.name.startsWith("shaders/") &&
+              file.name.endsWith(".glsl")) {
+            final shaderFile = File('$shadersDir/${file.name.split("/").last}');
+            await shaderFile.writeAsBytes(file.content);
+          } else if (file.name.startsWith("scripts/") &&
+              (file.name.endsWith(".js") || file.name.endsWith(".lua"))) {
+            final scriptFile = File('$scriptsDir/${file.name.split("/").last}');
+            await scriptFile.writeAsBytes(file.content);
+          }
         }
       }
-    }
     } catch (e) {
       // Best-effort: on Android the mpv config dir is in shared storage, which
       // may not be writable until the all-files permission is granted (now

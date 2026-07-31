@@ -79,10 +79,7 @@ class _ImageViewWebtoonState extends ConsumerState<ImageViewWebtoon>
   double _animStartOffsetDx = 0.0;
   double _animStartOffsetDy = 0.0;
 
-  Set<int> _visibleIndices = {};
   Offset _doubleTapPosition = Offset.zero;
-  final Map<int, ValueNotifier<bool>> _isVisibleNotifiers = {};
-
   @override
   void initState() {
     super.initState();
@@ -127,13 +124,6 @@ class _ImageViewWebtoonState extends ConsumerState<ImageViewWebtoon>
         _scale = currentScale;
         _offset = Offset(clampedDx, clampedDy);
       });
-    });
-
-    widget.itemPositionsListener.itemPositions.addListener(
-      _updateVisibleIndices,
-    );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _updateVisibleIndices();
     });
   }
 
@@ -299,32 +289,9 @@ class _ImageViewWebtoonState extends ConsumerState<ImageViewWebtoon>
     }
   }
 
-  void _updateVisibleIndices() {
-    final positions = widget.itemPositionsListener.itemPositions.value;
-    if (positions.isEmpty) return;
-
-    final newVisible = positions.map((p) => p.index).toSet();
-    if (!setEquals(_visibleIndices, newVisible)) {
-      setState(() {
-        _visibleIndices = newVisible;
-      });
-      // Propagate visibility updates in O(1) to cached notifiers
-      for (final index in _isVisibleNotifiers.keys) {
-        _isVisibleNotifiers[index]?.value = newVisible.contains(index);
-      }
-    }
-  }
-
   @override
   void dispose() {
     _zoomAnimationController.dispose();
-    widget.itemPositionsListener.itemPositions.removeListener(
-      _updateVisibleIndices,
-    );
-    for (final notifier in _isVisibleNotifiers.values) {
-      notifier.dispose();
-    }
-    _isVisibleNotifiers.clear();
     super.dispose();
   }
 
@@ -382,13 +349,6 @@ class _ImageViewWebtoonState extends ConsumerState<ImageViewWebtoon>
       return TransitionViewVertical(data: currentPage);
     }
 
-    final bool isVisible = _visibleIndices.contains(index);
-    final isVisibleNotifier = _isVisibleNotifiers.putIfAbsent(
-      index,
-      () => ValueNotifier<bool>(isVisible),
-    );
-    isVisibleNotifier.value = isVisible;
-
     final dualPageRotateToFit = ref.watch(dualPageRotateToFitStateProvider);
     final dualPageRotateToFitInvert = ref.watch(
       dualPageRotateToFitInvertStateProvider,
@@ -410,7 +370,6 @@ class _ImageViewWebtoonState extends ConsumerState<ImageViewWebtoon>
         failedToLoadImage: widget.onFailedToLoadImage,
         onLongPressData: widget.onLongPressData,
         isHorizontal: widget.isHorizontalContinuous,
-        isVisible: isVisibleNotifier,
         rotation: rotation,
         onImageLoaded: (width, height) {
           widget.onImageLoaded?.call(index, width, height);
