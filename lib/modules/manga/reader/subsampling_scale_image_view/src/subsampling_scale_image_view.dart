@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
@@ -14,8 +14,9 @@ import 'ffi_image_decoder.dart';
 import 'subsampling_image_painter.dart';
 import 'tiling_engine.dart';
 import '../../u_chap_data_preload.dart';
+import '../../../../../services/jmcomic/jm_image_unscrambler.dart';
 
-// ─── Load State ───────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Load State 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 /// Image loading state, identical to extended_image.
 enum LoadState {
@@ -51,7 +52,7 @@ class SubsamplingImageState {
   void reLoadImage() => _reLoadCallback();
 }
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Enums 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 /// Mode for fitting the initial minimum scale of the image.
 enum ScaleType {
@@ -89,7 +90,7 @@ enum PanLimit {
   center,
 }
 
-// ─── Controller ───────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Controller 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 /// Controller for programmatic control of [SubsamplingScaleImageView].
 class SubsamplingScaleImageViewController extends ChangeNotifier {
@@ -103,7 +104,7 @@ class SubsamplingScaleImageViewController extends ChangeNotifier {
     _state = null;
   }
 
-  // ── State Getters ──────────────────────────────────────────────────────────
+  // 鈹€鈹€ State Getters 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   bool get isReady =>
       _state?._loadState == LoadState.completed &&
@@ -135,7 +136,7 @@ class SubsamplingScaleImageViewController extends ChangeNotifier {
     );
   }
 
-  // ── Commands ───────────────────────────────────────────────────────────────
+  // 鈹€鈹€ Commands 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   /// Resets scale and center to initial state.
   void resetScaleAndCenter() => _state?._reset();
@@ -222,7 +223,7 @@ class SubsamplingScaleImageViewController extends ChangeNotifier {
     );
   }
 
-  // ── Coordinate Conversion ────────────────────────────────────────────────
+  // 鈹€鈹€ Coordinate Conversion 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   /// Converts a view (screen) point to image source coordinates.
   ui.Offset? viewToSourceCoord(ui.Offset viewPoint) {
@@ -269,7 +270,7 @@ class SubsamplingScaleImageViewController extends ChangeNotifier {
   }
 }
 
-// ─── Widget ───────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ Widget 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 class SubsamplingScaleImageView extends StatefulWidget {
   /// The image to display. Accepts any [ImageProvider]: [FileImage], [NetworkImage],
@@ -309,7 +310,7 @@ class SubsamplingScaleImageView extends StatefulWidget {
   /// ```
   final Widget? Function(SubsamplingImageState state)? loadStateChanged;
 
-  // ── Rotation and gestures ───────────────────────────────────────────────────────
+  // 鈹€鈹€ Rotation and gestures 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   /// Image rotation: 0, 90, 180, or 270 degrees.
   final int rotation;
@@ -319,13 +320,13 @@ class SubsamplingScaleImageView extends StatefulWidget {
   final bool showDebug;
   final bool isVisible;
 
-  // ── Image processing ───────────────────────────────────────────────────────
+  // 鈹€鈹€ Image processing 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   /// Automatically crops white/black/transparent borders.
   final bool cropBorders;
   final double parentScale;
 
-  // ── Layout ──────────────────────────────────────────────────────────────
+  // 鈹€鈹€ Layout 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   /// How to fit the image into the view. Maps to [ScaleType] if provided.
   /// If null, [minimumScaleType] is used.
@@ -337,21 +338,21 @@ class SubsamplingScaleImageView extends StatefulWidget {
   /// Mode for limiting panning to the edges.
   final PanLimit panLimit;
 
-  // ── Zoom limits ────────────────────────────────────────────────────────
+  // 鈹€鈹€ Zoom limits 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
-  /// Maximum allowed scale. null = 8× minimum scale.
+  /// Maximum allowed scale. null = 8脳 minimum scale.
   final double? maxScale;
 
   /// Minimum scale (used only if [minimumScaleType] == [ScaleType.custom]).
   final double? minScale;
 
-  // ── Double tap ────────────────────────────────────────────────────────────────
+  // 鈹€鈹€ Double tap 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
-  /// Target double-tap scale. null = 2.5× minimum scale.
+  /// Target double-tap scale. null = 2.5脳 minimum scale.
   final double? doubleTapZoomScale;
   final Duration doubleTapZoomDuration;
 
-  // ── Visual rendering ─────────────────────────────────────────────────────────────
+  // 鈹€鈹€ Visual rendering 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   /// If non-null, this color is blended with each pixel via [colorBlendMode].
   final Color? color;
@@ -362,7 +363,7 @@ class SubsamplingScaleImageView extends StatefulWidget {
   /// Filtering quality when rendering. Default: [FilterQuality.medium].
   final FilterQuality filterQuality;
 
-  // ── Controller and callbacks ────────────────────────────────────────────────
+  // 鈹€鈹€ Controller and callbacks 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   final SubsamplingScaleImageViewController? controller;
 
@@ -431,7 +432,7 @@ class SubsamplingScaleImageView extends StatefulWidget {
       _SubsamplingScaleImageViewState();
 }
 
-// ─── State ────────────────────────────────────────────────────────────────────
+// 鈹€鈹€鈹€ State 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     with SingleTickerProviderStateMixin {
@@ -579,7 +580,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     }
   }
 
-  // ── ImageProvider Resolution ──────────────────────────────────────────
+  // 鈹€鈹€ ImageProvider Resolution 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   void _cancelImageStream() {
     if (_activeImageStream != null && _activeImageStreamListener != null) {
@@ -623,8 +624,18 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
   }
 
   Future<void> _loadFromProvider() async {
-    print('SSIV: _loadFromProvider resolvedFilePath=${widget.resolvedFilePath}');
     _cancelImageStream();
+
+    // Early network URL detection: JM images are scrambled and MUST go through
+    // the ImageStream path so they can be restored before tiling.
+    String? networkUrl;
+    String? cacheFolderName;
+    try {
+      final dynamic dynProvider = widget.image;
+      networkUrl = dynProvider.url;
+      cacheFolderName = dynProvider.imageCacheFolderName;
+    } catch (_) {}
+    final bool isJm = networkUrl?.contains('jmapiproxy') ?? false;
 
     if (mounted) {
       setState(() {
@@ -636,8 +647,8 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
 
     if (widget.resolvedFilePath != null) {
       _resolvedFilePath = widget.resolvedFilePath;
-      if (await _tryInitImage()) return;
-      // FFI decoder failed (e.g. WebP). Fall through to ImageStream path.
+      if (!isJm && await _tryInitImage()) return;
+      // JM images fall through to the ImageStream restore path.
     }
 
     final provider = widget.image;
@@ -645,7 +656,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     // 1. Fast path: FileImage
     if (provider is FileImage) {
       _resolvedFilePath = provider.file.path;
-      if (await _tryInitImage()) return;
+      if (!isJm && await _tryInitImage()) return;
     }
 
     // Duck-typing for ExtendedFileImageProvider (or any provider exposing a File)
@@ -653,7 +664,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
       final dynamic dynProvider = provider;
       if (dynProvider.file is File) {
         _resolvedFilePath = dynProvider.file.path;
-        if (await _tryInitImage()) return;
+        if (!isJm && await _tryInitImage()) return;
       }
     } catch (_) {}
 
@@ -667,29 +678,20 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
         final tempFile = File('${tempDir.path}/ssiv_cache_$cacheKey.png');
         await tempFile.writeAsBytes(bytes, flush: true);
         _resolvedFilePath = tempFile.path;
-        if (await _tryInitImage()) return;
+        if (!isJm && await _tryInitImage()) return;
       }
     } catch (_) {}
 
     // 3. Fast path: Network/Cached-based providers (CustomExtendedNetworkImageProvider)
-    String? networkUrl;
-    String? cacheFolderName;
-    try {
-      final dynamic dynProvider = provider;
-      networkUrl = dynProvider.url;
-      cacheFolderName = dynProvider.imageCacheFolderName;
-    } catch (_) {}
-
     if (networkUrl != null) {
       final cachedFile = await _findCachedFile(networkUrl, cacheFolderName);
       if (cachedFile != null) {
         _resolvedFilePath = cachedFile.path;
-        if (await _tryInitImage()) return;
+        if (!isJm && await _tryInitImage()) return;
       }
     }
 
     // 4. General path: resolution via ImageStream
-    print('SSIV: falling back to ImageStream for $networkUrl');
     final completer = Completer<ui.Image>();
 
     final stream = provider.resolve(ImageConfiguration.empty);
@@ -697,13 +699,11 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
 
     final listener = ImageStreamListener(
       (ImageInfo info, bool _) {
-        print('SSIV: ImageStream onResult success url=$networkUrl');
         if (!completer.isCompleted) {
           completer.complete(info.image);
         }
       },
       onError: (Object e, StackTrace? st) {
-        print('SSIV: ImageStream onResult ERROR url=$networkUrl e=$e');
         if (!completer.isCompleted) {
           completer.completeError(e, st ?? StackTrace.empty);
         }
@@ -720,8 +720,19 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
 
     try {
       final ui.Image loadedImage = await completer.future;
-      print('SSIV: ImageStream completer resolved url=$networkUrl');
-      _fallbackImage = loadedImage;
+      // Restore JM scrambled images (horizontal strip reorder) before tiling.
+      ui.Image displayImage = loadedImage;
+      if (isJm) {
+        final restored = await JmImageUnscrambler.restoreIfNeeded(
+          loadedImage,
+          networkUrl ?? '',
+        );
+        if (restored != null) {
+          displayImage = restored;
+        }
+      }
+      _fallbackImage = displayImage;
+      _fallbackBytes = null;
       _cancelImageStream();
 
       if (!mounted) return;
@@ -729,13 +740,13 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
       // Initialise tile dimensions from the decoded ImageStream result.
       _sWidth = widget.srcRect != null
           ? widget.srcRect!.width.toInt()
-          : loadedImage.width;
+          : displayImage.width;
       _sHeight = widget.srcRect != null
           ? widget.srcRect!.height.toInt()
-          : loadedImage.height;
+          : displayImage.height;
 
       // Try the fast file-based init first (supports JPEG already cached).
-      if (networkUrl != null) {
+      if (networkUrl != null && !isJm) {
         final cachedFile = await _findCachedFile(networkUrl, cacheFolderName);
         if (cachedFile != null) {
           _resolvedFilePath = cachedFile.path;
@@ -751,7 +762,6 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
         if (mounted) setState(() => _loadState = LoadState.completed);
       }
     } catch (e, st) {
-      print('SSIV: _loadFromProvider CATCH url=$networkUrl e=$e');
       if (kDebugMode) {
         debugPrint('SubsamplingScaleImageView: Failed to load image: $e\n$st');
       }
@@ -771,7 +781,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     reLoadCallback: _loadFromProvider,
   );
 
-  // ── Internal Controller ───────────────────────────────────────────────────────
+  // 鈹€鈹€ Internal Controller 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   void _reset() {
     if (!mounted || !_isInitialized) return;
@@ -882,7 +892,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     _animationController.forward();
   }
 
-  // ── State Callbacks ────────────────────────────────────────────────────────
+  // 鈹€鈹€ State Callbacks 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   void _notifyStateChanged() {
     if (!mounted) return;
@@ -910,7 +920,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     }
   }
 
-  // ── Initialization ──────────────────────────────────────────────────────────
+  // 鈹€鈹€ Initialization 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   /// Tries to initialize using the FFI decoder.
   /// Returns `true` on success, `false` if the file format is unsupported (e.g. WebP).
@@ -1013,7 +1023,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     _refreshTiles(load: true);
   }
 
-  // ── Scale and Type Calculations ────────────────────────────────────────────
+  // 鈹€鈹€ Scale and Type Calculations 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   ScaleType get _effectiveScaleType {
     if (widget.fit != null) {
@@ -1078,7 +1088,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
   double _clampScale(double scale) =>
       max(_getMinScale(), min(_getMaxScale(), scale));
 
-  // ── Pan clamping ─────────────────────────────────────────────────────────────
+  // 鈹€鈹€ Pan clamping 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   ui.Offset _clampTranslate(ui.Offset translate, double scale) {
     final transformer = CoordinateTransformer(
@@ -1121,7 +1131,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     return ui.Offset(tx, ty);
   }
 
-  // ── Tile loading ─────────────────────────────────────────────────────────────
+  // 鈹€鈹€ Tile loading 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   void _refreshTiles({required bool load}) {
     if (!_isInitialized || _resolvedFilePath == null) return;
@@ -1165,6 +1175,15 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
   void _loadTile(Tile tile) {
     if (_resolvedFilePath == null) return;
     tile.loading = true;
+
+    // When the ImageStream path already decoded the image (e.g. WebP that the
+    // FFI decoder can't handle, or JM scrambled images that were restored),
+    // load tiles directly from the decoded [_fallbackImage].
+    if (_fallbackImage != null) {
+      tile.loading = false;
+      _loadTileFromFallback(tile);
+      return;
+    }
 
     final transformer = CoordinateTransformer(
       scale: _scale,
@@ -1258,6 +1277,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
 
   /// Loads a tile region from [_fallbackImage] when the FFI decoder
   /// cannot handle the cached file format (e.g. WebP).
+  Uint8List? _fallbackBytes;
   Future<void> _loadTileFromFallback(Tile tile) async {
     if (_fallbackImage == null) return;
     final transformer = CoordinateTransformer(
@@ -1281,11 +1301,13 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     if (tileW <= 0 || tileH <= 0) return;
 
     try {
-      final byteData = await _fallbackImage!.toByteData(
+      // Cache the full-image RGBA bytes so each tile doesn't re-read the
+      // whole image from the GPU.
+      _fallbackBytes ??= await _fallbackImage!.toByteData(
         format: ui.ImageByteFormat.rawRgba,
-      );
-      if (byteData == null) return;
-      final Uint8List fullPixels = byteData.buffer.asUint8List();
+      ).then((d) => d?.buffer.asUint8List());
+      if (_fallbackBytes == null) return;
+      final Uint8List fullPixels = _fallbackBytes!;
       final int sw = _fallbackImage!.width;
       final Uint8List region = Uint8List(tileW * tileH * 4);
       for (int y = 0; y < tileH; y++) {
@@ -1294,7 +1316,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
         final int di = y * tileW * 4;
         for (int x = 0; x < tileW; x++) {
           final int sx = (left + x * tile.sampleSize).clamp(0, sw - 1);
-          final int sip = si + sx * 4;
+          final int sip = (sy * sw + sx) * 4;
           final int dip = di + x * 4;
           region[dip] = fullPixels[sip];
           region[dip + 1] = fullPixels[sip + 1];
@@ -1335,7 +1357,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     }
   }
 
-  // ── Gesture handlers ─────────────────────────────────────────────────────────
+  // 鈹€鈹€ Gesture handlers 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   void _handleScaleStart(ScaleStartDetails details) {
     if (_animationController.isAnimating) {
@@ -1508,7 +1530,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     _animationController.forward(from: 0.0);
   }
 
-  // ── Build ────────────────────────────────────────────────────────────────────
+  // 鈹€鈹€ Build 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
   @override
   Widget build(BuildContext context) {
@@ -1553,7 +1575,6 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
 
         // Displays custom state widget if image is not ready
         if (_loadState != LoadState.completed || !_isInitialized) {
-          print('SSIV: build _loadState=$_loadState _isInitialized=$_isInitialized _resolvedFilePath=$_resolvedFilePath');
           final stateWidget = widget.loadStateChanged?.call(_makeImageState());
           if (stateWidget != null) return stateWidget;
 
