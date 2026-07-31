@@ -519,7 +519,7 @@ final class NavigationOrderStateProvider
 }
 
 String _$navigationOrderStateHash() =>
-    r'7b40ce1b52f02ebac46ed6d0d5ab9ff9590b6885';
+    r'4147017958e001e7aed06ff8773dab35ebb775d4';
 
 abstract class _$NavigationOrderState extends $Notifier<List<String>> {
   List<String> build();
