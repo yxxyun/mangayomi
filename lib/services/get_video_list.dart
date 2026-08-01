@@ -11,6 +11,7 @@ import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/services/torrent_server.dart';
 import 'package:mangayomi/services/wogg/wogg_service.dart';
+import 'package:mangayomi/services/yydsys/yydsys_service.dart';
 import 'package:mangayomi/utils/utils.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -103,6 +104,10 @@ Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
         for (int i = 0; i < videos.length && i < 3; i++) {
           _diag('  video[$i]: url=${videos[i].url.substring(0, videos[i].url.length.clamp(0, 80))}, quality=${videos[i].quality}, headers=${videos[i].headers}');
         }
+        keepAlive.close();
+        return (videos, false, infoHashes, mpvDirectory);
+      } else if (bi.nameId == 'yydsys') {
+        final videos = await YydsysService.getVideoList(episode.url!);
         keepAlive.close();
         return (videos, false, infoHashes, mpvDirectory);
       }

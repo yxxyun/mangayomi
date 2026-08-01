@@ -11,6 +11,7 @@ import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/services/jmcomic/jmcomic_service.dart';
 import 'package:mangayomi/services/wogg/wogg_service.dart';
+import 'package:mangayomi/services/yydsys/yydsys_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'search.g.dart';
 
@@ -108,6 +109,33 @@ Future<MPages?> search(
         return MPages(list: [], hasNextPage: false);
       } finally {
         jmcomicService.dispose();
+      }
+    } else if (bi.nameId == 'yydsys') {
+      final yydsysService = YydsysService(baseUrl: bi.baseUrl);
+      try {
+        List<Map<String, String>> items;
+        if (query.isEmpty && filterList.isNotEmpty) {
+          String category = '1';
+          for (final f in filterList) {
+            if (f is SelectFilter && f.type == 'categories') {
+              final selected = f.values[f.state] as SelectFilterOption;
+              category = selected.value;
+            }
+          }
+          items = await yydsysService.getCategoryList(category, page);
+        } else {
+          items = await yydsysService.search(query, page);
+        }
+        final result = items
+            .map((e) => MManga(
+                  name: e['name'],
+                  imageUrl: e['imageUrl'],
+                  link: e['link'],
+                ))
+            .toList();
+        return MPages(list: result, hasNextPage: true);
+      } catch (e) {
+        return MPages(list: [], hasNextPage: false);
       }
     }
   }

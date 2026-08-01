@@ -10,6 +10,7 @@ import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/services/jmcomic/jmcomic_service.dart';
 import 'package:mangayomi/services/wogg/wogg_service.dart';
+import 'package:mangayomi/services/yydsys/yydsys_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'get_latest_updates.g.dart';
 
@@ -77,6 +78,21 @@ Future<MPages?> getLatestUpdates(
         return MPages(list: [], hasNextPage: false);
       } finally {
         jmcomicService.dispose();
+      }
+    } else if (bi.nameId == 'yydsys') {
+      final yydsysService = YydsysService(baseUrl: bi.baseUrl);
+      try {
+        final items = await yydsysService.getLatestUpdates(page);
+        final result = items
+            .map((e) => MManga(
+                  name: e['name'],
+                  imageUrl: e['imageUrl'],
+                  link: e['link'],
+                ))
+            .toList();
+        return MPages(list: result, hasNextPage: true);
+      } catch (e) {
+        return MPages(list: [], hasNextPage: false);
       }
     }
   }

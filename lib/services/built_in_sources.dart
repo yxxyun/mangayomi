@@ -60,8 +60,18 @@ class BuiltInSources {
     isNsfw: true,
   );
 
+  static const yydsys = BuiltInSource(
+    nameId: 'yydsys',
+    name: '多多影音',
+    lang: 'zh',
+    baseUrl: 'https://tv.yydsys.top',
+    iconUrl:
+        'https://tv.yydsys.top/template/DYXS2/static/picture/logo.png',
+    itemType: ItemType.anime,
+  );
+
   /// All built-in sources.
-  static const all = [wogg, jmcomic];
+  static const all = [wogg, jmcomic, yydsys];
 
   /// Lookup by [nameId].
   static BuiltInSource? findById(String nameId) {

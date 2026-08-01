@@ -4,12 +4,22 @@ import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/update.dart';
 import 'package:mangayomi/models/manga.dart';
+import 'package:mangayomi/models/source.dart';
+import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/services/get_detail.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:mangayomi/utils/fetch_interval.dart';
 import 'package:mangayomi/utils/utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'update_manga_detail_providers.g.dart';
+
+/// True when [manga] belongs to a built-in source (wogg / yydsys / jmcomic).
+/// Built-in sources refresh their chapters on every entry because their
+/// episode URLs embed ephemeral cloud-drive tokens that expire.
+bool _isBuiltInManga(Manga manga) => BuiltInSources.isBuiltIn(Source(
+      name: manga.source,
+      lang: manga.lang,
+    ));
 
 @riverpod
 Future<dynamic> updateMangaDetail(
@@ -26,7 +36,7 @@ Future<dynamic> updateMangaDetail(
     manga.chapters.loadSync();
 
     if ((manga.isLocalArchive ?? false) ||
-        (manga.chapters.isNotEmpty && isInit && !(manga.source == '玩偶哥哥'))) {
+        (manga.chapters.isNotEmpty && isInit && !_isBuiltInManga(manga))) {
       return;
     }
     final source = getSource(
@@ -86,7 +96,7 @@ Future<dynamic> updateMangaDetail(
       // ephemeral tokens — duplicates are created on every refresh).
       // But preserve playback progress by name.
       final Map<String, Chapter> oldByName = {};
-      final isBuiltIn = manga.source == '玩偶哥哥';
+      final isBuiltIn = _isBuiltInManga(manga);
       if (isBuiltIn) {
         final oldChapters = manga.chapters.toList();
         final oldIds = oldChapters.map((c) => c.id!).toList();

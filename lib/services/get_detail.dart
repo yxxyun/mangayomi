@@ -6,6 +6,7 @@ import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/services/jmcomic/jmcomic_service.dart';
 import 'package:mangayomi/services/wogg/wogg_service.dart';
+import 'package:mangayomi/services/yydsys/yydsys_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'get_detail.g.dart';
 
@@ -33,6 +34,14 @@ Future<MManga> getDetail(
         return detail ?? MManga(name: '未知', chapters: []);
       } finally {
         jmcomicService.dispose();
+      }
+    } else if (bi.nameId == 'yydsys') {
+      final yydsysService = YydsysService(baseUrl: bi.baseUrl);
+      try {
+        final detail = await yydsysService.getDetail(url);
+        return detail ?? MManga(name: '未知', chapters: []);
+      } catch (e) {
+        return MManga(name: '未知', chapters: []);
       }
     }
   }

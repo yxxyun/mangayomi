@@ -301,29 +301,54 @@ class QrLoginFlow {
 
   // ── Baidu ─────────────────────────────────────────────────────────
 
+  static const Map<String, String> _baiduHeaders = {
+    'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; ) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.61 Chrome/126.0.6478.61 Not/A)Brand/8 Safari/537.36',
+    'sec-ch-ua-platform': '"Windows"',
+    'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+    'DNT': '1',
+    'sec-ch-ua-mobile': '?0',
+    'Sec-Fetch-Site': 'same-site',
+    'Sec-Fetch-Mode': 'no-cors',
+    'Sec-Fetch-Dest': 'script',
+    'Referer': 'https://pan.baidu.com/',
+    'Accept-Language': 'zh-CN,zh;q=0.9',
+  };
+
   static Future<QrLoginResult> _startBaiduScan() async {
     final client = MClient.init(reqcopyWith: {'useDartHttpClient': true});
     final requestId = generateUUID();
     final t3 = DateTime.now().millisecondsSinceEpoch.toString();
-    final res = await client.get(
-      Uri.parse(
-        'https://passport.baidu.com/v2/api/getqrcode?lp=pc&qrloginfrom=pc&gid=$requestId&apiver=v3&tt=$t3&tpl=netdisk&_=$t3',
-      ),
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer': 'https://pan.baidu.com/',
-      },
-    );
+    final t1 = (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString();
+    final uri = Uri.parse(
+      'https://passport.baidu.com/v2/api/getqrcode',
+    ).replace(queryParameters: {
+      'lp': 'pc',
+      'qrloginfrom': 'pc',
+      'gid': requestId,
+      'apiver': 'v3',
+      'tt': t3,
+      'tpl': 'netdisk',
+      'logPage': 'traceId%3Apc_loginv5_$t1%2ClogPage%3Aloginv5',
+      '_': t3,
+    });
+    _qrDiag('baidu getqrcode: $uri');
+    final res = await client.get(uri, headers: _baiduHeaders);
+    _qrDiag('baidu getqrcode status=${res.statusCode} body=${res.body.length > 200 ? res.body.substring(0, 200) : res.body}');
+    // Note: Baidu returns {imgurl, errno, sign} at the TOP level — no "data"
+    // wrapper. drpy-node reads res.data.data only because it goes through the
+    // /http proxy which adds one envelope layer.
     final data = jsonDecode(res.body);
-    final imgUrl = data['data']?['imgurl'] as String?;
-    final channelId = data['data']?['sign'] as String?;
+    final imgUrl = data['imgurl'] as String?;
+    final channelId = data['sign'] as String?;
     if (imgUrl == null || channelId == null) {
+      _qrDiag('baidu getqrcode parse FAIL: imgurl=$imgUrl sign=$channelId');
       return const QrLoginResult(error: '获取二维码失败');
     }
     return QrLoginResult(
       qrImageUrl: 'https://$imgUrl',
       status: 'NEW',
-      stateData: {'channel_id': channelId, 'request_id': requestId, 't3': t3},
+      stateData: {'channel_id': channelId, 'request_id': requestId, 't3': t3, 't1': t1},
     );
   }
 
@@ -332,34 +357,68 @@ class QrLoginFlow {
     final channelId = state['channel_id'] as String;
     final requestId = state['request_id'] as String;
     final t3 = state['t3'] as String;
-    final res = await client.get(
-      Uri.parse(
-        'https://passport.baidu.com/channel/unicast?channel_id=$channelId&gid=$requestId&tpl=netdisk&apiver=v3&tt=$t3&_=$t3',
-      ),
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer': 'https://pan.baidu.com/',
-      },
-    );
+    final t1 = state['t1'] as String;
+    final uri = Uri.parse(
+      'https://passport.baidu.com/channel/unicast',
+    ).replace(queryParameters: {
+      'channel_id': channelId,
+      'gid': requestId,
+      'tpl': 'netdisk',
+      '_sdkFrom': '1',
+      'apiver': 'v3',
+      'tt': t3,
+      '_': t3,
+    });
+    final res = await client.get(uri, headers: _baiduHeaders);
+    _qrDiag('baidu unicast status=${res.statusCode} body=${res.body.length > 200 ? res.body.substring(0, 200) : res.body}');
+    // channel_v is at the TOP level of the Baidu response (drpy-node's
+    // res.data.data unwraps the /http proxy envelope, not a Baidu data field).
     final data = jsonDecode(res.body);
-    final channelV = data['data']?['channel_v'] as String?;
+    final channelV = data['channel_v'] as String?;
     if (channelV != null) {
       try {
         final bdData = jsonDecode(channelV);
         final bduss = bdData['v'] as String?;
         if (bduss != null) {
-          // Exchange BDUSS for full cookies
-          final cookieRes = await client.post(
-            Uri.parse('https://passport.baidu.com/v3/login/main/qrbdusslogin'),
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'Referer': 'https://pan.baidu.com/',
-            },
-            body: 'bduss=$bduss&u=https://pan.baidu.com/',
-          );
-          final cookies = _extractSetCookie(cookieRes.headers);
-          return QrLoginResult(cookie: cookies, status: 'CONFIRMED');
+          // Exchange BDUSS for full cookies (mirror drpy-node core.js).
+          final loginUri = Uri.parse(
+            'https://passport.baidu.com/v3/login/main/qrbdusslogin',
+          ).replace(queryParameters: {
+            'v': t3,
+            'bduss': bduss,
+            'u': 'https://pan.baidu.com/disk/main%23/index?category%3Dall',
+            'loginVersion': 'v5',
+            'qrcode': '1',
+            'tpl': 'netdisk',
+            'maskId': '',
+            'fileId': '',
+            'apiver': 'v3',
+            'tt': t3,
+            'traceid': '',
+            'time': t1,
+            'alg': 'v3',
+            'elapsed': '1',
+          });
+          final cookieRes = await client.get(loginUri, headers: _baiduHeaders);
+          _qrDiag('baidu qrbdusslogin status=${cookieRes.statusCode} body=${cookieRes.body.length > 300 ? cookieRes.body.substring(0, 300) : cookieRes.body}');
+          final cookieData = cookieRes.body;
+          final bdussMatch = RegExp(r'"bduss": "(.*?)"').firstMatch(cookieData);
+          final stokenMatch = RegExp(r'"stoken": "(.*?)"').firstMatch(cookieData);
+          final ptokenMatch = RegExp(r'"ptoken": "(.*?)"').firstMatch(cookieData);
+          final ubiMatch = RegExp(r'"ubi": "(.*?)"').firstMatch(cookieData);
+          if (bdussMatch != null && stokenMatch != null) {
+            final bdussVal = bdussMatch.group(1)!;
+            final stokenVal = stokenMatch.group(1)!;
+            final ptokenVal = ptokenMatch?.group(1) ?? '';
+            final ubiVal = ubiMatch != null
+                ? Uri.encodeComponent(ubiMatch.group(1)!)
+                : '';
+            final cookie = 'newlogin=1;UBI=$ubiVal;STOKEN=$stokenVal;'
+                'BDUSS=$bdussVal;PTOKEN=$ptokenVal;BDUSS_BFESS=$bdussVal;'
+                'STOKEN_BFESS=$stokenVal;PTOKEN_BFESS=$ptokenVal;UBI_BFESS=$ubiVal';
+            _qrDiag('baidu cookie obtained: ${cookie.substring(0, cookie.length.clamp(0, 60))}...');
+            return QrLoginResult(cookie: cookie, status: 'CONFIRMED');
+          }
         }
       } catch (_) {}
     }

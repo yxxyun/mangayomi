@@ -53,8 +53,10 @@ class WoggService {
       final text = e.querySelector('.module-row-title p')?.text ?? '';
       final quarkMatch = RegExp(r'(https://pan\.quark\.cn/s/[^"]+)').firstMatch(text);
       final ucMatch = RegExp(r'(https://drive\.uc\.cn/s/[^"]+)').firstMatch(text);
+      final baiduMatch = RegExp(r'(https://pan\.baidu\.com/s/[^"]+)').firstMatch(text);
       if (quarkMatch != null) shareUrls.add(quarkMatch.group(1)!);
       if (ucMatch != null) shareUrls.add(ucMatch.group(1)!);
+      if (baiduMatch != null) shareUrls.add(baiduMatch.group(1)!);
     }
 
     if (shareUrls.isEmpty) return null;
