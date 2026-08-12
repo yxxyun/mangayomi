@@ -422,7 +422,7 @@ final class GetRepoInfosProvider
   }
 }
 
-String _$getRepoInfosHash() => r'aae66dfcaadf7f59867fbc599b900862ef1dd3e7';
+String _$getRepoInfosHash() => r'91181c43ba8778d8886be9bba4ac0aaf9f4357bb';
 
 final class GetRepoInfosFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<Repo?>, String> {

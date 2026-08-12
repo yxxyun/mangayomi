@@ -270,6 +270,7 @@ class _ContentState extends ConsumerState<_Content>
                 downloadedOnly: ref.watch(downloadedOnlyStateProvider),
                 searchQuery: _textEditingController.text,
                 ignoreFiltersOnSearch: _textEditingController.text.isNotEmpty,
+                sourceIds: const [],
               );
             },
             error: (e, _) => ErrorText(e),

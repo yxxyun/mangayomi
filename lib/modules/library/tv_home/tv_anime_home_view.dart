@@ -304,6 +304,16 @@ class _TvAnimeHomeViewState extends ConsumerState<TvAnimeHomeView> {
               downloadedOnly: ref.watch(downloadedOnlyStateProvider),
               searchQuery: _query.trim(),
               ignoreFiltersOnSearch: false,
+              sourceIds: ref
+                  .watch(
+                    mangaFilterSourceStateProvider(
+                      itemType: it,
+                      mangaList: visible,
+                      settings: settings,
+                    ),
+                  )
+                  .$2,
+              settings: settings,
             ),
           );
           final entries = (sortState.reverse ?? false)
@@ -1437,7 +1447,10 @@ void _showAddCategoryDialog(BuildContext context, List<Category> existing) {
                           .posIsNull()
                           .findAllSync();
                       for (final c in nulls) {
-                        isar.categorys.putSync(c..pos = c.id);
+                        c.pos = c.id;
+                      }
+                      if (nulls.isNotEmpty) {
+                        isar.categorys.putAllSync(nulls);
                       }
                     });
                     Navigator.pop(context);

@@ -1,11 +1,15 @@
 import 'dart:convert';
-import 'package:http/http.dart';
+import 'dart:io';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http_interceptor/http_interceptor.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/services/fetch_item_sources.dart';
 import 'package:mangayomi/services/http/m_client.dart';
+import 'package:mangayomi/services/extension_store_service.dart';
+import 'package:mangayomi/utils/platform_utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'browse_state_provider.g.dart';
 
@@ -185,6 +189,17 @@ class CheckForExtensionsUpdateState extends _$CheckForExtensionsUpdateState {
 Future<Repo?> getRepoInfos(Ref ref, {required String jsonUrl}) async {
   final http = MClient.init(reqcopyWith: {'useDartHttpClient': true});
 
+  if (['/.min.json', '.pb'].any((suffix) => jsonUrl.endsWith(suffix))) {
+    final result = await ExtensionStoreService.fetchStore(jsonUrl, http);
+    if (result != null) {
+      return Repo(
+        name: result.name,
+        website: result.website,
+        jsonUrl: result.indexUrl,
+      );
+    }
+  }
+
   Map<String, dynamic> infos = {};
   final match = RegExp(r'^(.*)/[^/]+\.json$').firstMatch(jsonUrl);
 
@@ -218,3 +233,24 @@ bool _checkValidUrl(Response res) {
   }
   return true;
 }
+
+final isExtensionServerInstalledStreamProvider = StreamProvider<bool>((
+  ref,
+) async* {
+  if (!isDesktop) {
+    yield true;
+    return;
+  }
+  await for (final settings in isar.settings.watchObject(
+    227,
+    fireImmediately: true,
+  )) {
+    final jrePath = settings?.jrePath ?? '';
+    final serverPath = settings?.extensionServerPath ?? '';
+    if (jrePath.isEmpty || serverPath.isEmpty) {
+      yield false;
+    } else {
+      yield File(jrePath).existsSync() && File(serverPath).existsSync();
+    }
+  }
+});

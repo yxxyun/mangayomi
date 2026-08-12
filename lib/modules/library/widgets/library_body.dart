@@ -38,6 +38,7 @@ class LibraryBody extends ConsumerWidget {
   final bool downloadedOnly;
   final String searchQuery;
   final bool ignoreFiltersOnSearch;
+  final List<String> sourceIds;
 
   const LibraryBody({
     super.key,
@@ -60,6 +61,7 @@ class LibraryBody extends ConsumerWidget {
     required this.downloadedOnly,
     required this.searchQuery,
     required this.ignoreFiltersOnSearch,
+    required this.sourceIds,
   });
 
   @override
@@ -108,6 +110,8 @@ class LibraryBody extends ConsumerWidget {
             downloadedOnly: downloadedOnly,
             searchQuery: searchQuery,
             ignoreFiltersOnSearch: ignoreFiltersOnSearch,
+            sourceIds: sourceIds,
+            settings: settings,
           ),
         );
 
@@ -133,6 +137,7 @@ class LibraryBody extends ConsumerWidget {
                   language: language,
                   mangaIdsList: mangaIdsList,
                   localSource: localSource,
+                  settings: settings,
                 )
               : LibraryGridViewWidget(
                   entriesManga: entriesManga,
@@ -145,6 +150,7 @@ class LibraryBody extends ConsumerWidget {
                   mangaIdsList: mangaIdsList,
                   localSource: localSource,
                   itemType: itemType,
+                  settings: settings,
                 ),
         );
       },
@@ -171,6 +177,7 @@ class CategoryBadge extends ConsumerWidget {
   final bool downloadedOnly;
   final String searchQuery;
   final bool ignoreFiltersOnSearch;
+  final List<String> sourceIds;
 
   const CategoryBadge({
     super.key,
@@ -186,6 +193,7 @@ class CategoryBadge extends ConsumerWidget {
     required this.downloadedOnly,
     required this.searchQuery,
     required this.ignoreFiltersOnSearch,
+    required this.sourceIds,
   });
 
   @override
@@ -217,6 +225,8 @@ class CategoryBadge extends ConsumerWidget {
             downloadedOnly: downloadedOnly,
             searchQuery: searchQuery,
             ignoreFiltersOnSearch: ignoreFiltersOnSearch,
+            sourceIds: sourceIds,
+            settings: settings,
           ),
         );
         return CircleAvatar(

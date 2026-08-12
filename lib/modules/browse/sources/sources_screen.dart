@@ -8,6 +8,7 @@ import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/browse/browse_screen.dart';
 import 'package:mangayomi/modules/browse/sources/widgets/source_list_tile.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
+import 'package:mangayomi/modules/widgets/extension_server_warning_banner.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/utils/language.dart';
@@ -17,14 +18,13 @@ final getSourcesStreamProvider = StreamProvider.family<List<Source>, ItemType>((
   ref,
   itemType,
 ) {
+  // Use composite index (itemType, isAdded) via where() for an index scan,
+  // then narrow to isActive=true with a secondary filter on the small result set.
   return isar.sources
+      .where()
+      .itemTypeIsAddedEqualTo(itemType, true)
       .filter()
-      .idIsNotNull()
-      .isAddedEqualTo(true)
-      .and()
       .isActiveEqualTo(true)
-      .and()
-      .itemTypeEqualTo(itemType)
       .watch(fireImmediately: true);
 });
 
@@ -109,6 +109,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const ExtensionServerWarningBanner(),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Text(context.l10n.no_sources_installed),
@@ -178,6 +179,9 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
             child: CustomScrollView(
               controller: controller,
               slivers: [
+                const SliverToBoxAdapter(
+                  child: ExtensionServerWarningBanner(),
+                ),
                 // Built-in sources section (at the top).
                 if (BuiltInSources.all.any((s) => s.itemType == widget.itemType))
                   SliverToBoxAdapter(

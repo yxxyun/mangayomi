@@ -1,4 +1,5 @@
 import 'package:isar_community/isar.dart';
+import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/utils/extensions/manga_extensions.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/download.dart';
@@ -42,6 +43,8 @@ List<Manga> filteredLibraryManga(
   required bool downloadedOnly,
   required String searchQuery,
   required bool ignoreFiltersOnSearch,
+  required List<String> sourceIds,
+  required Settings settings,
 }) {
   final downloadedIds =
       ref.watch(downloadedChapterIdsProvider).asData?.value ?? const <int>{};
@@ -110,6 +113,13 @@ List<Manga> filteredLibraryManga(
         }
       }
 
+      // Filter by source
+      if (sourceIds.isNotEmpty) {
+        if (element.source == null || !sourceIds.contains(element.source)) {
+          return false;
+        }
+      }
+
       // Search filter
       if (searchQuery.isNotEmpty) {
         if (!_matchesSearchQuery(element, searchQuery)) return false;
@@ -126,7 +136,7 @@ List<Manga> filteredLibraryManga(
       for (final manga in mangas) {
         if (manga.id != null) {
           // Scanlator-aware unread count (respects the per-manga filter).
-          unreadCounts[manga.id!] = manga.unreadChaptersCount;
+          unreadCounts[manga.id!] = manga.unreadChaptersCount(settings);
         }
       }
       mangas.sort((a, b) {

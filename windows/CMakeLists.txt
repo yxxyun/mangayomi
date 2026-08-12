@@ -84,11 +84,25 @@ install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/libmtorrentserver.dll" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
 
-set(NATIVE_ASSETS_DLL "${CMAKE_CURRENT_SOURCE_DIR}/../build/native_assets/windows/subsampling_scale_image_view.dll")
-if(EXISTS "${NATIVE_ASSETS_DLL}")
-  install(FILES "${NATIVE_ASSETS_DLL}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
-    COMPONENT Runtime)
+add_library(subsampling_scale_image_view SHARED
+  "${CMAKE_CURRENT_SOURCE_DIR}/../lib/ffi/image_decoder.cpp"
+)
+apply_standard_settings(subsampling_scale_image_view)
+target_compile_definitions(subsampling_scale_image_view PRIVATE _CRT_SECURE_NO_WARNINGS)
+# image_decoder.cpp contains non-ASCII comments (UTF-8); tell MSVC the source
+# encoding so /WX doesn't turn C4819 into a build failure.
+target_compile_options(subsampling_scale_image_view PRIVATE /utf-8)
+
+# m_extension_server 0.0.3 ships a plugin .cpp with UTF-8 content that triggers
+# C4819 under the project-wide /WX setting; compile it as UTF-8 as well.
+if(TARGET m_extension_server_plugin)
+  target_compile_options(m_extension_server_plugin PRIVATE /utf-8)
 endif()
+target_include_directories(subsampling_scale_image_view PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../lib/ffi")
+
+install(TARGETS subsampling_scale_image_view
+  RUNTIME DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  COMPONENT Runtime)
 
 if(PLUGIN_BUNDLED_LIBRARIES)
   install(FILES "${PLUGIN_BUNDLED_LIBRARIES}"

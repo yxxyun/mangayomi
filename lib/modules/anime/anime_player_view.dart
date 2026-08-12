@@ -7,6 +7,7 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:ffi/ffi.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_qjs/quickjs/ffi.dart';
@@ -648,8 +649,7 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
   Future<void> _initCustomButton() async {
     if (!useMpvConfig) return;
     final customButtons = isar.customButtons
-        .filter()
-        .idIsNotNull()
+        .where()
         .sortByPos()
         .findAllSync();
     if (customButtons.isEmpty) return;
@@ -1903,106 +1903,120 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                if (_streamController.hasPreviousEpisode)
-                  IconButton(
-                    onPressed: () {
-                      pushToNewEpisode(
-                        context,
-                        _streamController.getPrevEpisode(),
-                      );
-                    },
-                    icon: const Icon(Icons.skip_previous, color: Colors.white),
-                  ),
-                CustomPlayOrPauseButton(controller: _controller),
-                if (hasNextEpisode)
-                  IconButton(
-                    onPressed: () async {
-                      pushToNewEpisode(
-                        context,
-                        _streamController.getNextEpisode(),
-                      );
-                    },
-                    icon: const Icon(Icons.skip_next, color: Colors.white),
-                  ),
-                SizedBox(
-                  height: 50,
-                  width: 50,
-                  child: IconButton(
-                    onPressed: () async => await _seekBy(-skipDuration),
-                    icon: Stack(
-                      children: [
-                        const Positioned.fill(
-                          child: Icon(
-                            Icons.rotate_left_outlined,
-                            color: Colors.white,
-                            size: 30,
-                          ),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    if (_streamController.hasPreviousEpisode)
+                      IconButton(
+                        onPressed: () {
+                          pushToNewEpisode(
+                            context,
+                            _streamController.getPrevEpisode(),
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.skip_previous,
+                          color: Colors.white,
                         ),
-                        Positioned.fill(
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Text(
-                                skipDuration.toString(),
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  height: 50,
-                  width: 50,
-                  child: IconButton(
-                    onPressed: () async => await _seekBy(skipDuration),
-                    icon: Stack(
-                      children: [
-                        const Positioned.fill(
-                          child: Icon(
-                            Icons.rotate_right_outlined,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        ),
-                        Positioned.fill(
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Text(
-                                skipDuration.toString(),
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                CustomMaterialDesktopVolumeButton(controller: _controller),
-                ValueListenableBuilder(
-                  valueListenable: _tempPosition,
-                  builder: (context, value, child) =>
-                      CustomMaterialDesktopPositionIndicator(
-                        delta: value,
-                        controller: _controller,
                       ),
+                    CustomPlayOrPauseButton(controller: _controller),
+                    if (hasNextEpisode)
+                      IconButton(
+                        onPressed: () async {
+                          pushToNewEpisode(
+                            context,
+                            _streamController.getNextEpisode(),
+                          );
+                        },
+                        icon: const Icon(Icons.skip_next, color: Colors.white),
+                      ),
+                    SizedBox(
+                      height: 50,
+                      width: 50,
+                      child: IconButton(
+                        onPressed: () async => await _seekBy(-skipDuration),
+                        icon: Stack(
+                          children: [
+                            const Positioned.fill(
+                              child: Icon(
+                                Icons.rotate_left_outlined,
+                                color: Colors.white,
+                                size: 30,
+                              ),
+                            ),
+                            Positioned.fill(
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    skipDuration.toString(),
+                                    style: const TextStyle(
+                                      fontSize: 9,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 50,
+                      width: 50,
+                      child: IconButton(
+                        onPressed: () async => await _seekBy(skipDuration),
+                        icon: Stack(
+                          children: [
+                            const Positioned.fill(
+                              child: Icon(
+                                Icons.rotate_right_outlined,
+                                color: Colors.white,
+                                size: 30,
+                              ),
+                            ),
+                            Positioned.fill(
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    skipDuration.toString(),
+                                    style: const TextStyle(
+                                      fontSize: 9,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    CustomMaterialDesktopVolumeButton(controller: _controller),
+                    ValueListenableBuilder(
+                      valueListenable: _tempPosition,
+                      builder: (context, value, child) =>
+                          CustomMaterialDesktopPositionIndicator(
+                            delta: value,
+                            controller: _controller,
+                          ),
+                    ),
+                    _chapterMarkWidget(),
+                  ],
                 ),
-                _chapterMarkWidget(),
-              ],
+              ),
             ),
-            _buildSettingsButtons(context),
+            Flexible(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                reverse: true,
+                child: _buildSettingsButtons(context),
+              ),
+            ),
           ],
         ),
       ],
@@ -2750,7 +2764,13 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
         onEnter: (_) => _revealControls.value++,
         onHover: (_) => _revealControls.value++,
         child: Listener(
-          onPointerDown: (_) => _revealControls.value++,
+          // Reveal on a mouse click (desktop), but NOT on touch. On a touch
+          // device the mobile controls handle tap-to-toggle themselves, so
+          // revealing here on finger-down makes the following tap immediately
+          // hide them again (controls flash and vanish in under a second).
+          onPointerDown: (event) {
+            if (event.kind == PointerDeviceKind.mouse) _revealControls.value++;
+          },
           child: Focus(autofocus: true, onKeyEvent: _onPlayerKey, child: child),
         ),
       ),

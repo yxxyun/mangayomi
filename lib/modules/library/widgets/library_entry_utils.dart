@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/modules/library/providers/library_filter_provider.dart';
 import 'package:mangayomi/modules/library/providers/library_state_provider.dart';
 import 'package:mangayomi/models/manga.dart';
@@ -112,30 +113,6 @@ class EntryBadgeChip extends StatelessWidget {
   }
 }
 
-/// Shows the number of downloaded chapters for [entry], or nothing when zero.
-///
-/// Uses a [Consumer] internally so it can watch [downloadedChapterIdsProvider]
-/// without forcing its parent to rebuild.
-class DownloadCountBadge extends ConsumerWidget {
-  const DownloadCountBadge({super.key, required this.entry});
-
-  final Manga entry;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final downloadedIds =
-        ref.watch(downloadedChapterIdsProvider).asData?.value ?? const <int>{};
-
-    final count = entry.chapters
-        .where((c) => c.id != null && downloadedIds.contains(c.id))
-        .length;
-
-    if (count == 0) return const SizedBox.shrink();
-
-    return EntryBadgeChip(label: count.toString());
-  }
-}
-
 /// A unified badge widget that combines Local, Download, and Unread counts.
 /// Only renders a non-empty widget when there is actually something to display,
 /// resolving the "0 unread" empty badge container UX bug.
@@ -143,12 +120,14 @@ class LibraryBadgeWidget extends ConsumerWidget {
   final Manga entry;
   final bool showLocal;
   final bool showDownloaded;
+  final Settings settings;
 
   const LibraryBadgeWidget({
     super.key,
     required this.entry,
     required this.showLocal,
     required this.showDownloaded,
+    required this.settings,
   });
 
   @override
@@ -169,7 +148,7 @@ class LibraryBadgeWidget extends ConsumerWidget {
     }
 
     // Scanlator-aware: the badge count respects the per-manga scanlator filter.
-    final unreadCount = entry.unreadChaptersCount;
+    final unreadCount = entry.unreadChaptersCount(settings);
 
     // If there is nothing to show (no local, no download, no unread), return empty
     if (!hasLocal && downloadCount == 0 && unreadCount == 0) {
@@ -193,11 +172,7 @@ class LibraryBadgeWidget extends ConsumerWidget {
               padding: const EdgeInsets.only(left: 3),
               child: Text(
                 unreadCount.toString(),
-                style: TextStyle(
-                  color: context.dynamicBlackWhiteColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 10,
-                ),
+                style: TextStyle(color: context.dynamicBlackWhiteColor),
               ),
             ),
         ],

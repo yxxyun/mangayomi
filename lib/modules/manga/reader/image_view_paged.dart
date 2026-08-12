@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/models/settings.dart';
@@ -11,8 +10,6 @@ import 'package:mangayomi/modules/more/settings/reader/providers/reader_state_pr
 import 'package:mangayomi/modules/manga/reader/subsampling_scale_image_view/subsampling_scale_image_view.dart'
     as ssiv;
 import 'package:mangayomi/utils/extensions/others.dart';
-import 'package:mangayomi/modules/more/settings/reader/reader_screen.dart';
-import 'package:mangayomi/modules/manga/reader/widgets/circular_progress_indicator_animate_rotate.dart';
 
 class ImageViewPaged extends ConsumerStatefulWidget {
   final UChapDataPreload data;
@@ -44,7 +41,6 @@ class ImageViewPaged extends ConsumerStatefulWidget {
 
 class _ImageViewPagedState extends ConsumerState<ImageViewPaged> {
   Color? _autoBgColor;
-  bool _isDetecting = false;
 
   bool _hasLandscapeZoomed = false;
 
@@ -229,56 +225,16 @@ class _ImageViewPagedState extends ConsumerState<ImageViewPaged> {
     };
   }
 
-  void _detectBgColor(ImageProvider provider) async {
-    if (_isDetecting || _autoBgColor != null) return;
-    _isDetecting = true;
-    try {
-      final ImageStream stream = provider.resolve(ImageConfiguration.empty);
-      ImageStreamListener? listener;
-      listener = ImageStreamListener(
-        (ImageInfo info, bool syncCall) async {
-          try {
-            final byteData = await info.image.toByteData(
-              format: ui.ImageByteFormat.rawRgba,
-            );
-            if (byteData != null && byteData.lengthInBytes >= 4) {
-              final int r = byteData.getUint8(0);
-              final int g = byteData.getUint8(1);
-              final int b = byteData.getUint8(2);
-              final double brightness =
-                  (r * 0.299 + g * 0.587 + b * 0.114) / 255.0;
-              if (mounted) {
-                setState(() {
-                  _autoBgColor = brightness > 0.5 ? Colors.white : Colors.black;
-                });
-              }
-            }
-          } catch (_) {}
-          stream.removeListener(listener!);
-        },
-        onError: (err, stack) {
-          stream.removeListener(listener!);
-        },
-      );
-      stream.addListener(listener);
-    } catch (_) {}
-  }
-
   @override
   Widget build(BuildContext context) {
     final scaleType = ref.watch(scaleTypeStateProvider);
     final image = widget.data.getImageProvider(ref, true);
     final (colorBlendMode, color) = chapterColorFIlterValues(context, ref);
     final cropBorders = ref.watch(cropBordersStateProvider);
-    final automaticBackground = ref.watch(automaticBackgroundStateProvider);
     final dualPageRotateToFit = ref.watch(dualPageRotateToFitStateProvider);
     final dualPageRotateToFitInvert = ref.watch(
       dualPageRotateToFitInvertStateProvider,
     );
-
-    if (automaticBackground) {
-      _detectBgColor(image);
-    }
 
     // Determine background color
     Color? pageBgColor = _autoBgColor;
@@ -307,19 +263,6 @@ class _ImageViewPagedState extends ConsumerState<ImageViewPaged> {
     }
 
     final bool isAnimated = _isAnimated;
-
-    if (_resolvedFilePath == null && !isAnimated) {
-      final Color bg =
-          pageBgColor ??
-          getBackgroundColor(ref.watch(backgroundColorStateProvider)) ??
-          Colors.black;
-      return Container(
-        color: bg,
-        child: const Center(
-          child: CircularProgressIndicatorAnimateRotate(progress: 0),
-        ),
-      );
-    }
 
     final ssivScaleType = switch (scaleType) {
       ScaleType.fitScreen => ssiv.ScaleType.centerInside,

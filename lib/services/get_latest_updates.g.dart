@@ -58,7 +58,7 @@ final class GetLatestUpdatesProvider
   }
 }
 
-String _$getLatestUpdatesHash() => r'bb654c6fe70d9240c19ae6d02b81c92b868f1b6c';
+String _$getLatestUpdatesHash() => r'02aa6b6193a6d71ab8b14e8276d721811824130d';
 
 final class GetLatestUpdatesFamily extends $Family
     with

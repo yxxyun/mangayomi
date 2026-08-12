@@ -551,17 +551,10 @@ class _MangaDetailViewState extends ConsumerState<MangaDetailView>
                                         (element) => !(element.isRead ?? false),
                                       )
                                       .toList();
-                                  isar.chapters
-                                      .filter()
-                                      .idIsNotNull()
-                                      .mangaIdEqualTo(widget.manga!.id!)
-                                      .isReadEqualTo(false)
-                                      .findAllSync();
                                   for (var chapter in unreadChapters) {
-                                    final entry = isar.downloads
-                                        .filter()
-                                        .idEqualTo(chapter.id)
-                                        .findFirstSync();
+                                    final entry = isar.downloads.getSync(
+                                      chapter.id!,
+                                    );
                                     if (entry == null || !entry.isDownload!) {
                                       ref.watch(
                                         addDownloadToQueueProvider(
@@ -1121,7 +1114,7 @@ class _MangaDetailViewState extends ConsumerState<MangaDetailView>
   }
 
   void _showDraggableMenu() {
-    final scanlators = ref.watch(scanlatorsFilterStateProvider(widget.manga!));
+    final scanlators = ref.read(scanlatorsFilterStateProvider(widget.manga!));
     final l10n = l10nLocalizations(context)!;
     customDraggableTabBar(
       tabs: [

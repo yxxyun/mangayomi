@@ -1,8 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:mangayomi/eval/javascript/http.dart';
 import 'package:mangayomi/eval/lib.dart';
-import 'package:mangayomi/main.dart';
-import 'package:mangayomi/models/settings.dart';
+import 'package:mangayomi/modules/more/settings/general/providers/general_state_provider.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/utils/utils.dart';
@@ -18,6 +18,16 @@ Map<String, String> headers(
   required int? sourceId,
   String androidProxyServer = "",
 }) {
+  // Once the last listener drops, wait before actually disposing — this is
+  // what covers rapid tab-switch unmount/remount without caching forever.
+  // If a new listener shows up before the timer fires, onResume cancels it.
+  final link = ref.keepAlive();
+  Timer? timer;
+  ref.onCancel(() {
+    timer = Timer(const Duration(minutes: 5), link.close);
+  });
+  ref.onResume(() => timer?.cancel());
+  ref.onDispose(() => timer?.cancel());
   final mSource = getSource(lang, source, sourceId);
 
   Map<String, String> headers = {};
@@ -43,7 +53,7 @@ Map<String, String> headers(
       service.dispose();
     }
     if (mSource.sourceCodeLanguage == SourceCodeLanguage.mihon) {
-      headers['user-agent'] = isar.settings.getSync(227)!.userAgent!;
+      headers['user-agent'] = ref.watch(userAgentStateProvider);
     }
   }
 

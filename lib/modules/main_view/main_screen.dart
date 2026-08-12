@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
+import 'package:mangayomi/utils/platform_utils.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mangayomi/eval/model/m_bridge.dart';
@@ -8,6 +9,7 @@ import 'package:mangayomi/main.dart';
 import 'package:mangayomi/modules/more/about/providers/download_file_screen.dart';
 import 'package:mangayomi/modules/more/about/providers/check_for_update.dart';
 import 'package:mangayomi/modules/more/data_and_storage/providers/auto_backup.dart';
+import 'package:mangayomi/modules/more/providers/incognito_mode_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
 import 'package:mangayomi/services/sync_server.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
@@ -121,8 +123,16 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     }
 
     final shell = widget.navigationShell;
+    final incognitoMode = ref.watch(incognitoModeStateProvider);
     return Scaffold(
-      body: context.isTablet ? _tabletLayout(shell) : shell,
+      body: Column(
+        children: [
+          _IncognitoModeBar(incognitoMode: incognitoMode, l10n: context.l10n),
+          Expanded(
+            child: context.isTablet ? _tabletLayout(shell) : shell,
+          ),
+        ],
+      ),
       bottomNavigationBar:
           context.isTablet ? null : _mobileBottomNav(shell),
     );
@@ -215,5 +225,43 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         label: labels[3],
       ),
     ];
+  }
+}
+
+class _IncognitoModeBar extends StatelessWidget {
+  const _IncognitoModeBar({required this.incognitoMode, required this.l10n});
+
+  final bool incognitoMode;
+  final dynamic l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      child: AnimatedContainer(
+        height: incognitoMode
+            ? isMobile
+                  ? MediaQuery.of(context).padding.top * 2
+                  : 50
+            : 0,
+        curve: Curves.easeIn,
+        duration: const Duration(milliseconds: 150),
+        color: context.primaryColor,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                l10n.incognito_mode,
+                style: const TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

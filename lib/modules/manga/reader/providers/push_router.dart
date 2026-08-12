@@ -18,18 +18,15 @@ Future<void> pushMangaReaderView({
     itemType: chapter.manga.value!.itemType,
   ));
   final sourceExist = isar.sources
+      .where()
+      .itemTypeIsAddedEqualTo(chapter.manga.value!.itemType, true)
       .filter()
       .langContains(chapter.manga.value!.lang!, caseSensitive: false)
       .and()
       .nameContains(chapter.manga.value!.source!, caseSensitive: false)
       .and()
-      .idIsNotNull()
-      .and()
       .isActiveEqualTo(true)
-      .and()
-      .isAddedEqualTo(true)
-      .findAllSync()
-      .isNotEmpty;
+      .isNotEmptySync();
   if (isBuiltIn || sourceExist || chapter.manga.value!.isLocalArchive!) {
     switch (chapter.manga.value!.itemType) {
       case ItemType.manga:

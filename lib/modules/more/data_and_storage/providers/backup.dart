@@ -19,6 +19,7 @@ import 'package:mangayomi/models/track_preference.dart';
 import 'package:mangayomi/models/update.dart';
 import 'package:mangayomi/modules/more/data_and_storage/providers/backup_compression.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/utils/platform_utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path/path.dart' as p;
@@ -38,9 +39,9 @@ Future<void> doBackUp(
     datas.addAll({"version": "2"});
     if (list.contains(0)) {
       final res = isar.mangas
+          .where()
+          .favoriteEqualToItemTypeGreaterThan(true, ItemType.manga)
           .filter()
-          .idIsNotNull()
-          .favoriteEqualTo(true)
           .isLocalArchiveEqualTo(false)
           .findAllSync()
           .map((e) => e.toJson())
@@ -49,8 +50,7 @@ Future<void> doBackUp(
     }
     if (list.contains(1)) {
       final res = isar.categorys
-          .filter()
-          .idIsNotNull()
+          .where()
           .findAllSync()
           .map((e) => e.toJson())
           .toList();
@@ -58,15 +58,13 @@ Future<void> doBackUp(
     }
     if (list.contains(2)) {
       final res = isar.chapters
-          .filter()
-          .idIsNotNull()
+          .where()
           .findAllSync()
           .map((e) => e.toJson())
           .toList();
       datas.addAll({"chapters": res});
       final res_ = isar.downloads
-          .filter()
-          .idIsNotNull()
+          .where()
           .findAllSync()
           .map((e) => e.toJson())
           .toList();
@@ -74,8 +72,7 @@ Future<void> doBackUp(
     }
     if (list.contains(3)) {
       final res = isar.tracks
-          .filter()
-          .idIsNotNull()
+          .where()
           .findAllSync()
           .map((e) => e.toJson())
           .toList();
@@ -83,8 +80,7 @@ Future<void> doBackUp(
     }
     if (list.contains(4)) {
       final res = isar.historys
-          .filter()
-          .idIsNotNull()
+          .where()
           .findAllSync()
           .map((e) => e.toJson())
           .toList();
@@ -92,8 +88,7 @@ Future<void> doBackUp(
     }
     if (list.contains(5)) {
       final res = isar.updates
-          .filter()
-          .idIsNotNull()
+          .where()
           .findAllSync()
           .map((e) => e.toJson())
           .toList();
@@ -101,17 +96,20 @@ Future<void> doBackUp(
     }
     if (list.contains(6)) {
       final res = isar.settings
-          .filter()
-          .idIsNotNull()
+          .where()
           .findAllSync()
           .map((e) => e.toJson())
           .toList();
       datas.addAll({"settings": res});
+    } else {
+      final setting = Settings()..themeIsDark = isTv;
+      datas.addAll({
+        "settings": [setting.toJson()],
+      });
     }
     if (list.contains(7)) {
       final res = isar.sourcePreferences
-          .filter()
-          .idIsNotNull()
+          .where()
           .findAllSync()
           .map((e) => e.toJson())
           .toList();
@@ -119,8 +117,7 @@ Future<void> doBackUp(
     }
     if (list.contains(8)) {
       final res_ = isar.trackPreferences
-          .filter()
-          .syncIdIsNotNull()
+          .where()
           .findAllSync()
           .map((e) => e.toJson())
           .toList();
@@ -128,8 +125,7 @@ Future<void> doBackUp(
     }
     if (list.contains(9)) {
       final res = isar.sources
-          .filter()
-          .idIsNotNull()
+          .where()
           .findAllSync()
           .map((e) => e.toJson())
           .toList();
