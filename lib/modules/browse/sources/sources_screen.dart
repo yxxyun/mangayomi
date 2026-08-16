@@ -8,6 +8,7 @@ import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/browse/browse_screen.dart';
 import 'package:mangayomi/modules/browse/sources/widgets/source_list_tile.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
+import 'package:mangayomi/modules/widgets/error_state.dart';
 import 'package:mangayomi/modules/widgets/extension_server_warning_banner.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/built_in_sources.dart';
@@ -162,15 +163,14 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
               ],
             );
           }
-          final lastUsedEntries = sources
-              .where((element) => element.lastUsed!)
-              .toList();
-          final isPinnedEntries = sources
-              .where((element) => element.isPinned!)
-              .toList();
+          final lastUsedEntries = sources.where((e) => e.lastUsed!).toList();
+          final isPinnedEntries = sources.where((e) => e.isPinned!).toList();
           final allEntriesWithoutIspinned = sources
               .where((element) => !element.isPinned!)
               .toList();
+          final showWarning = sources
+              .where((e) => e.sourceCodeLanguage == SourceCodeLanguage.mihon)
+              .isNotEmpty;
           return Scrollbar(
             interactive: true,
             controller: controller,
@@ -179,9 +179,10 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
             child: CustomScrollView(
               controller: controller,
               slivers: [
-                const SliverToBoxAdapter(
-                  child: ExtensionServerWarningBanner(),
-                ),
+                if (showWarning)
+                  const SliverToBoxAdapter(
+                    child: ExtensionServerWarningBanner(),
+                  ),
                 // Built-in sources section (at the top).
                 if (BuiltInSources.all.any((s) => s.itemType == widget.itemType))
                   SliverToBoxAdapter(
@@ -317,7 +318,11 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
             ),
           );
         },
-        error: (error, _) => Center(child: Text(error.toString())),
+        error: (error, _) => ErrorState(
+          detail: error.toString(),
+          onRetry: () =>
+              ref.invalidate(getSourcesStreamProvider(widget.itemType)),
+        ),
         loading: () => const Center(child: CircularProgressIndicator()),
       ),
     );

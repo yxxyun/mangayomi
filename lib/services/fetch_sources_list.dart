@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:http_interceptor/http_interceptor.dart';
 import 'package:isar_community/isar.dart';
 import 'package:mangayomi/eval/model/filter.dart';
@@ -11,6 +12,7 @@ import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/services/extension_store_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:mangayomi/utils/log/logger.dart';
 
 Future<void> fetchSourcesList({
   int? id,
@@ -98,7 +100,13 @@ Future<void> fetchSourcesList({
               .toList();
         }
       }
-    } catch (_) {}
+    } catch (e, st) {
+      // A failure here drops sources from the list with no sign of why.
+      AppLogger.log(
+        'fetchSourcesList: filtering sources failed: $e\n$st',
+        logLevel: LogLevel.error,
+      );
+    }
   }
 
   if (id != null) {
@@ -259,19 +267,29 @@ Future<void> checkIfSourceIsObsolete(
   if (sourceIds.isEmpty) return;
 
   final toUpdate = <Source>[];
+  final toDelete = <int>[];
   for (var source in sources) {
     final isNowObsolete =
         !sourceIds.contains(source.id) && source.repo?.jsonUrl == repo.jsonUrl;
 
+    if (!(source.isAdded ?? false) && isNowObsolete) {
+      // Not installed and gone from the repo: nothing to install, so
+      // remove the dead row instead of leaving it in the browse list.
+      toDelete.add(source.id!);
+      continue;
+    }
     if (source.isObsolete != isNowObsolete) {
       source.isObsolete = isNowObsolete;
       source.updatedAt = DateTime.now().millisecondsSinceEpoch;
       toUpdate.add(source);
     }
   }
-  if (toUpdate.isEmpty) return;
-
-  await isar.writeTxn(() => isar.sources.putAll(toUpdate));
+  if (toUpdate.isNotEmpty) {
+    await isar.writeTxn(() => isar.sources.putAll(toUpdate));
+  }
+  if (toDelete.isNotEmpty) {
+    await isar.writeTxn(() => isar.sources.deleteAll(toDelete));
+  }
 }
 
 int compareVersions(String version1, String version2) {

@@ -833,6 +833,13 @@
   "could_not_launch_apk_bridge_page": "Could not launch the ApkBridge page.",
   "proxy_server_ip_hint": "Server IP (e.g., 10.0.0.5 or https://example.com)",
   "not_configured": "Not configured",
+  "zero_interpreter": "Zero interpreter",
+  "zero_interpreter_description": "The server starts automatically on launch. You can also control it manually.",
+  "runtime_status": "Runtime status",
+  "running": "Running",
+  "stopped": "Stopped",
+  "start": "Start",
+  "stop": "Stop",
   "webview": "Webview",
   "tts": "Text-to-Speech",
   "tts_speed": "Speed",
@@ -901,6 +908,28 @@
   "reader_hide_threshold_low": "Low (31 px)",
   "reader_hide_threshold_lowest": "Lowest (47 px)",
   "error_no_pages_available": "Error: no pages available",
+  "app_ui_scale": "Interface scale",
+  "app_ui_scale_subtitle": "Make the interface larger or smaller to suit your screen and viewing distance.",
+  "allow_concurrent_downloads": "Allow concurrent downloads",
+  "allow_concurrent_downloads_subtitle": "Download from different sources at the same time. A single source still downloads one chapter at a time so it isn't overloaded. Turn off to download one at a time everywhere.",
+  "download_delay": "Download delay",
+  "download_delay_subtitle": "Off. Add a wait with random jitter between chapters to be gentler on sources.",
+  "save_search": "Save search",
+  "saved_searches": "Saved searches",
+  "enter_search_to_save_first": "Enter a search to save first",
+  "no_saved_searches": "No saved searches for this source yet.\nRun a search, then pick \"Save search\".",
+  "source": "Source",
+  "something_went_wrong": "Something went wrong",
+  "startup_failed": "Mangayomi could not finish starting up",
+  "sources_with_no_results": "{count, plural, =1{1 source with no results} other{{count} sources with no results}}",
+  "@sources_with_no_results": {
+    "description": "Header of the collapsed group in global search holding every source that failed or found nothing.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "cloud_drive_management": "Cloud Drive Management",
   "@cloud_drive_management": {
     "description": "Cloud drive management page title",
@@ -1330,15 +1359,5 @@
   "@cloud_drive_qr_retry": {
     "description": "Retry button text for QR login",
     "value": "Retry"
-  },  "app_ui_scale": "Interface scale",
-  "app_ui_scale_subtitle": "Make the interface larger or smaller to suit your screen and viewing distance.",
-  "allow_concurrent_downloads": "Allow concurrent downloads",
-  "allow_concurrent_downloads_subtitle": "Download from different sources at the same time. A single source still downloads one chapter at a time so it isn't overloaded. Turn off to download one at a time everywhere.",
-  "download_delay": "Download delay",
-  "download_delay_subtitle": "Off. Add a wait with random jitter between chapters to be gentler on sources.",
-  "save_search": "Save search",
-  "saved_searches": "Saved searches",
-  "enter_search_to_save_first": "Enter a search to save first",
-  "no_saved_searches": "No saved searches for this source yet.\nRun a search, then pick \"Save search\".",
-  "source": "Source"
+  }
 }

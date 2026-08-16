@@ -4259,6 +4259,48 @@ abstract class AppLocalizations {
   /// **'Not configured'**
   String get not_configured;
 
+  /// No description provided for @zero_interpreter.
+  ///
+  /// In en, this message translates to:
+  /// **'Zero interpreter'**
+  String get zero_interpreter;
+
+  /// No description provided for @zero_interpreter_description.
+  ///
+  /// In en, this message translates to:
+  /// **'The server starts automatically on launch. You can also control it manually.'**
+  String get zero_interpreter_description;
+
+  /// No description provided for @runtime_status.
+  ///
+  /// In en, this message translates to:
+  /// **'Runtime status'**
+  String get runtime_status;
+
+  /// No description provided for @running.
+  ///
+  /// In en, this message translates to:
+  /// **'Running'**
+  String get running;
+
+  /// No description provided for @stopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get stopped;
+
+  /// No description provided for @start.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get start;
+
+  /// No description provided for @stop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get stop;
+
   /// No description provided for @webview.
   ///
   /// In en, this message translates to:
@@ -4546,6 +4588,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error: no pages available'**
   String get error_no_pages_available;
+
+  /// No description provided for @app_ui_scale.
+  ///
+  /// In en, this message translates to:
+  /// **'Interface scale'**
+  String get app_ui_scale;
+
+  /// No description provided for @app_ui_scale_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Make the interface larger or smaller to suit your screen and viewing distance.'**
+  String get app_ui_scale_subtitle;
+
+  /// No description provided for @allow_concurrent_downloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow concurrent downloads'**
+  String get allow_concurrent_downloads;
+
+  /// No description provided for @allow_concurrent_downloads_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download from different sources at the same time. A single source still downloads one chapter at a time so it isn\'t overloaded. Turn off to download one at a time everywhere.'**
+  String get allow_concurrent_downloads_subtitle;
+
+  /// No description provided for @download_delay.
+  ///
+  /// In en, this message translates to:
+  /// **'Download delay'**
+  String get download_delay;
+
+  /// No description provided for @download_delay_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Off. Add a wait with random jitter between chapters to be gentler on sources.'**
+  String get download_delay_subtitle;
+
+  /// No description provided for @save_search.
+  ///
+  /// In en, this message translates to:
+  /// **'Save search'**
+  String get save_search;
+
+  /// No description provided for @saved_searches.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved searches'**
+  String get saved_searches;
+
+  /// No description provided for @enter_search_to_save_first.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a search to save first'**
+  String get enter_search_to_save_first;
+
+  /// No description provided for @no_saved_searches.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved searches for this source yet.\nRun a search, then pick \"Save search\".'**
+  String get no_saved_searches;
+
+  /// No description provided for @source.
+  ///
+  /// In en, this message translates to:
+  /// **'Source'**
+  String get source;
+
+  /// No description provided for @something_went_wrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong'**
+  String get something_went_wrong;
+
+  /// No description provided for @startup_failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mangayomi could not finish starting up'**
+  String get startup_failed;
+
+  /// Header of the collapsed group in global search holding every source that failed or found nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 source with no results} other{{count} sources with no results}}'**
+  String sources_with_no_results(int count);
 
   /// Cloud drive management page title
   ///
@@ -5038,72 +5164,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get cloud_drive_qr_retry;
-
-  /// No description provided for @app_ui_scale.
-  ///
-  /// In en, this message translates to:
-  /// **'Interface scale'**
-  String get app_ui_scale;
-
-  /// No description provided for @app_ui_scale_subtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Make the interface larger or smaller to suit your screen and viewing distance.'**
-  String get app_ui_scale_subtitle;
-
-  /// No description provided for @allow_concurrent_downloads.
-  ///
-  /// In en, this message translates to:
-  /// **'Allow concurrent downloads'**
-  String get allow_concurrent_downloads;
-
-  /// No description provided for @allow_concurrent_downloads_subtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Download from different sources at the same time. A single source still downloads one chapter at a time so it isn\'t overloaded. Turn off to download one at a time everywhere.'**
-  String get allow_concurrent_downloads_subtitle;
-
-  /// No description provided for @download_delay.
-  ///
-  /// In en, this message translates to:
-  /// **'Download delay'**
-  String get download_delay;
-
-  /// No description provided for @download_delay_subtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Off. Add a wait with random jitter between chapters to be gentler on sources.'**
-  String get download_delay_subtitle;
-
-  /// No description provided for @save_search.
-  ///
-  /// In en, this message translates to:
-  /// **'Save search'**
-  String get save_search;
-
-  /// No description provided for @saved_searches.
-  ///
-  /// In en, this message translates to:
-  /// **'Saved searches'**
-  String get saved_searches;
-
-  /// No description provided for @enter_search_to_save_first.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter a search to save first'**
-  String get enter_search_to_save_first;
-
-  /// No description provided for @no_saved_searches.
-  ///
-  /// In en, this message translates to:
-  /// **'No saved searches for this source yet.\nRun a search, then pick \"Save search\".'**
-  String get no_saved_searches;
-
-  /// No description provided for @source.
-  ///
-  /// In en, this message translates to:
-  /// **'Source'**
-  String get source;
 }
 
 class _AppLocalizationsDelegate

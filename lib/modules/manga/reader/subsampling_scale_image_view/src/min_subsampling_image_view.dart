@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ffi';
 import 'dart:ui' as ui;
+
 import 'package:ffi/ffi.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -320,6 +321,7 @@ class _MinSubsamplingImageState extends ConsumerState<MinSubsamplingImage> {
   @override
   Widget build(BuildContext context) {
     if (_uiImage == null && widget.data.decodedImage != null) {
+      _uiImage?.dispose();
       _uiImage = widget.data.decodedImage!.clone();
       _isLoading = false;
       _hasError = false;

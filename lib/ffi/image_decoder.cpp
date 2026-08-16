@@ -305,6 +305,7 @@ struct ImageDecoderContext {
             unsigned char* file_bytes;      // Raw image bytes loaded once into RAM
             size_t file_size;
             AImageDecoder* cached_decoder;  // Reusable decoder — avoids per-tile recreate
+            unsigned char* full_rgba;       // Full pre-decoded RGBA for O(1) tile extraction
         } android_mem;
         #endif
         #ifdef _WIN32
@@ -779,13 +780,30 @@ ImageDecoderContext* init_decoder(const char* file_path, bool crop_borders, int*
     // Keep the decoder alive — recreating it per-tile (old code) was O(N_tiles) cost.
     // The decoder is reused across all decode_region calls for this context.
 
+    // Pre-decode the full image to RGBA once — eliminates per-tile JPEG decompression.
+    // Tile requests become simple memory copies instead of full re-decompression.
+    pAImageDecoder_setAndroidBitmapFormat(decoder, 1); // ANDROID_BITMAP_FORMAT_RGBA_8888
+    size_t full_stride = (size_t)w * 4;
+    size_t full_buffer_size = full_stride * (size_t)h;
+    unsigned char* full_rgba = (unsigned char*)malloc(full_buffer_size);
+    if (full_rgba) {
+        int dr = pAImageDecoder_decodeImage(decoder, full_rgba, full_stride, full_buffer_size);
+        if (dr != 0) {
+            free(full_rgba);
+            full_rgba = NULL;
+        }
+    }
+    // Free the decoder — no longer needed after pre-decode
+    pAImageDecoder_delete(decoder);
+
     ImageDecoderContext* ctx = (ImageDecoderContext*)malloc(sizeof(ImageDecoderContext));
     ctx->type = TYPE_NATIVE;
     ctx->width = w;
     ctx->height = h;
     ctx->android_mem.file_bytes = file_bytes;
     ctx->android_mem.file_size = size;
-    ctx->android_mem.cached_decoder = decoder;
+    ctx->android_mem.cached_decoder = NULL;
+    ctx->android_mem.full_rgba = full_rgba;
 
     if (crop_borders) {
         perform_android_autocrop(ctx);
@@ -815,9 +833,31 @@ bool decode_region(ImageDecoderContext* ctx, int left, int top, int right, int b
 
     if (!ctx->android_mem.file_bytes || !load_imagedecoder_symbols()) return false;
 
-    // Use the cached decoder if available; fall back to creating a new one.
-    // Note: AImageDecoder is NOT thread-safe; concurrent callers must use their own.
-    // The isolate serializes calls, so single-decoder reuse is safe here.
+    int dest_width  = (raw_right  - raw_left) / sample_size;
+    int dest_height = (raw_bottom - raw_top)  / sample_size;
+    if (dest_width <= 0 || dest_height <= 0) return false;
+
+    // Fast path: copy from pre-decoded RGBA buffer (no decompression)
+    if (ctx->android_mem.full_rgba) {
+        int src_w = ctx->width;
+        for (int dy = 0; dy < dest_height; dy++) {
+            int sy = raw_top + dy * sample_size;
+            const unsigned char* src_row = ctx->android_mem.full_rgba + (size_t)sy * src_w * 4;
+            unsigned char* dst_row = out_rgba_buffer + (size_t)dy * dest_width * 4;
+            if (sample_size == 1) {
+                // Optimized: single memcpy for contiguous row slice
+                memcpy(dst_row, src_row + raw_left * 4, (size_t)dest_width * 4);
+            } else {
+                for (int dx = 0; dx < dest_width; dx++) {
+                    int sx = raw_left + dx * sample_size;
+                    memcpy(dst_row + dx * 4, src_row + sx * 4, 4);
+                }
+            }
+        }
+        return true;
+    }
+
+    // Fallback: use AImageDecoder (if pre-decode failed)
     AImageDecoder* decoder = ctx->android_mem.cached_decoder;
     bool owns_decoder = false;
     if (!decoder) {
@@ -832,13 +872,6 @@ bool decode_region(ImageDecoderContext* ctx, int left, int top, int right, int b
 
     int result = pAImageDecoder_setTargetSize(decoder, total_dest_width, total_dest_height);
     if (result != 0) {
-        if (owns_decoder) pAImageDecoder_delete(decoder);
-        return false;
-    }
-
-    int dest_width  = (raw_right  - raw_left) / sample_size;
-    int dest_height = (raw_bottom - raw_top)  / sample_size;
-    if (dest_width <= 0 || dest_height <= 0) {
         if (owns_decoder) pAImageDecoder_delete(decoder);
         return false;
     }
@@ -873,6 +906,9 @@ void free_decoder(ImageDecoderContext* ctx) {
             if (ctx->android_mem.cached_decoder) {
                 pAImageDecoder_delete(ctx->android_mem.cached_decoder);
                 ctx->android_mem.cached_decoder = NULL;
+            }
+            if (ctx->android_mem.full_rgba) {
+                free(ctx->android_mem.full_rgba);
             }
             if (ctx->android_mem.file_bytes) {
                 free(ctx->android_mem.file_bytes);
@@ -1339,8 +1375,81 @@ static unsigned char* decode_png_rgba(const char* file_path, int* out_w, int* ou
 #endif // HAVE_LIBPNG
 
 // ---------------------------------------------------------------------------
+// AVIF decoding via libavif (compiled only when HAVE_LIBAVIF is defined)
+// ---------------------------------------------------------------------------
+#ifdef HAVE_LIBAVIF
+#include <avif/avif.h>
+
+static unsigned char* decode_avif_rgba(const char* file_path, int* out_w, int* out_h) {
+    avifDecoder* decoder = avifDecoderCreate();
+    if (!decoder) return NULL;
+
+    avifResult result = avifDecoderSetIOFile(decoder, file_path);
+    if (result != AVIF_RESULT_OK) {
+        avifDecoderDestroy(decoder);
+        return NULL;
+    }
+
+    result = avifDecoderParse(decoder);
+    if (result != AVIF_RESULT_OK) {
+        avifDecoderDestroy(decoder);
+        return NULL;
+    }
+
+    // Decode the first (or only) image in the AVIF file/sequence.
+    result = avifDecoderNextImage(decoder);
+    if (result != AVIF_RESULT_OK) {
+        avifDecoderDestroy(decoder);
+        return NULL;
+    }
+
+    int w = (int)decoder->image->width;
+    int h = (int)decoder->image->height;
+
+    avifRGBImage rgb;
+    memset(&rgb, 0, sizeof(rgb));
+    avifRGBImageSetDefaults(&rgb, decoder->image);
+    rgb.format = AVIF_RGB_FORMAT_RGBA;
+    rgb.depth = 8;
+
+    if (avifRGBImageAllocatePixels(&rgb) != AVIF_RESULT_OK) {
+        avifDecoderDestroy(decoder);
+        return NULL;
+    }
+
+    if (avifImageYUVToRGB(decoder->image, &rgb) != AVIF_RESULT_OK) {
+        avifRGBImageFreePixels(&rgb);
+        avifDecoderDestroy(decoder);
+        return NULL;
+    }
+
+    // Copy into a plain malloc'd buffer so it can be freed with free(), matching
+    // the ownership convention of the JPEG/PNG decoders above.
+    unsigned char* out = (unsigned char*)malloc((size_t)w * h * 4);
+    if (!out) {
+        avifRGBImageFreePixels(&rgb);
+        avifDecoderDestroy(decoder);
+        return NULL;
+    }
+    memcpy(out, rgb.pixels, (size_t)w * h * 4);
+
+    avifRGBImageFreePixels(&rgb);
+    avifDecoderDestroy(decoder);
+
+    *out_w = w;
+    *out_h = h;
+    return out;
+}
+#endif // HAVE_LIBAVIF
+
+// ---------------------------------------------------------------------------
 // Format detection helpers
 // ---------------------------------------------------------------------------
+// These only inspect magic bytes and have no dependency on the optional
+// decoding libraries, so they're compiled and used unconditionally. This lets
+// init_decoder() give a specific "you're missing libX-dev" message rather
+// than a generic one, no matter which combination of libjpeg/libpng/libavif
+// was found at configure time.
 static int linux_is_jpeg(const char* file_path) {
     FILE* f = fopen(file_path, "rb");
     if (!f) return 0;
@@ -1357,6 +1466,20 @@ static int linux_is_png(const char* file_path) {
     size_t n = fread(magic, 1, 8, f);
     fclose(f);
     return (n == 8 && memcmp(magic, "\x89PNG\r\n\x1a\n", 8) == 0);
+}
+
+static int linux_is_avif(const char* file_path) {
+    FILE* f = fopen(file_path, "rb");
+    if (!f) return 0;
+    unsigned char header[12] = {0};
+    size_t n = fread(header, 1, 12, f);
+    fclose(f);
+    if (n != 12) return 0;
+
+    // ISOBMFF: bytes 4-7 must be "ftyp"; the major brand (bytes 8-11) tells us
+    // whether this is an AVIF still image ("avif") or AVIF image sequence ("avis").
+    if (memcmp(header + 4, "ftyp", 4) != 0) return 0;
+    return (memcmp(header + 8, "avif", 4) == 0 || memcmp(header + 8, "avis", 4) == 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -1427,25 +1550,60 @@ ImageDecoderContext* init_decoder(const char* file_path, bool crop_borders, int*
         return ctx;
     }
 
-    // Try JPEG / PNG via system libraries
+    // Try JPEG / PNG / AVIF via system libraries
     int w = 0, h = 0;
     unsigned char* rgba = NULL;
 
+    // Sniffing is unconditional (cheap header check, no library dependency),
+    // so we know the file's actual format even if we can't decode it — this
+    // is what lets the error path below name the specific missing package.
+    int is_jpeg = linux_is_jpeg(file_path);
+    int is_png  = linux_is_png(file_path);
+    int is_avif = linux_is_avif(file_path);
+
 #ifdef HAVE_LIBJPEG
-    if (!rgba && linux_is_jpeg(file_path)) {
+    if (!rgba && is_jpeg) {
         rgba = decode_jpeg_rgba(file_path, &w, &h);
     }
 #endif
 
 #ifdef HAVE_LIBPNG
-    if (!rgba && linux_is_png(file_path)) {
+    if (!rgba && is_png) {
         rgba = decode_png_rgba(file_path, &w, &h);
     }
 #endif
 
+#ifdef HAVE_LIBAVIF
+    if (!rgba && is_avif) {
+        rgba = decode_avif_rgba(file_path, &w, &h);
+    }
+#endif
+
     if (!rgba) {
-        printf("ImageDecoder: Unsupported file format on Linux."
-               " Install libjpeg-dev and libpng-dev, then rebuild the app to enable JPEG/PNG support.\n");
+        if (is_jpeg) {
+#ifdef HAVE_LIBJPEG
+            printf("ImageDecoder: Failed to decode JPEG file (it may be corrupt or truncated): %s\n", file_path);
+#else
+            printf("ImageDecoder: JPEG file detected, but libjpeg support was not compiled in."
+                   " Install libjpeg-dev, then rebuild the app to enable JPEG support.\n");
+#endif
+        } else if (is_png) {
+#ifdef HAVE_LIBPNG
+            printf("ImageDecoder: Failed to decode PNG file (it may be corrupt or truncated): %s\n", file_path);
+#else
+            printf("ImageDecoder: PNG file detected, but libpng support was not compiled in."
+                   " Install libpng-dev, then rebuild the app to enable PNG support.\n");
+#endif
+        } else if (is_avif) {
+#ifdef HAVE_LIBAVIF
+            printf("ImageDecoder: Failed to decode AVIF file (it may be corrupt or use an unsupported profile): %s\n", file_path);
+#else
+            printf("ImageDecoder: AVIF file detected, but libavif support was not compiled in."
+                   " Install libavif-dev, then rebuild the app to enable AVIF support.\n");
+#endif
+        } else {
+            printf("ImageDecoder: Unsupported or unrecognized file format on Linux: %s\n", file_path);
+        }
         return NULL;
     }
 

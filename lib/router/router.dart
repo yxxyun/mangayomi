@@ -65,7 +65,7 @@ import 'package:mangayomi/modules/more/settings/reader/reader_screen.dart';
 import 'package:mangayomi/modules/more/settings/settings_screen.dart';
 import 'package:mangayomi/modules/more/settings/security/security_screen.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 part 'router.g.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -258,7 +258,10 @@ class RouterNotifier extends ChangeNotifier {
       name: "codeEditor",
       builder: (sourceId) => CodeEditorPage(sourceId: sourceId),
     ),
-    _genericRoute(name: "createExtension", child: const CreateExtension()),
+    _genericRoute<Source?>(
+      name: "createExtension",
+      builder: (source) => CreateExtension(editSource: source),
+    ),
     _genericRoute(name: "createBackup", child: const CreateBackup()),
     _genericRoute(
       name: "customNavigationSettings",

@@ -11,6 +11,7 @@ import 'package:mangayomi/modules/more/settings/reader/providers/reader_state_pr
 import 'package:mangayomi/modules/more/settings/reader/reader_screen.dart';
 import 'package:mangayomi/modules/widgets/custom_draggable_tabbar.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/utils/platform_utils.dart';
 
 String _navLayoutName(int index, BuildContext context) {
   final l10n = l10nLocalizations(context)!;
@@ -167,9 +168,8 @@ class _ReadingModeTab extends ConsumerWidget {
               title: Text(
                 l10n.crop_borders,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -184,9 +184,8 @@ class _ReadingModeTab extends ConsumerWidget {
                 title: Text(
                   l10n.webtoon_disable_zoom_out,
                   style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                    color: Theme.of(context).textTheme.bodyLarge!.color!
+                        .withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -201,9 +200,8 @@ class _ReadingModeTab extends ConsumerWidget {
                 title: Text(
                   l10n.webtoon_double_tap_zoom_enabled,
                   style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                    color: Theme.of(context).textTheme.bodyLarge!.color!
+                        .withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -221,9 +219,8 @@ class _ReadingModeTab extends ConsumerWidget {
                 title: Text(
                   l10n.navigate_to_pan,
                   style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                    color: Theme.of(context).textTheme.bodyLarge!.color!
+                        .withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -241,9 +238,8 @@ class _ReadingModeTab extends ConsumerWidget {
               title: Text(
                 l10n.split_wide_pages,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -258,9 +254,8 @@ class _ReadingModeTab extends ConsumerWidget {
                 title: Text(
                   l10n.dual_page_invert,
                   style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                    color: Theme.of(context).textTheme.bodyLarge!.color!
+                        .withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -274,9 +269,8 @@ class _ReadingModeTab extends ConsumerWidget {
               title: Text(
                 l10n.dual_page_rotate_to_fit,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -291,9 +285,8 @@ class _ReadingModeTab extends ConsumerWidget {
                 title: Text(
                   l10n.dual_page_rotate_to_fit_invert,
                   style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                    color: Theme.of(context).textTheme.bodyLarge!.color!
+                        .withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -310,9 +303,8 @@ class _ReadingModeTab extends ConsumerWidget {
                 title: Text(
                   l10n.landscape_zoom,
                   style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                    color: Theme.of(context).textTheme.bodyLarge!.color!
+                        .withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -347,9 +339,8 @@ class _ReadingModeTab extends ConsumerWidget {
               title: Text(
                 l10n.use_page_tap_zones,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -364,9 +355,8 @@ class _ReadingModeTab extends ConsumerWidget {
               title: Text(
                 l10n.keep_screen_on,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -382,9 +372,8 @@ class _ReadingModeTab extends ConsumerWidget {
                 title: Text(
                   l10n.show_page_gaps,
                   style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                    color: Theme.of(context).textTheme.bodyLarge!.color!
+                        .withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -399,9 +388,8 @@ class _ReadingModeTab extends ConsumerWidget {
                 title: Text(
                   '${l10n.webtoon_side_padding}: $webtoonSidePadding%',
                   style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                    color: Theme.of(context).textTheme.bodyLarge!.color!
+                        .withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -529,9 +517,8 @@ class _GeneralTab extends ConsumerWidget {
               value: scaleType,
               list: ScaleType.values.where((scale) {
                 try {
-                  return getScaleTypeNames(
-                    context,
-                  ).contains(getScaleTypeNames(context)[scale.index]);
+                  return getScaleTypeNames(context)
+                      .contains(getScaleTypeNames(context)[scale.index]);
                 } catch (_) {
                   return false;
                 }
@@ -544,9 +531,8 @@ class _GeneralTab extends ConsumerWidget {
               title: Text(
                 l10n.navigation_layout,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -590,9 +576,8 @@ class _GeneralTab extends ConsumerWidget {
               title: Text(
                 l10n.tapping_inversion,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -652,9 +637,8 @@ class _GeneralTab extends ConsumerWidget {
               title: Text(
                 l10n.flash_on_page_change,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -671,9 +655,8 @@ class _GeneralTab extends ConsumerWidget {
                 title: Text(
                   l10n.flash_color,
                   style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                    color: Theme.of(context).textTheme.bodyLarge!.color!
+                        .withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -718,9 +701,8 @@ class _GeneralTab extends ConsumerWidget {
                 title: Text(
                   l10n.flash_interval(flashInterval.toString()),
                   style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                    color: Theme.of(context).textTheme.bodyLarge!.color!
+                        .withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -740,9 +722,8 @@ class _GeneralTab extends ConsumerWidget {
                 title: Text(
                   l10n.flash_duration(flashDuration.toString()),
                   style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                    color: Theme.of(context).textTheme.bodyLarge!.color!
+                        .withValues(alpha: 0.9),
                     fontSize: 14,
                   ),
                 ),
@@ -766,9 +747,8 @@ class _GeneralTab extends ConsumerWidget {
               title: Text(
                 l10n.show_navigation_overlay_on_start,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -784,9 +764,8 @@ class _GeneralTab extends ConsumerWidget {
               title: Text(
                 l10n.reader_hide_threshold,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -839,23 +818,22 @@ class _GeneralTab extends ConsumerWidget {
                 );
               },
             ),
-
-            // Fullscreen
-            SwitchListTile(
-              value: fullScreenReader,
-              title: Text(
-                l10n.fullscreen,
-                style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
-                  fontSize: 14,
+            if (!isMobile)
+              // Fullscreen
+              SwitchListTile(
+                value: fullScreenReader,
+                title: Text(
+                  l10n.fullscreen,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyLarge!.color!
+                        .withValues(alpha: 0.9),
+                    fontSize: 14,
+                  ),
                 ),
+                onChanged: (value) {
+                  onFullScreenToggle();
+                },
               ),
-              onChanged: (value) {
-                onFullScreenToggle();
-              },
-            ),
 
             // Show Page Numbers
             SwitchListTile(
@@ -863,9 +841,8 @@ class _GeneralTab extends ConsumerWidget {
               title: Text(
                 l10n.show_page_number,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -880,9 +857,8 @@ class _GeneralTab extends ConsumerWidget {
               title: Text(
                 l10n.animate_page_transitions,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -946,9 +922,8 @@ class _CustomFilterTab extends ConsumerWidget {
               title: Text(
                 l10n.invert_colors,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -963,9 +938,8 @@ class _CustomFilterTab extends ConsumerWidget {
               title: Text(
                 l10n.grayscale,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -1020,9 +994,8 @@ class _CustomFilterTab extends ConsumerWidget {
               title: Text(
                 l10n.custom_color_filter,
                 style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                  color: Theme.of(context).textTheme.bodyLarge!.color!
+                      .withValues(alpha: 0.9),
                   fontSize: 14,
                 ),
               ),
@@ -1092,9 +1065,8 @@ class _CustomFilterTab extends ConsumerWidget {
             child: Text(
               label,
               style: TextStyle(
-                color: Theme.of(
-                  context,
-                ).textTheme.bodyLarge!.color!.withValues(alpha: 0.9),
+                color: Theme.of(context).textTheme.bodyLarge!.color!
+                    .withValues(alpha: 0.9),
                 fontSize: 14,
               ),
             ),

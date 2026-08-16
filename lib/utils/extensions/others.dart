@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui';
+
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -105,9 +106,8 @@ extension UChapDataPreloadExtensions on UChapDataPreload {
     if (archiveImage != null) {
       imageBytes = archiveImage;
     } else if (isLocale == true && directory != null && index != null) {
-      imageBytes = File(
-        p.join(directory!.path, "${padIndex(index!)}.jpg"),
-      ).readAsBytesSync();
+      imageBytes = File(p.join(directory!.path, "${padIndex(index!)}.jpg"))
+          .readAsBytesSync();
     } else {
       File? cachedImage;
       if (pageUrl != null) {
@@ -153,13 +153,16 @@ extension UChapDataPreloadExtensions on UChapDataPreload {
                 showCloudFlareError: showCloudFlareError,
                 imageCacheFolderName: "cacheimagemanga",
                 headers: {
-                  ...ref.watch(
-                    headersProvider(
-                      source: data.chapter!.manga.value!.source!,
-                      lang: data.chapter!.manga.value!.lang!,
-                      sourceId: data.chapter!.manga.value!.sourceId,
+                  if (ref.context.mounted)
+                    ...ref.watch(
+                      headersProvider(
+                        source: data.chapter!.manga.value!.source!,
+                        lang: data.chapter!.manga.value!.lang!,
+                        sourceId: data.chapter!.manga.value!.sourceId,
+                      ),
                     ),
-                  ),
+                  // Page-level headers override source-level defaults
+                  // (e.g. per-page Referer for built-in sources).
                   ...data.pageUrl!.headers ?? {},
                 },
               )

@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -38,9 +39,9 @@ class _ExtensionDetailState extends ConsumerState<ExtensionDetail> {
             .map((e) => SourcePreference.fromJson(e))
             .toList();
       }
-      return getSourcePreference(
-        source: source,
-      ).map((e) => getSourcePreferenceEntry(e.key!, source.id!)).toList();
+      return getSourcePreference(source: source)
+          .map((e) => getSourcePreferenceEntry(e.key!, source.id!))
+          .toList();
     } catch (e) {
       return null;
     }
@@ -77,9 +78,8 @@ class _ExtensionDetailState extends ConsumerState<ExtensionDetail> {
               padding: const EdgeInsets.only(top: 20),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).secondaryHeaderColor.withValues(alpha: 0.5),
+                  color: Theme.of(context).secondaryHeaderColor
+                      .withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: widget.source.iconUrl!.isEmpty
@@ -111,6 +111,28 @@ class _ExtensionDetailState extends ConsumerState<ExtensionDetail> {
                 textAlign: TextAlign.center,
               ),
             ),
+            if (widget.source.isNsfw!)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    "NSFW (18+)",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Container(
@@ -208,6 +230,51 @@ class _ExtensionDetailState extends ConsumerState<ExtensionDetail> {
                 ),
               ),
             ),
+            if (source.isLocal ?? false)
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: SizedBox(
+                  width: context.width(1),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.all(0),
+                      backgroundColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      elevation: 0,
+                      shadowColor: Colors.transparent,
+                    ),
+                    onPressed: () async {
+                      final res = await context.push(
+                        '/createExtension',
+                        extra: source,
+                      );
+                      if (res != null && mounted) {
+                        setState(() {
+                          source = res as Source;
+                        });
+                      }
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Text(
+                            "Edit metadata",
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const Icon(Icons.edit_outlined),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: SizedBox(
@@ -289,15 +356,15 @@ class _ExtensionDetailState extends ConsumerState<ExtensionDetail> {
                                         .idProperty()
                                         .findAllSync();
                                     isar.writeTxnSync(() {
-                                      if (source.isObsolete ?? false) {
+                                      if ((source.isObsolete ?? false) ||
+                                          (source.isLocal ?? false)) {
                                         isar.sources.deleteSync(
                                           widget.source.id!,
                                         );
                                         ref
                                             .read(
-                                              synchingProvider(
-                                                syncId: 1,
-                                              ).notifier,
+                                              synchingProvider(syncId: 1)
+                                                  .notifier,
                                             )
                                             .addChangedPart(
                                               ActionType.removeExtension,

@@ -46,12 +46,15 @@ class _ExtensionServerScreenState extends ConsumerState<ExtensionServerScreen> {
   String _latestVersion = '';
   String _releaseCheckMessage = '';
   ExtensionServerRelease? _latestRelease;
+  bool _runtimeRunning = false;
+  bool _runtimeBusy = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshStatus();
+      _refreshRuntimeStatus();
     });
   }
 
@@ -280,13 +283,43 @@ class _ExtensionServerScreenState extends ConsumerState<ExtensionServerScreen> {
                   ),
                 ],
               ),
+              if (Platform.isIOS) ...[
+                const SizedBox(height: 24),
+                Text(
+                  l10n.zero_interpreter,
+                  style: TextStyle(fontSize: 13, color: context.primaryColor),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.zero_interpreter_description,
+                  style: TextStyle(color: context.secondaryColor),
+                ),
+                const SizedBox(height: 12),
+                ExtensionServerStatusTile(
+                  label: l10n.runtime_status,
+                  value: _runtimeRunning ? l10n.running : l10n.stopped,
+                  exists: _runtimeRunning,
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _runtimeBusy ? null : _toggleRuntime,
+                    icon: Icon(
+                      _runtimeRunning
+                          ? Icons.stop_circle_outlined
+                          : Icons.play_circle_outline,
+                    ),
+                    label: Text(_runtimeRunning ? l10n.stop : l10n.start),
+                  ),
+                ),
+              ],
             ],
             if (_showDesktopAdvancedApkBridgeSection) ...[
               const SizedBox(height: 24),
               Theme(
-                data: Theme.of(
-                  context,
-                ).copyWith(dividerColor: Colors.transparent),
+                data: Theme.of(context)
+                    .copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
                   tilePadding: EdgeInsets.zero,
                   childrenPadding: const EdgeInsets.only(bottom: 8),
@@ -373,6 +406,29 @@ class _ExtensionServerScreenState extends ConsumerState<ExtensionServerScreen> {
       fileState: fileState,
       releaseState: releaseState,
     );
+  }
+
+  Future<void> _refreshRuntimeStatus() async {
+    if (!Platform.isIOS) return;
+    final running = await MExtensionServerPlatform(ref).checkLocalServer();
+    if (mounted) setState(() => _runtimeRunning = running);
+  }
+
+  Future<void> _toggleRuntime() async {
+    setState(() => _runtimeBusy = true);
+    final server = MExtensionServerPlatform(ref);
+    if (_runtimeRunning) {
+      await server.stopServer();
+    } else {
+      await server.startServer(forceLocal: true);
+    }
+    final running = await server.checkLocalServer();
+    if (mounted) {
+      setState(() {
+        _runtimeRunning = running;
+        _runtimeBusy = false;
+      });
+    }
   }
 
   Future<void> _downloadOrUpdate() async {
@@ -818,14 +874,12 @@ class _ExtensionServerScreenState extends ConsumerState<ExtensionServerScreen> {
   }
 
   Future<File?> _pickIosJarFile(dynamic l10n) async {
-    final result = await FilePicker.pickFiles(
+    final file = await FilePicker.pickFile(
       dialogTitle: l10n.select_extension_server_jar,
       type: FileType.custom,
       allowedExtensions: const ['jar'],
-      allowMultiple: false,
-      withData: false,
     );
-    final filePath = result?.files.single.path;
+    final filePath = file?.path;
     if (filePath == null || filePath.isEmpty) {
       return null;
     }

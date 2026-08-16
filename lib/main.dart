@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:app_links/app_links.dart';
 import 'package:archive/archive.dart';
 import 'package:bot_toast/bot_toast.dart';
@@ -263,7 +264,7 @@ class _MyAppState extends ConsumerState<MyApp>
         return;
       }
       // Lock the app when going to background (if lock is enabled)
-      final lockEnabled = isar.settings.getSync(227)!.appLockEnabled ?? false;
+      final lockEnabled = ref.read(appLockEnabledStateProvider);
       if (lockEnabled) {
         ref.read(appUnlockedStateProvider.notifier).lock();
       }

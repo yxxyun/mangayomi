@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:mangayomi/eval/model/m_bridge.dart';
 import 'package:mangayomi/main.dart';
@@ -21,7 +22,6 @@ Future importArchivesFromFile(
   final keepAlile = ref.keepAlive();
   try {
     FilePickerResult? result = await FilePicker.pickFiles(
-      allowMultiple: true,
       type: FileType.custom,
       allowedExtensions: switch (itemType) {
         ItemType.manga => ['cbz', 'zip'],

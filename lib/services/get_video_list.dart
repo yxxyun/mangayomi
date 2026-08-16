@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/video.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:desktop_webview_window/desktop_webview_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -186,15 +187,16 @@ class _MangaWebViewState extends ConsumerState<MangaWebView> {
           )
         : Material(
             child: SafeArea(
-              child: WillPopScope(
-                onWillPop: () async {
+              child: PopScope(
+                canPop: false,
+                onPopInvokedWithResult: (didPop, result) async {
+                  if (didPop) return;
                   final canGoback = await _webViewController?.canGoBack();
                   if (canGoback ?? false) {
                     _webViewController?.goBack();
                   } else if (context.mounted) {
                     context.pop();
                   }
-                  return false;
                 },
                 child: Column(
                   children: [
@@ -236,7 +238,7 @@ class _MangaWebViewState extends ConsumerState<MangaWebView> {
                           IconButton(
                             icon: Icon(
                               Icons.arrow_back,
-                              color: _canGoback ? null : Colors.grey,
+                              color: _canGoback ? null : Theme.of(context).disabledColor,
                             ),
                             onPressed: _canGoback
                                 ? () {
@@ -247,7 +249,7 @@ class _MangaWebViewState extends ConsumerState<MangaWebView> {
                           IconButton(
                             icon: Icon(
                               Icons.arrow_forward,
-                              color: _canGoForward ? null : Colors.grey,
+                              color: _canGoForward ? null : Theme.of(context).disabledColor,
                             ),
                             onPressed: _canGoForward
                                 ? () {

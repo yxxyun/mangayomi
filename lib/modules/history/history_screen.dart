@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -197,9 +198,10 @@ class _HistoryTabState extends ConsumerState<HistoryTab>
                                             style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.bold,
-                                              color: Theme.of(
-                                                context,
-                                              ).textTheme.bodyLarge!.color,
+                                              color: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyLarge!
+                                                  .color,
                                             ),
                                           ),
                                           const SizedBox(height: 2),
@@ -207,9 +209,10 @@ class _HistoryTabState extends ConsumerState<HistoryTab>
                                             "${chapter.name!} - ${dateFormatHour(element.date!, context)}",
                                             style: TextStyle(
                                               fontSize: 11,
-                                              color: Theme.of(
-                                                context,
-                                              ).textTheme.bodyLarge!.color,
+                                              color: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyLarge!
+                                                  .color,
                                             ),
                                           ),
                                         ],
@@ -229,9 +232,10 @@ class _HistoryTabState extends ConsumerState<HistoryTab>
                             child: Icon(
                               Icons.delete_outline,
                               size: 25,
-                              color: Theme.of(
-                                context,
-                              ).textTheme.bodyLarge!.color,
+                              color: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge!
+                                  .color,
                             ),
                           ),
                         ),
@@ -301,9 +305,10 @@ class _HistoryTabState extends ConsumerState<HistoryTab>
                                               manga.name!,
                                               style: TextStyle(
                                                 fontSize: 14,
-                                                color: Theme.of(
-                                                  context,
-                                                ).textTheme.bodyLarge!.color,
+                                                color: Theme.of(context)
+                                                    .textTheme
+                                                    .bodyLarge!
+                                                    .color,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                               textAlign: TextAlign.start,
@@ -353,9 +358,10 @@ class _HistoryTabState extends ConsumerState<HistoryTab>
                                     icon: Icon(
                                       Icons.delete_outline,
                                       size: 25,
-                                      color: Theme.of(
-                                        context,
-                                      ).textTheme.bodyLarge!.color,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge!
+                                          .color,
                                     ),
                                   ),
                                 ],

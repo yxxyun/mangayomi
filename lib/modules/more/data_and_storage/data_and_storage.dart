@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:archive/archive.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -225,17 +226,14 @@ class DataAndStorage extends ConsumerWidget {
                                       TextButton(
                                         onPressed: () async {
                                           try {
-                                            FilePickerResult? result =
-                                                await FilePicker.pickFiles(
-                                                  allowMultiple: false,
-                                                );
+                                            final file =
+                                                await FilePicker.pickFile();
 
-                                            if (result != null &&
+                                            if (file != null &&
                                                 context.mounted) {
                                               ref.watch(
                                                 doRestoreProvider(
-                                                  path:
-                                                      result.files.first.path!,
+                                                  path: file.path!,
                                                   context: context,
                                                 ),
                                               );

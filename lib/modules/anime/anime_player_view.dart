@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:math';
+
 import 'package:bot_toast/bot_toast.dart';
 import 'package:ffi/ffi.dart';
 import 'package:file_picker/file_picker.dart';
@@ -39,6 +40,7 @@ import 'package:mangayomi/modules/more/settings/player/providers/player_audio_st
 import 'package:mangayomi/modules/more/settings/player/providers/player_decoder_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/player/providers/player_state_provider.dart';
 import 'package:mangayomi/modules/widgets/custom_draggable_tabbar.dart';
+import 'package:mangayomi/modules/widgets/error_state.dart';
 import 'package:mangayomi/modules/widgets/progress_center.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
@@ -140,7 +142,13 @@ class _AnimePlayerViewState extends riv.ConsumerState<AnimePlayerView> {
             },
           ),
         ),
-        body: Center(child: Text(error.toString())),
+        // The back button above already claims TV focus, so the retry must
+        // not also ask for it; it stays reachable with the d-pad.
+        body: ErrorState(
+          autofocusRetry: false,
+          detail: error.toString(),
+          onRetry: () => ref.invalidate(getVideoListProvider(episode: episode)),
+        ),
       ),
       loading: () {
         return Scaffold(
@@ -648,10 +656,7 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
 
   Future<void> _initCustomButton() async {
     if (!useMpvConfig) return;
-    final customButtons = isar.customButtons
-        .where()
-        .sortByPos()
-        .findAllSync();
+    final customButtons = isar.customButtons.where().sortByPos().findAllSync();
     if (customButtons.isEmpty) return;
     final primaryButton =
         customButtons.firstWhereOrNull((e) => e.isFavourite ?? false) ??
@@ -838,14 +843,21 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
             : "libmpv",
       ),
     );
-    // Picture-in-Picture (media_kit fork VideoOutputPIP, iOS 15+) is DISABLED:
-    // on iOS 26 the second UIScene that PiP creates re-runs plugin registration
-    // and connectivity_plus segfaults (EXC_BAD_ACCESS in didFinishLaunching).
-    // PiP is only the trigger; the real fix is the UIScene lifecycle migration
-    // (flutter.dev/to/uiscene-migration). Re-enable after that. See closed #757.
-    // if (Platform.isIOS) {
-    //   _controller.enableAutoPictureInPicture();
-    // }
+    // Picture-in-Picture is still off, but the reason has changed.
+    //
+    // It was disabled because the second UIScene PiP creates re-entered
+    // didFinishLaunchingWithOptions and re-ran plugin registration, which
+    // segfaulted connectivity_plus. That cause is now gone: the app is on the
+    // UIScene lifecycle and registration happens once per engine in
+    // didInitializeImplicitFlutterEngine.
+    //
+    // What blocks it now is the media_kit fork. The old call was
+    // `_controller.enableAutoPictureInPicture()`, and that method no longer
+    // exists: the fork moved PiP onto `VideoController.pictureInPicture`, a
+    // PictureInPictureController with `isSupported()` and
+    // `start(handle:, videoSize:, autoEnter:)` taking a native libmpv handle.
+    // Re-enabling means porting to that API and testing on a device, so it is
+    // deliberately left for its own change. See closed #757.
     // If player is being launched the first time,
     // use global "Use Fullscreen" setting.
     // Else (if user already watches an episode and just changes it),
@@ -1373,14 +1385,10 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
           GestureDetector(
             onTap: () async {
               try {
-                FilePickerResult? result = await FilePicker.pickFiles(
-                  allowMultiple: false,
-                );
+                final file = await FilePicker.pickFile();
 
-                if (result != null && context.mounted) {
-                  _player.setSubtitleTrack(
-                    SubtitleTrack.uri(result.files.first.path!),
-                  );
+                if (file != null && context.mounted) {
+                  _player.setSubtitleTrack(SubtitleTrack.uri(file.path!));
                 }
                 if (!context.mounted) return;
                 Navigator.pop(context);
@@ -1395,13 +1403,11 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
           GestureDetector(
             onTap: () async {
               try {
-                final subtitle =
-                    await subtitlesSearchraggableMenu(
-                          context,
-                          chapter: widget.episode,
-                          isLocal: widget.isLocal,
-                        )
-                        as ImdbSubtitle?;
+                final subtitle = await subtitlesSearchraggableMenu(
+                  context,
+                  chapter: widget.episode,
+                  isLocal: widget.isLocal,
+                ) as ImdbSubtitle?;
                 if (subtitle != null && context.mounted) {
                   _player.setSubtitleTrack(
                     SubtitleTrack.uri(
@@ -2155,9 +2161,9 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
                   )
                   .toList(),
         ),
-        // PiP button disabled: entering PiP crashes on iOS 26 (see the
-        // enableAutoPictureInPicture note above / closed #757). Re-enable with
-        // the UIScene migration.
+        // PiP button stays off. The UIScene crash that originally disabled it
+        // is fixed, but the media_kit fork moved the API; see the note on
+        // pictureInPicture above and closed #757.
         // if (Platform.isIOS && _controller.isPictureInPictureAvailable())
         //   IconButton(
         //     tooltip: 'Picture in Picture',
@@ -2567,72 +2573,65 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
                       ),
                       Row(
                         children: [
-                          button(
-                            context.l10n.set_as_cover,
-                            Icons.image_outlined,
-                            () async {
-                              final imageBytes = await _player.screenshot(
-                                format: "image/png",
-                                includeLibassSubtitles: _includeSubtitles,
-                              );
-                              if (context.mounted) {
-                                final res = await showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      content: Text(
-                                        context.l10n.use_this_as_cover_art,
+                          button(context.l10n.set_as_cover, Icons.image_outlined, () async {
+                            final imageBytes = await _player.screenshot(
+                              format: "image/png",
+                              includeLibassSubtitles: _includeSubtitles,
+                            );
+                            if (context.mounted) {
+                              final res = await showDialog(
+                                context: context,
+                                builder: (context) {
+                                  return AlertDialog(
+                                    content: Text(
+                                      context.l10n.use_this_as_cover_art,
+                                    ),
+                                    actions: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                            },
+                                            child: Text(context.l10n.cancel),
+                                          ),
+                                          const SizedBox(width: 15),
+                                          TextButton(
+                                            onPressed: () {
+                                              final manga =
+                                                  episode.manga.value!;
+                                              isar.writeTxnSync(() {
+                                                isar.mangas.putSync(
+                                                  manga
+                                                    ..updatedAt = DateTime.now()
+                                                        .millisecondsSinceEpoch
+                                                    ..customCoverImage =
+                                                        imageBytes
+                                                            ?.getCoverImage,
+                                                );
+                                              });
+                                              if (context.mounted) {
+                                                Navigator.pop(context, "ok");
+                                              }
+                                            },
+                                            child: Text(context.l10n.ok),
+                                          ),
+                                        ],
                                       ),
-                                      actions: [
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.end,
-                                          children: [
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                              },
-                                              child: Text(context.l10n.cancel),
-                                            ),
-                                            const SizedBox(width: 15),
-                                            TextButton(
-                                              onPressed: () {
-                                                final manga =
-                                                    episode.manga.value!;
-                                                isar.writeTxnSync(() {
-                                                  isar.mangas.putSync(
-                                                    manga
-                                                      ..updatedAt = DateTime.now()
-                                                          .millisecondsSinceEpoch
-                                                      ..customCoverImage =
-                                                          imageBytes
-                                                              ?.getCoverImage,
-                                                  );
-                                                });
-                                                if (context.mounted) {
-                                                  Navigator.pop(context, "ok");
-                                                }
-                                              },
-                                              child: Text(context.l10n.ok),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                                if (res != null &&
-                                    res == "ok" &&
-                                    context.mounted) {
-                                  Navigator.pop(context);
-                                  botToast(
-                                    context.l10n.cover_updated,
-                                    second: 3,
+                                    ],
                                   );
-                                }
+                                },
+                              );
+                              if (res != null &&
+                                  res == "ok" &&
+                                  context.mounted) {
+                                Navigator.pop(context);
+                                botToast(context.l10n.cover_updated, second: 3);
                               }
-                            },
-                          ),
+                            }
+                          }),
                           button(
                             context.l10n.share,
                             Icons.share_outlined,

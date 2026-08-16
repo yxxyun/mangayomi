@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -1370,7 +1371,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get mark_duplicate_chapters_read =>
-      'Mark duplicate chapter numbers as read';
+      'Отметить повторяющиеся номера глав как прочитанные';
 
   @override
   String get default_skip_intro_length =>
@@ -2339,48 +2340,70 @@ class AppLocalizationsRu extends AppLocalizations {
   String get not_configured => 'Не настроено';
 
   @override
+  String get zero_interpreter => 'Zero interpreter';
+
+  @override
+  String get zero_interpreter_description =>
+      'The server starts automatically on launch. You can also control it manually.';
+
+  @override
+  String get runtime_status => 'Runtime status';
+
+  @override
+  String get running => 'Running';
+
+  @override
+  String get stopped => 'Stopped';
+
+  @override
+  String get start => 'Start';
+
+  @override
+  String get stop => 'Stop';
+
+  @override
   String get webview => 'Веб-просмотр';
 
   @override
-  String get tts => 'Text-to-Speech';
+  String get tts => 'Преобразование текста в речь';
 
   @override
-  String get tts_speed => 'Speed';
+  String get tts_speed => 'Скорость';
 
   @override
-  String get tts_pitch => 'Pitch';
+  String get tts_pitch => 'Высота тона';
 
   @override
-  String get tts_language => 'Language';
+  String get tts_language => 'Язык';
 
   @override
-  String get tts_voice => 'Voice';
+  String get tts_voice => 'Голос';
 
   @override
-  String get tts_stop => 'Stop';
+  String get tts_stop => 'Остановить';
 
   @override
-  String get tts_play => 'Play';
+  String get tts_play => 'Воспроизведение';
 
   @override
-  String get tts_pause => 'Pause';
+  String get tts_pause => 'Пауза';
 
   @override
-  String get tts_previous => 'Previous paragraph';
+  String get tts_previous => 'Предыдущий абзац';
 
   @override
-  String get tts_next => 'Next paragraph';
+  String get tts_next => 'Следующий абзац';
 
   @override
   String tts_paragraph_progress(Object current, Object total) {
-    return 'Paragraph $current of $total';
+    return 'Абзац $current из $total';
   }
 
   @override
-  String get tts_settings => 'TTS Settings';
+  String get tts_settings => 'Параметры TTS';
 
   @override
-  String get tts_default => 'Default';
+  String get tts_default => 'По умолчанию';
 
   @override
   String get webtoon_disable_zoom_out =>
@@ -2492,6 +2515,61 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get error_no_pages_available => 'Ошибка: нет доступных страниц';
+
+  @override
+  String get app_ui_scale => 'Масштаб интерфейса';
+
+  @override
+  String get app_ui_scale_subtitle =>
+      'Сделайте интерфейс больше или меньше в соответствии с вашим экраном и расстоянием просмотра.';
+
+  @override
+  String get allow_concurrent_downloads => 'Разрешить одновременные загрузки';
+
+  @override
+  String get allow_concurrent_downloads_subtitle =>
+      'Загружайте из разных источников одновременно. Один источник по-прежнему загружает одну главу за раз, чтобы не перегружать. Отключите, чтобы загружать по одному везде.';
+
+  @override
+  String get download_delay => 'Задержка загрузки';
+
+  @override
+  String get download_delay_subtitle =>
+      'Выключен. Добавьте ожидание со случайной дрожью между главами, чтобы быть мягче к источникам.';
+
+  @override
+  String get save_search => 'Сохранить поиск';
+
+  @override
+  String get saved_searches => 'Сохраненные поиски';
+
+  @override
+  String get enter_search_to_save_first =>
+      'Сначала введите поиск для сохранения';
+
+  @override
+  String get no_saved_searches =>
+      'Для этого источника еще нет сохраненных поисков.\nВыполните поиск, а затем выберите \"Сохранить поиск\".';
+
+  @override
+  String get source => 'Источник';
+
+  @override
+  String get something_went_wrong => 'Something went wrong';
+
+  @override
+  String get startup_failed => 'Mangayomi could not finish starting up';
+
+  @override
+  String sources_with_no_results(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sources with no results',
+      one: '1 source with no results',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get cloud_drive_management => 'Cloud Drive Management';
@@ -2770,41 +2848,4 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get cloud_drive_qr_retry => 'Retry';
-
-  @override
-  String get app_ui_scale => 'Interface scale';
-
-  @override
-  String get app_ui_scale_subtitle =>
-      'Make the interface larger or smaller to suit your screen and viewing distance.';
-
-  @override
-  String get allow_concurrent_downloads => 'Allow concurrent downloads';
-
-  @override
-  String get allow_concurrent_downloads_subtitle =>
-      'Download from different sources at the same time. A single source still downloads one chapter at a time so it isn\'t overloaded. Turn off to download one at a time everywhere.';
-
-  @override
-  String get download_delay => 'Download delay';
-
-  @override
-  String get download_delay_subtitle =>
-      'Off. Add a wait with random jitter between chapters to be gentler on sources.';
-
-  @override
-  String get save_search => 'Save search';
-
-  @override
-  String get saved_searches => 'Saved searches';
-
-  @override
-  String get enter_search_to_save_first => 'Enter a search to save first';
-
-  @override
-  String get no_saved_searches =>
-      'No saved searches for this source yet.\nRun a search, then pick \"Save search\".';
-
-  @override
-  String get source => 'Source';
 }

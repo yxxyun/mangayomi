@@ -7,6 +7,10 @@ import 'package:go_router/go_router.dart';
 import 'package:mangayomi/eval/model/m_bridge.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/modules/more/about/providers/download_file_screen.dart';
+import 'package:mangayomi/modules/widgets/error_state.dart';
+import 'package:mangayomi/modules/widgets/loading_icon.dart';
+import 'package:mangayomi/modules/main_view/providers/migration.dart';
+import 'package:mangayomi/modules/main_view/providers/tv_mode_provider.dart';
 import 'package:mangayomi/modules/more/about/providers/check_for_update.dart';
 import 'package:mangayomi/modules/more/data_and_storage/providers/auto_backup.dart';
 import 'package:mangayomi/modules/more/providers/incognito_mode_state_provider.dart';
@@ -105,6 +109,11 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<UpdateInfo?>>(checkForUpdateProvider, (_, next) {
+      // On TV the in-app updater (download + install an APK) is not reachable
+      // with a d-pad and is not how TV builds update (sideload / the release
+      // APK). Left on, this modal would appear unannounced over whatever the
+      // user is doing and trap focus with no way to dismiss it.
+      if (isTv) return;
       next.whenData((updateInfo) {
         if (updateInfo != null && context.mounted) {
           showDialog(
@@ -124,17 +133,31 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
     final shell = widget.navigationShell;
     final incognitoMode = ref.watch(incognitoModeStateProvider);
-    return Scaffold(
-      body: Column(
-        children: [
-          _IncognitoModeBar(incognitoMode: incognitoMode, l10n: context.l10n),
-          Expanded(
-            child: context.isTablet ? _tabletLayout(shell) : shell,
-          ),
-        ],
+    final l10n = context.l10n;
+    return ref.watch(migrationProvider).when(
+      data: (_) => Scaffold(
+        body: Column(
+          children: [
+            _IncognitoModeBar(incognitoMode: incognitoMode, l10n: l10n),
+            Expanded(
+              child: context.isTablet ? _tabletLayout(shell) : shell,
+            ),
+          ],
+        ),
+        bottomNavigationBar:
+            context.isTablet ? null : _mobileBottomNav(shell),
       ),
-      bottomNavigationBar:
-          context.isTablet ? null : _mobileBottomNav(shell),
+      // A failed migration used to render the loading screen, so the app
+      // sat on a blank splash forever with nothing to act on. Show what
+      // happened and let the user run it again.
+      error: (error, _) => Scaffold(
+        body: ErrorState(
+          message: l10n.startup_failed,
+          detail: error.toString(),
+          onRetry: () => ref.invalidate(migrationProvider),
+        ),
+      ),
+      loading: () => const LoadingIcon(),
     );
   }
 

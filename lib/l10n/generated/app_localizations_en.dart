@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -2300,6 +2301,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get not_configured => 'Not configured';
 
   @override
+  String get zero_interpreter => 'Zero interpreter';
+
+  @override
+  String get zero_interpreter_description =>
+      'The server starts automatically on launch. You can also control it manually.';
+
+  @override
+  String get runtime_status => 'Runtime status';
+
+  @override
+  String get running => 'Running';
+
+  @override
+  String get stopped => 'Stopped';
+
+  @override
+  String get start => 'Start';
+
+  @override
+  String get stop => 'Stop';
+
+  @override
   String get webview => 'Webview';
 
   @override
@@ -2450,6 +2473,60 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get error_no_pages_available => 'Error: no pages available';
+
+  @override
+  String get app_ui_scale => 'Interface scale';
+
+  @override
+  String get app_ui_scale_subtitle =>
+      'Make the interface larger or smaller to suit your screen and viewing distance.';
+
+  @override
+  String get allow_concurrent_downloads => 'Allow concurrent downloads';
+
+  @override
+  String get allow_concurrent_downloads_subtitle =>
+      'Download from different sources at the same time. A single source still downloads one chapter at a time so it isn\'t overloaded. Turn off to download one at a time everywhere.';
+
+  @override
+  String get download_delay => 'Download delay';
+
+  @override
+  String get download_delay_subtitle =>
+      'Off. Add a wait with random jitter between chapters to be gentler on sources.';
+
+  @override
+  String get save_search => 'Save search';
+
+  @override
+  String get saved_searches => 'Saved searches';
+
+  @override
+  String get enter_search_to_save_first => 'Enter a search to save first';
+
+  @override
+  String get no_saved_searches =>
+      'No saved searches for this source yet.\nRun a search, then pick \"Save search\".';
+
+  @override
+  String get source => 'Source';
+
+  @override
+  String get something_went_wrong => 'Something went wrong';
+
+  @override
+  String get startup_failed => 'Mangayomi could not finish starting up';
+
+  @override
+  String sources_with_no_results(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sources with no results',
+      one: '1 source with no results',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get cloud_drive_management => 'Cloud Drive Management';
@@ -2728,41 +2805,4 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cloud_drive_qr_retry => 'Retry';
-
-  @override
-  String get app_ui_scale => 'Interface scale';
-
-  @override
-  String get app_ui_scale_subtitle =>
-      'Make the interface larger or smaller to suit your screen and viewing distance.';
-
-  @override
-  String get allow_concurrent_downloads => 'Allow concurrent downloads';
-
-  @override
-  String get allow_concurrent_downloads_subtitle =>
-      'Download from different sources at the same time. A single source still downloads one chapter at a time so it isn\'t overloaded. Turn off to download one at a time everywhere.';
-
-  @override
-  String get download_delay => 'Download delay';
-
-  @override
-  String get download_delay_subtitle =>
-      'Off. Add a wait with random jitter between chapters to be gentler on sources.';
-
-  @override
-  String get save_search => 'Save search';
-
-  @override
-  String get saved_searches => 'Saved searches';
-
-  @override
-  String get enter_search_to_save_first => 'Enter a search to save first';
-
-  @override
-  String get no_saved_searches =>
-      'No saved searches for this source yet.\nRun a search, then pick \"Save search\".';
-
-  @override
-  String get source => 'Source';
 }

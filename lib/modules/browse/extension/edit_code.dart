@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:json_view/json_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,6 +40,16 @@ class _CodeEditorPageState extends ConsumerState<CodeEditorPage> {
       ? null
       : isar.sources.getSync(widget.sourceId!);
   final CodeLineEditingController _controller = CodeLineEditingController();
+  Timer? _saveDebounceTimer;
+
+  void _persistSourceCodeNow() {
+    if (source == null) return;
+    isar.writeTxnSync(() {
+      isar.sources.putSync(
+        source!..updatedAt = DateTime.now().millisecondsSinceEpoch,
+      );
+    });
+  }
 
   List<(String, int)> _getServices(BuildContext context) => [
     ("getPopular", 0),
@@ -176,6 +187,10 @@ class _CodeEditorPageState extends ConsumerState<CodeEditorPage> {
 
   @override
   void dispose() {
+    if (_saveDebounceTimer?.isActive ?? false) {
+      _saveDebounceTimer!.cancel();
+      _persistSourceCodeNow();
+    }
     _logSubscription.cancel();
     _logsNotifier.value.clear();
     _scrollController.dispose();
@@ -189,7 +204,7 @@ class _CodeEditorPageState extends ConsumerState<CodeEditorPage> {
     List<dynamic> filterList = source != null
         ? getFilterList(source: source!)
         : [];
-    final appFontFamily = ref.watch(appFontFamilyProvider);
+    final appFontFamily = ref.watch(appFontFamilyProvider.select((t) => t.$2));
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -275,13 +290,11 @@ class _CodeEditorPageState extends ConsumerState<CodeEditorPage> {
                         onChanged: (_) {
                           source?.sourceCode = _controller.text;
                           if (source != null && context.mounted) {
-                            isar.writeTxnSync(() {
-                              isar.sources.putSync(
-                                source!
-                                  ..updatedAt =
-                                      DateTime.now().millisecondsSinceEpoch,
-                              );
-                            });
+                            _saveDebounceTimer?.cancel();
+                            _saveDebounceTimer = Timer(
+                              const Duration(milliseconds: 1500),
+                              _persistSourceCodeNow,
+                            );
                           }
                         },
                         wordWrap: false,
