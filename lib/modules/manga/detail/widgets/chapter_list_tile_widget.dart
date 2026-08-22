@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/modules/widgets/custom_extended_image_provider.dart';
 import 'package:mangayomi/modules/widgets/progress_center.dart';
+import 'package:mangayomi/utils/cached_network.dart';
 import 'package:mangayomi/utils/constant.dart';
 import 'package:marquee/marquee.dart';
 import 'package:mangayomi/models/chapter.dart';
@@ -21,12 +22,14 @@ import 'package:mangayomi/utils/platform_utils.dart';
 
 class ChapterListTileWidget extends ConsumerWidget {
   final Chapter chapter;
+  final Manga manga;
   final List<Chapter> chapterList;
   final List<Chapter> allChapters;
   final bool sourceExist;
   const ChapterListTileWidget({
     required this.chapterList,
     required this.chapter,
+    required this.manga,
     required this.allChapters,
     required this.sourceExist,
     super.key,
@@ -159,7 +162,7 @@ class ChapterListTileWidget extends ConsumerWidget {
                       ),
                     ],
                   ),
-                if ((chapter.manga.value!.isLocalArchive ?? false) == false)
+                if ((manga.isLocalArchive ?? false) == false)
                   Text(
                     chapter.dateUpload == null || chapter.dateUpload!.isEmpty
                         ? ""
@@ -177,7 +180,7 @@ class ChapterListTileWidget extends ConsumerWidget {
                       children: [
                         const Text(' • '),
                         Text(
-                          chapter.manga.value!.itemType == ItemType.anime
+                          manga.itemType == ItemType.anime
                               ? l10n.episode_progress(
                                   Duration(
                                     milliseconds: int.parse(
@@ -186,7 +189,7 @@ class ChapterListTileWidget extends ConsumerWidget {
                                   ).toString().substringBefore("."),
                                 )
                               : l10n.page(
-                                  chapter.manga.value!.itemType ==
+                                  manga.itemType ==
                                           ItemType.manga
                                       ? chapter.lastPageRead!
                                       : "${((double.tryParse(chapter.lastPageRead!) ?? 0) * 100).toStringAsFixed(0)} %",
@@ -238,7 +241,7 @@ class ChapterListTileWidget extends ConsumerWidget {
                 // Downloads are hidden on TV (no offline use case there).
                 isTv ||
                     !sourceExist ||
-                    (chapter.manga.value!.isLocalArchive ?? false)
+                    (manga.isLocalArchive ?? false)
                 ? null
                 : ChapterPageDownload(chapter: chapter),
           ),
@@ -308,6 +311,9 @@ class ChapterListTileWidget extends ConsumerWidget {
     final imageProvider = CustomExtendedNetworkImageProvider(
       toImgUrl(imageUrl ?? ""),
     );
+    // Decode the 50x65 preview at thumbnail resolution; the full-resolution
+    // provider is only handed to the zoom dialog.
+    final thumbnailProvider = coverProvider(toImgUrl(imageUrl ?? ""));
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
       child: GestureDetector(
@@ -320,7 +326,10 @@ class ChapterListTileWidget extends ConsumerWidget {
           child: Container(
             decoration: BoxDecoration(
               borderRadius: const BorderRadius.all(Radius.circular(5)),
-              image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
+              image: DecorationImage(
+                image: thumbnailProvider,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         ),

@@ -1,8 +1,7 @@
 // ignore_for_file: non_nullable_equals_parameter, depend_on_referenced_packages, implementation_imports
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
-import 'dart:ui' as ui show Codec;
+import 'dart:ui' as ui show Codec, ImmutableBuffer;
 
 import 'package:extended_image_library/src/extended_image_provider.dart';
 import 'package:extended_image_library/src/platform.dart';
@@ -11,73 +10,14 @@ import 'package:flutter/widgets.dart';
 import 'package:http_client_helper/http_client_helper.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
 import 'package:mangayomi/services/http/m_client.dart';
+import 'package:mangayomi/utils/avif.dart';
 import 'package:path/path.dart';
 import 'package:extended_image_library/src/network/extended_network_image_provider.dart'
     as image_provider;
 
-void _imgDiag(String msg) {
-  try {
-    final f = File('${Directory.systemTemp.path}/mangayomi_img.log');
-    f.writeAsStringSync('${DateTime.now()}: $msg\n', mode: FileMode.append);
-  } catch (_) {}
-}
-
-/// LRU Memory Cache for decoded image data
-class _LRUCache<K, V> {
-  final int _maxSize;
-  final _cache = <K, V>{};
-  int _currentSize = 0;
-  final int Function(V)? _sizeOf;
-
-  _LRUCache({required this._maxSize, this._sizeOf});
-
-  V? get(K key) {
-    final value = _cache.remove(key);
-    if (value != null) {
-      _cache[key] = value; // Move to end (most recently used)
-    }
-    return value;
-  }
-
-  void put(K key, V value) {
-    _cache.remove(key); // Remove if exists
-    _cache[key] = value; // Add to end
-
-    if (_sizeOf != null) {
-      _currentSize += _sizeOf(value);
-      while (_currentSize > _maxSize && _cache.isNotEmpty) {
-        final oldest = _cache.entries.first;
-        _currentSize -= _sizeOf(oldest.value);
-        _cache.remove(oldest.key);
-      }
-    } else {
-      while (_cache.length > _maxSize) {
-        _cache.remove(_cache.keys.first);
-      }
-    }
-  }
-
-  void remove(K key) {
-    final value = _cache.remove(key);
-    if (value != null && _sizeOf != null) {
-      _currentSize -= _sizeOf(value);
-    }
-  }
-
-  void clear() {
-    _cache.clear();
-    _currentSize = 0;
-  }
-
-  int get length => _cache.length;
-  int get currentSize => _currentSize;
-}
-
-/// Global memory cache (100 images max, ~50MB)
-final _memoryCache = _LRUCache<String, Uint8List>(
-  maxSize: 50 * 1024 * 1024, // 50MB
-  sizeOf: (data) => data.length,
-);
+// NOTE: encoded image bytes are intentionally NOT cached in memory here.
+// The on-disk cache plus Flutter's decoded imageCache already cover repeat
+// loads; an extra encoded-bytes layer only added ~50MB of resident memory.
 
 /// Cache metadata for LRU eviction
 class _CacheMetadata {
@@ -234,7 +174,6 @@ class CustomExtendedNetworkImageProvider
     image_provider.ExtendedNetworkImageProvider key,
     ImageDecoderCallback decode,
   ) {
-    print('CUSTOM_IMAGE: loadImage called for url=$url');
     // Ownership of this controller is handed off to [_loadAsync]; it is that
     // method's responsibility to close the controller's stream when the image
     // has been loaded or an error is thrown.
@@ -247,8 +186,8 @@ class CustomExtendedNetworkImageProvider
         chunkEvents,
         decode,
       ),
-      chunkEvents: chunkEvents.stream,
       scale: key.scale,
+      chunkEvents: chunkEvents.stream,
       debugLabel: key.url,
       informationCollector: () {
         return <DiagnosticsNode>[
@@ -269,13 +208,26 @@ class CustomExtendedNetworkImageProvider
     return SynchronousFuture<CustomExtendedNetworkImageProvider>(this);
   }
 
+  @override
+  Future<ui.Codec> instantiateImageCodec(
+    Uint8List data,
+    ImageDecoderCallback decode,
+  ) async {
+    try {
+      return await super.instantiateImageCodec(data, decode);
+    } catch (_) {
+      if (!Platform.isIOS || !isAvifImage(data)) rethrow;
+      final png = await decodeAvifToPng(data);
+      return decode(await ui.ImmutableBuffer.fromUint8List(png));
+    }
+  }
+
   Future<ui.Codec> _loadAsync(
     CustomExtendedNetworkImageProvider key,
     StreamController<ImageChunkEvent> chunkEvents,
     ImageDecoderCallback decode,
   ) async {
     assert(key == this);
-    _imgDiag('_loadAsync ENTERED url=$url');
     final String md5Key = cacheKey ?? keyToMd5(key.url);
     ui.Codec? result;
     if (cache) {
@@ -295,12 +247,9 @@ class CustomExtendedNetworkImageProvider
       try {
         final Uint8List? data = await _loadNetwork(key, chunkEvents);
         if (data != null) {
-          _imgDiag('_loadAsync: calling instantiateImageCodec for $url');
           result = await instantiateImageCodec(data, decode);
-          _imgDiag('_loadAsync: instantiateImageCodec OK for $url');
         }
       } catch (e) {
-        _imgDiag('_loadAsync FAIL url=$url e=$e');
         if (kDebugMode) {
           print(e);
         }
@@ -322,12 +271,6 @@ class CustomExtendedNetworkImageProvider
     StreamController<ImageChunkEvent>? chunkEvents,
     String md5Key,
   ) async {
-    // Check memory cache first
-    final cachedData = _memoryCache.get(md5Key);
-    if (cachedData != null) {
-      return cachedData;
-    }
-
     final Directory cacheImagesDirectory = await StorageProvider()
         .createCacheDirectory(imageCacheFolderName);
     Uint8List? data;
@@ -342,13 +285,9 @@ class CustomExtendedNetworkImageProvider
           cacheFile.deleteSync();
         } else {
           data = await cacheFile.readAsBytes();
-          // Store in memory cache
-          _memoryCache.put(md5Key, data);
         }
       } else {
         data = await cacheFile.readAsBytes();
-        // Store in memory cache
-        _memoryCache.put(md5Key, data);
       }
     }
 
@@ -361,9 +300,6 @@ class CustomExtendedNetworkImageProvider
 
         // cache image file
         await File(join(cacheImagesDirectory.path, md5Key)).writeAsBytes(data);
-
-        // Store in memory cache
-        _memoryCache.put(md5Key, data);
       }
     }
 
@@ -377,15 +313,11 @@ class CustomExtendedNetworkImageProvider
   ) async {
     try {
       final Uri resolved = Uri.base.resolve(key.url);
-      _imgDiag('_loadNetwork start url=$resolved');
       final StreamedResponse? response = await _tryGetResponse(resolved);
 
       if (response == null || response.statusCode != HttpStatus.ok) {
-        _imgDiag('_loadNetwork FAIL status=${response?.statusCode} body="${response == null ? 'null' : response.runtimeType}" url=$resolved');
         return null;
       }
-
-      _imgDiag('_loadNetwork OK status=${response.statusCode} length=${response.contentLength} url=$resolved');
 
       // Pre-allocate list if content length is known
       final int total = response.contentLength ?? 0;
@@ -394,6 +326,7 @@ class CustomExtendedNetworkImageProvider
           : [];
       int received = 0;
 
+      response.stream.asBroadcastStream();
       await for (var chunk in response.stream) {
         if (total > 0 && received + chunk.length <= total) {
           // Copy directly to pre-allocated list
@@ -413,13 +346,11 @@ class CustomExtendedNetworkImageProvider
       }
 
       if (bytes.isEmpty) {
-        _imgDiag('_loadNetwork EMPTY: received=$received url=$resolved');
         return await Future<Uint8List>.error(
           StateError('NetworkImage is an empty file: $resolved'),
         );
       }
 
-      _imgDiag('_loadNetwork DONE: received=$received bytes=${bytes.length} url=$resolved');
       return Uint8List.fromList(bytes);
     } on OperationCanceledError catch (_) {
       if (kDebugMode) {
@@ -427,7 +358,6 @@ class CustomExtendedNetworkImageProvider
       }
       return Future<Uint8List>.error(StateError('User cancel request $url.'));
     } catch (e) {
-      _imgDiag('_loadNetwork CATCH url=$url e=$e');
       if (kDebugMode) {
         print(e);
       }
@@ -443,75 +373,25 @@ class CustomExtendedNetworkImageProvider
     // Optimize headers for better caching and compression
     final optimizedHeaders = {
       ...?headers,
-      'Accept-Encoding': 'gzip, deflate',
+      'Accept-Encoding': 'gzip, deflate, br',
       'Accept': 'image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
       'Connection': 'keep-alive',
     };
     request.headers.addAll(optimizedHeaders);
-    _imgDiag('_getResponse url=$resolved headers=$optimizedHeaders');
 
-    // Try with dart:io HttpClient directly (useDartHttpClient) first,
-    // avoiding InterceptedClient which can choke on invalid Content-Type headers
-    // (e.g. "application/json; charset=utf-8;" with trailing semicolon).
-    StreamedResponse response;
-    try {
-      response = await MClient.init(
-        showCloudFlareError: showCloudFlareError,
-      ).send(request);
-      _imgDiag('_getResponse MClient OK status=${response.statusCode} url=$resolved');
-    } catch (e) {
-      _imgDiag('_getResponse MClient FAIL e=$e url=$resolved');
-      // Fallback: use raw dart:io HttpClient directly, bypassing all middleware.
-      return await _rawHttpResponse(request, optimizedHeaders);
-    }
+    StreamedResponse response = await MClient.init(
+      showCloudFlareError: showCloudFlareError,
+    ).send(request);
 
     if (response.statusCode != 200) {
-      _imgDiag('_getResponse status=${response.statusCode} retrying url=$resolved');
-      try {
-        final res = await MClient.init(
-          reqcopyWith: {'useDartHttpClient': true},
-          showCloudFlareError: showCloudFlareError,
-        ).send(response.request!);
-        _imgDiag('_getResponse retry OK status=${res.statusCode} url=$resolved');
-        return res;
-      } catch (e) {
-        _imgDiag('_getResponse retry FAIL e=$e url=$resolved');
-        return await _rawHttpResponse(request, optimizedHeaders);
-      }
+      final res = await MClient.init(
+        reqcopyWith: {'useDartHttpClient': true},
+        showCloudFlareError: showCloudFlareError,
+      ).send(response.request!);
+      return res;
     }
 
     return response;
-  }
-
-  /// Fallback HTTP using raw dart:io HttpClient — no MClient, no InterceptedClient,
-  /// no Content-Type validation. Useful for CDNs that return invalid headers.
-  Future<StreamedResponse> _rawHttpResponse(
-    Request request,
-    Map<String, String> optimizedHeaders,
-  ) async {
-    _imgDiag('_rawHttpResponse url=${request.url}');
-    final rawClient = HttpClient();
-    try {
-      final rawRequest = await rawClient.getUrl(request.url);
-      optimizedHeaders.forEach((k, v) => rawRequest.headers.set(k, v));
-      final rawResponse = await rawRequest.close();
-      _imgDiag('_rawHttpResponse status=${rawResponse.statusCode} url=${request.url}');
-      final body = await rawResponse.transform(utf8.decoder).join();
-      final headersMap = <String, String>{};
-      rawResponse.headers.forEach((name, values) {
-        headersMap[name] = values.join(', ');
-      });
-      return StreamedResponse(
-        Stream.fromIterable([utf8.encode(body)]),
-        rawResponse.statusCode,
-        headers: headersMap,
-      );
-    } catch (e) {
-      _imgDiag('_rawHttpResponse FAIL e=$e url=${request.url}');
-      rethrow;
-    } finally {
-      rawClient.close();
-    }
   }
 
   // Http get with cancel, exponential backoff retry
@@ -521,8 +401,10 @@ class CustomExtendedNetworkImageProvider
     int attempt = 0;
     while (attempt < retries) {
       try {
-        cancelToken?.throwIfCancellationRequested();
-        return await _getResponse(resolved);
+        return await CancellationTokenSource.register(
+          cancelToken,
+          _getResponse(resolved),
+        );
       } catch (e) {
         attempt++;
         if (attempt >= retries) {

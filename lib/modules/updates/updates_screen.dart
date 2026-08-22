@@ -188,11 +188,31 @@ class _UpdateTabState extends ConsumerState<UpdateTab>
       children: [
         update.when(
           data: (entries) {
-            final lastUpdatedList = entries
-                .map((e) => e.chapter.value!.manga.value!.lastUpdate!)
+            // Resolve chapter/manga once here instead of per row in itemBuilder.
+            final chapterByUpdateId = <int, Chapter>{};
+            for (final e in entries) {
+              if (!e.chapter.isLoaded) e.chapter.loadSync();
+              final c = e.chapter.value;
+              if (c != null) chapterByUpdateId[e.id!] = c;
+            }
+            final mangaIds = chapterByUpdateId.values
+                .map((c) => c.mangaId)
+                .whereType<int>()
+                .toSet()
                 .toList();
-            lastUpdatedList.sort((a, b) => b.compareTo(a));
-            final lastUpdated = lastUpdatedList.firstOrNull;
+            final mangaById = {
+              for (final m in isar.mangas.getAllSync(mangaIds))
+                if (m != null) m.id!: m,
+            };
+
+            int? lastUpdated;
+            for (final c in chapterByUpdateId.values) {
+              final value = mangaById[c.mangaId]?.lastUpdate;
+              if (value != null &&
+                  (lastUpdated == null || value > lastUpdated)) {
+                lastUpdated = value;
+              }
+            }
             if (entries.isNotEmpty) {
               return CustomScrollView(
                 slivers: [
@@ -248,9 +268,11 @@ class _UpdateTabState extends ConsumerState<UpdateTab>
                       ),
                     ),
                     itemBuilder: (context, element) {
-                      final chapter = element.chapter.value!;
+                      final chapter = chapterByUpdateId[element.id]!;
+                      final manga = mangaById[chapter.mangaId]!;
                       return UpdateChapterListTileWidget(
                         chapter: chapter,
+                        manga: manga,
                         sourceExist: true,
                       );
                     },

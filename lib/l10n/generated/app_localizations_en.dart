@@ -268,7 +268,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String mass_migration_finding_matches(Object source, Object language) {
-    return 'Finding matches in $source 鈥?$language';
+    return 'Finding matches in $source • $language';
   }
 
   @override
@@ -349,7 +349,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String mass_migration_route_summary(Object source, Object destination) {
-    return '$source 鈫?$destination';
+    return '$source → $destination';
   }
 
   @override
@@ -516,6 +516,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get name => 'Name';
 
   @override
+  String label_value(Object label, Object value) {
+    return '$label: $value';
+  }
+
+  @override
+  String get url => 'URL';
+
+  @override
   String get category_name_required => '*Required';
 
   @override
@@ -676,6 +684,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get version => 'Version';
 
   @override
+  String beta_version(Object version) {
+    return 'Beta ($version)';
+  }
+
+  @override
   String get check_for_update => 'Check for update';
 
   @override
@@ -729,6 +742,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unknown => 'Unknown';
 
   @override
+  String get empty_placeholder => 'EMPTY\nMPTY\nMTY\nMT\n\n';
+
+  @override
+  String get error => 'Error';
+
+  @override
+  String error_with_message(Object error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get no_pages_available => 'Error: no pages available';
+
+  @override
   String get set_categories => 'Set categories';
 
   @override
@@ -757,6 +784,84 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get source_title => 'Source title';
+
+  @override
+  String get create_extension => 'Create Extension';
+
+  @override
+  String get choose_extension_language => 'Choose extension language';
+
+  @override
+  String get lang => 'Lang';
+
+  @override
+  String get base_url => 'BaseUrl';
+
+  @override
+  String get api_url_optional => 'ApiUrl (optional)';
+
+  @override
+  String get icon_url => 'iconUrl';
+
+  @override
+  String get source_icon_url => 'Source icon url';
+
+  @override
+  String get notes => 'notes';
+
+  @override
+  String get extension_name_example => 'ex: myAnime';
+
+  @override
+  String get language_code_example => 'ex: en';
+
+  @override
+  String get base_url_example => 'ex: https://example.com';
+
+  @override
+  String get api_url_example => 'ex: https://api.example.com';
+
+  @override
+  String get extension_notes_example => 'ex: this extension requires login';
+
+  @override
+  String get type => 'Type';
+
+  @override
+  String get target => 'Target';
+
+  @override
+  String get source_type_single => 'single';
+
+  @override
+  String get source_type_multi => 'multi';
+
+  @override
+  String get source_type_torrent => 'torrent';
+
+  @override
+  String get source_language_dart => 'Dart';
+
+  @override
+  String get source_language_javascript => 'JavaScript';
+
+  @override
+  String get source_language_lnreader_compiled_js => 'LNReader compiled JS';
+
+  @override
+  String get source_created_successfully => 'Source created successfully';
+
+  @override
+  String get source_already_exists => 'Source already exists';
+
+  @override
+  String get error_when_creating_source => 'Error when creating source';
+
+  @override
+  String get cookies_deleted => 'Cookies deleted!';
+
+  @override
+  String get delete_all_cookies => 'Delete all cookies';
 
   @override
   String get chapter_number => 'Chapter number';
@@ -2008,10 +2113,103 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rescan_local_folder => 'Rescan all local folders now';
 
   @override
+  String get default_download_destination => 'Default download destination';
+
+  @override
+  String get ask_download_destination => 'Ask for download destination';
+
+  @override
+  String get ask_download_destination_desc =>
+      'Choose a local folder each time a download starts.';
+
+  @override
+  String get select_download_destination => 'Select download destination';
+
+  @override
+  String get clear_local_library => 'Clear local library';
+
+  @override
+  String get clear_local_library_desc =>
+      'Remove local folder and archive entries from the library.';
+
+  @override
+  String get clear_local_library_msg =>
+      'This will remove local folder and archive entries from your library. It will not delete files from disk.';
+
+  @override
+  String get custom => 'Custom';
+
+  @override
+  String get no_local_folder_available_for_downloads =>
+      'No local folder is available for downloads';
+
+  @override
+  String failed_to_create_cbz(Object error) {
+    return 'Failed to create CBZ: $error';
+  }
+
+  @override
+  String error_reading_cover_image(Object error) {
+    return 'Error reading cover image: $error';
+  }
+
+  @override
+  String error_reading_metadata(Object error) {
+    return 'Error reading metadata: $error';
+  }
+
+  @override
+  String error_saving_chapter_episode_to_library(Object error) {
+    return 'Error saving chapter/episode to library: $error';
+  }
+
+  @override
+  String error_reading_chapter_cover_image(Object error) {
+    return 'Error reading chapter cover image: $error';
+  }
+
+  @override
+  String error_reading_archive_cover_image(Object error) {
+    return 'Error reading archive cover image: $error';
+  }
+
+  @override
+  String error_getting_local_library(Object error) {
+    return 'Error getting local library: $error';
+  }
+
+  @override
   String get export_metadata => 'Export metadata';
 
   @override
   String get exported => 'Exported';
+
+  @override
+  String failed_to_export_metadata(Object error) {
+    return 'Failed to export metadata: $error';
+  }
+
+  @override
+  String get cloudflare_resolution_webview_server_start_failed =>
+      'Couldn\'t start Cloudflare Resolution Webview Server.';
+
+  @override
+  String tracker_token_expired(Object tracker) {
+    return '$tracker Token expired';
+  }
+
+  @override
+  String get video_list_empty => 'Video list is empty';
+
+  @override
+  String playback_speed_multiplier(Object value) {
+    return 'x$value';
+  }
+
+  @override
+  String could_not_launch_url(Object url) {
+    return 'Could not launch $url';
+  }
 
   @override
   String get text_size => 'Text Size :';
@@ -2305,7 +2503,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get zero_interpreter_description =>
-      'The server starts automatically on launch. You can also control it manually.';
+      'Control the Zero interpreter server automatically or manually.';
+
+  @override
+  String get start_server_on_launch => 'Start server on launch';
 
   @override
   String get runtime_status => 'Runtime status';
@@ -2527,6 +2728,218 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get import_mode_title => 'How should this be imported?';
+
+  @override
+  String get import_mode_message =>
+      'Choose whether to merge this backup into your current library, or replace your entire library with it.';
+
+  @override
+  String get import_mode_keep_existing => 'Merge';
+
+  @override
+  String get import_mode_keep_existing_subtitle =>
+      'Adds new series and updates matching ones. Nothing in your current library is removed.';
+
+  @override
+  String get import_mode_replace => 'Replace';
+
+  @override
+  String get import_mode_replace_subtitle =>
+      'Deletes your entire current library and replaces it with this backup.';
+
+  @override
+  String get replace_summary_title => 'Ready to replace your library';
+
+  @override
+  String replace_summary_message(Object currentCount, Object backupCount) {
+    return 'This deletes your entire current library ($currentCount series) and replaces it with $backupCount series from this backup. This can only be undone by rolling back.';
+  }
+
+  @override
+  String get replace_summary_confirm => 'Replace';
+
+  @override
+  String replace_result_message(Object count) {
+    return 'Replaced your library with $count series from this backup.';
+  }
+
+  @override
+  String get category_conflict_title => 'Existing categories found';
+
+  @override
+  String get category_conflict_message =>
+      'The backup has categories that already exist in your library. Keep to fold incoming series into the existing category, or delete to leave those series uncategorized instead.';
+
+  @override
+  String get category_conflict_keep => 'Keep — merge into existing category';
+
+  @override
+  String get category_conflict_delete => 'Delete — leave series uncategorized';
+
+  @override
+  String get source_conflict_title => 'Sources not found';
+
+  @override
+  String get source_conflict_message =>
+      'These backup sources don\'t match an installed extension. Keep the original name (imported without a working source), or migrate to an installed extension so these series can be updated.';
+
+  @override
+  String get source_conflict_keep => 'Keep original name (no live source)';
+
+  @override
+  String get import_summary_title => 'Ready to import';
+
+  @override
+  String import_summary_message(
+    Object newSeries,
+    Object updatedSeries,
+    Object newChapters,
+  ) {
+    return '$newSeries new series, $updatedSeries existing series will be updated, and $newChapters new chapters will be added. Nothing already in your library will be removed.';
+  }
+
+  @override
+  String get import_summary_confirm => 'Import';
+
+  @override
+  String import_result_message(
+    Object newSeries,
+    Object updatedSeries,
+    Object newChapters,
+  ) {
+    return 'Imported $newSeries new series, updated $updatedSeries existing, added $newChapters new chapters.';
+  }
+
+  @override
+  String get roll_back => 'Roll back';
+
+  @override
+  String get roll_back_confirm_message =>
+      'This restores your library to the safety snapshot taken right before this change, undoing everything it just did.';
+
+  @override
+  String get roll_back_done => 'Rolled back to the pre-change snapshot.';
+
+  @override
+  String get restoring_backup => 'Restoring your library…';
+
+  @override
+  String get roll_back_last_change => 'Roll back last change';
+
+  @override
+  String roll_back_last_change_subtitle(Object date, Object description) {
+    return 'Snapshot from $date — $description';
+  }
+
+  @override
+  String roll_back_available_count(Object count) {
+    return '$count recent changes available to roll back to';
+  }
+
+  @override
+  String get delete_source_title => 'Delete a source & its manga';
+
+  @override
+  String get delete_source_subtitle =>
+      'Pick a source and remove every manga it has in your library, along with their chapters, downloads, history and tracking.';
+
+  @override
+  String get delete_source_pick_title => 'Pick a source to delete';
+
+  @override
+  String get delete_source_empty => 'No sources found in your library.';
+
+  @override
+  String delete_source_confirm_title(Object sourceName) {
+    return 'Delete $sourceName?';
+  }
+
+  @override
+  String delete_source_confirm_message(
+    Object mangaCount,
+    Object chapterCount,
+    Object historyCount,
+    Object updateCount,
+  ) {
+    return 'This permanently deletes $mangaCount manga, $chapterCount chapters, $historyCount history entries and $updateCount update entries. Tracking links are kept. This cannot be undone except by rolling back.';
+  }
+
+  @override
+  String get delete_source_also_remove_extension =>
+      'Also remove the installed extension';
+
+  @override
+  String get delete_source_keep_history => 'Keep reading history';
+
+  @override
+  String get delete_source_keep_downloads => 'Keep download records';
+
+  @override
+  String get delete_source_button => 'Delete';
+
+  @override
+  String delete_source_result_message(Object mangaCount, Object sourceName) {
+    return 'Deleted $mangaCount manga from $sourceName.';
+  }
+
+  @override
+  String get merge_manga_title => 'Merge duplicate manga';
+
+  @override
+  String get merge_manga_subtitle =>
+      'Finds manga with matching titles under the same source (e.g. after merging duplicate sources) and folds them into one, without deleting anything you\'d want kept.';
+
+  @override
+  String get merge_manga_none_found => 'No likely duplicate manga found.';
+
+  @override
+  String get merge_manga_pick_title => 'Possible duplicate manga';
+
+  @override
+  String get merge_manga_choose_primary_title =>
+      'Which one should the others merge into?';
+
+  @override
+  String get merge_manga_choose_primary_message =>
+      'Chapters, history and tracking from the other entries will be folded into whichever one you pick — nothing is deleted.';
+
+  @override
+  String merge_manga_chapters_subtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count chapters',
+      one: '1 chapter',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get merge_manga_button => 'Merge';
+
+  @override
+  String merge_manga_result_message(Object count, Object mangaName) {
+    return 'Merged $count duplicate manga into $mangaName.';
+  }
+
+  @override
+  String get merge_preview_title => 'Confirm merge';
+
+  @override
+  String merge_manga_preview_message(
+    Object totalChapters,
+    Object duplicateChapters,
+    Object keptChapters,
+    Object duplicateTracks,
+  ) {
+    return '$totalChapters chapters found across the other entries. $duplicateChapters are duplicates and will be dropped (keeping whichever copy has reading progress); $keptChapters will be added. $duplicateTracks duplicate tracking link(s) will also be dropped.';
+  }
+
+  @override
+  String get beta => 'Beta';
 
   @override
   String get cloud_drive_management => 'Cloud Drive Management';

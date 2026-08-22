@@ -238,6 +238,7 @@ class Settings {
   String? jrePath;
 
   String? extensionServerPath;
+  bool? autoStartExtensionServerOnLaunch;
 
   @enumerated
   late SectionType disableSectionType;
@@ -334,7 +335,14 @@ class Settings {
 
   late AlgorithmWeights? algorithmWeights;
 
+  /// Legacy custom local folders stored before folders had user-facing names.
   List<String>? localFolders;
+
+  List<LocalFolder>? namedLocalFolders;
+
+  String? downloadLocalFolderName;
+
+  bool? askDownloadDestination;
 
   bool? appLockEnabled;
 
@@ -547,6 +555,7 @@ class Settings {
     this.androidProxyServer,
     this.jrePath = "",
     this.extensionServerPath = "",
+    this.autoStartExtensionServerOnLaunch = false,
     this.lastTrackerLibraryLocation,
     this.mergeLibraryNavMobile = false,
     this.enableDiscordRpc = true,
@@ -565,6 +574,9 @@ class Settings {
     this.downloadedOnlyMode = false,
     this.algorithmWeights,
     this.localFolders,
+    this.namedLocalFolders,
+    this.downloadLocalFolderName,
+    this.askDownloadDestination = true,
     this.appLockEnabled = false,
     this.libraryFilterMangasCompletedType = 0,
     this.libraryFilterAnimeCompletedType = 0,
@@ -869,6 +881,7 @@ class Settings {
     androidProxyServer = json['androidProxyServer'];
     jrePath = json['jrePath'];
     extensionServerPath = json['extensionServerPath'];
+    autoStartExtensionServerOnLaunch = json['autoStartExtensionServerOnLaunch'];
     lastTrackerLibraryLocation = json['lastTrackerLibraryLocation'];
     mergeLibraryNavMobile = json['mergeLibraryNavMobile'];
     enableDiscordRpc = json['enableDiscordRpc'];
@@ -890,7 +903,17 @@ class Settings {
     algorithmWeights = json['algorithmWeights'] != null
         ? AlgorithmWeights.fromJson(json['algorithmWeights'])
         : null;
-    localFolders = (json['localFolders'] as List?)?.cast<String>();
+    localFolders = (json['localFolders'] as List?)
+        ?.whereType<String>()
+        .toList();
+    namedLocalFolders = (json['namedLocalFolders'] as List?)
+        ?.map((e) => LocalFolder.fromJson(e))
+        .toList();
+    namedLocalFolders ??= localFolders
+        ?.map((e) => LocalFolder.fromPath(path: e))
+        .toList();
+    downloadLocalFolderName = json['downloadLocalFolderName'];
+    askDownloadDestination = json['askDownloadDestination'];
     appLockEnabled = json['appLockEnabled'];
     libraryFilterMangasCompletedType = json['libraryFilterMangasCompletedType'];
     libraryFilterAnimeCompletedType = json['libraryFilterAnimeCompletedType'];
@@ -1096,6 +1119,7 @@ class Settings {
     'androidProxyServer': androidProxyServer,
     'jrePath': jrePath,
     'extensionServerPath': extensionServerPath,
+    'autoStartExtensionServerOnLaunch': autoStartExtensionServerOnLaunch,
     'lastTrackerLibraryLocation': lastTrackerLibraryLocation,
     'mergeLibraryNavMobile': mergeLibraryNavMobile,
     'enableDiscordRpc': enableDiscordRpc,
@@ -1115,6 +1139,9 @@ class Settings {
     if (algorithmWeights != null)
       'algorithmWeights': algorithmWeights!.toJson(),
     'localFolders': localFolders,
+    'namedLocalFolders': namedLocalFolders?.map((e) => e.toJson()).toList(),
+    'downloadLocalFolderName': downloadLocalFolderName,
+    'askDownloadDestination': askDownloadDestination,
     'appLockEnabled': appLockEnabled,
     'libraryFilterMangasCompletedType': libraryFilterMangasCompletedType,
     'libraryFilterAnimeCompletedType': libraryFilterAnimeCompletedType,
@@ -1632,6 +1659,40 @@ class AlgorithmWeights {
     'synopsis': synopsis,
     'theme': theme,
   };
+}
+
+@embedded
+class LocalFolder {
+  String? name;
+  String? path;
+
+  LocalFolder({this.name, this.path});
+
+  LocalFolder.fromPath({required String path, String? name})
+    : this(name: name ?? _nameFromPath(path), path: path);
+
+  LocalFolder.fromJson(dynamic json) {
+    if (json is String) {
+      path = json;
+      name = _nameFromPath(json);
+      return;
+    }
+    if (json is Map) {
+      name = json['name'];
+      path = json['path'];
+    }
+  }
+
+  Map<String, dynamic> toJson() => {'name': name, 'path': path};
+
+  static String _nameFromPath(String path) {
+    final normalized = path.replaceAll('\\', '/');
+    final parts = normalized
+        .split('/')
+        .where((part) => part.trim().isNotEmpty)
+        .toList();
+    return parts.isEmpty ? 'Local' : parts.last;
+  }
 }
 
 enum ColorFilterBlendMode {

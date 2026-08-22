@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/video.dart';
+import 'package:mangayomi/modules/library/providers/file_scanner.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/modules/browse/extension/providers/extension_preferences_providers.dart';
 import 'package:mangayomi/modules/more/settings/player/providers/player_state_provider.dart';
@@ -54,17 +55,20 @@ Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
       mangaDirectory!.path,
       "${episode.name!.replaceForbiddenCharacters(' ')}.mp4",
     );
+    final resolvedArchivePath = episode.archivePath?.isNotEmpty ?? false
+        ? await resolveLocalArchivePath(episode.archivePath!)
+        : null;
     List<String> infoHashes = [];
     if (await File(mp4animePath).exists() || isLocalArchive) {
       final animeDir =
-          episode.archivePath != null && episode.manga.value?.source == "local"
-          ? Directory(p.dirname(episode.archivePath!))
+          resolvedArchivePath != null && episode.manga.value?.source == "local"
+          ? Directory(p.dirname(resolvedArchivePath))
           : null;
       final chapterDirectory = (await storageProvider.getMangaChapterDirectory(
         episode,
         mangaMainDirectory: animeDir ?? mangaDirectory,
       ))!;
-      final path = isLocalArchive ? episode.archivePath : mp4animePath;
+      final path = isLocalArchive ? resolvedArchivePath : mp4animePath;
       final subtitlesDir = Directory(
         p.join('${chapterDirectory.path}_subtitles'),
       );

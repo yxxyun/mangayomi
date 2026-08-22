@@ -11,13 +11,8 @@ String sourceBaseUrl(Ref ref, {required Source source}) {
   // Built-in sources: use the source's baseUrl directly.
   if (BuiltInSources.isBuiltIn(source)) return source.baseUrl ?? '';
 
-  final service = getExtensionService(
+  return getCachedExtensionService(
     source,
     ref.read(androidProxyServerStateProvider),
-  );
-  try {
-    return service.sourceBaseUrl;
-  } finally {
-    service.dispose();
-  }
+  ).sourceBaseUrl;
 }

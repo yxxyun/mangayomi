@@ -96,7 +96,7 @@
     }
   },
   "mass_migration_select_destination_source": "Select destination source",
-  "mass_migration_finding_matches": "Finding matches in {source} 鈥?{language}",
+  "mass_migration_finding_matches": "Finding matches in {source} • {language}",
   "@mass_migration_finding_matches": {
     "placeholders": {
       "source": {},
@@ -192,7 +192,7 @@
   "mass_migration_complete": "Mass migration complete",
   "mass_migration_complete_success_message": "All selected items were processed successfully.",
   "mass_migration_complete_partial_message": "Migration finished with a few items that still need manual attention.",
-  "mass_migration_route_summary": "{source} 鈫?{destination}",
+  "mass_migration_route_summary": "{source} → {destination}",
   "@mass_migration_route_summary": {
     "placeholders": {
       "source": {},
@@ -275,6 +275,14 @@
   "add": "Add",
   "add_category": "Add Category",
   "name": "Name",
+  "label_value": "{label}: {value}",
+  "@label_value": {
+    "placeholders": {
+      "label": {},
+      "value": {}
+    }
+  },
+  "url": "URL",
   "category_name_required": "*Required",
   "add_category_error_exist": "A category with this name already exist!",
   "delete_category": "Delete Category",
@@ -327,6 +335,12 @@
   "nsfw_sources_show": "Show in sources and extensions lists",
   "nsfw_sources_info": "This does not prevent unofficial or potentially incorrectly flagged extensions from surfacing NSFW (18+) content within the app",
   "version": "Version",
+  "beta_version": "Beta ({version})",
+  "@beta_version": {
+    "placeholders": {
+      "version": {}
+    }
+  },
   "check_for_update": "Check for update",
   "logs_on": "Enable logging",
   "share_app_logs": "Share app logs",
@@ -344,6 +358,15 @@
   "canceled": "Canceled",
   "publishing_finished": "Publishing finished",
   "unknown": "Unknown",
+  "empty_placeholder": "EMPTY\nMPTY\nMTY\nMT\n\n",
+  "error": "Error",
+  "error_with_message": "Error: {error}",
+  "@error_with_message": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "no_pages_available": "Error: no pages available",
   "set_categories": "Set categories",
   "edit": "Edit",
   "in_library": "In library",
@@ -354,6 +377,32 @@
   "by_episode_number": "By episode number",
   "by_upload_date": "By upload date",
   "source_title": "Source title",
+  "create_extension": "Create Extension",
+  "choose_extension_language": "Choose extension language",
+  "lang": "Lang",
+  "base_url": "BaseUrl",
+  "api_url_optional": "ApiUrl (optional)",
+  "icon_url": "iconUrl",
+  "source_icon_url": "Source icon url",
+  "notes": "notes",
+  "extension_name_example": "ex: myAnime",
+  "language_code_example": "ex: en",
+  "base_url_example": "ex: https://example.com",
+  "api_url_example": "ex: https://api.example.com",
+  "extension_notes_example": "ex: this extension requires login",
+  "type": "Type",
+  "target": "Target",
+  "source_type_single": "single",
+  "source_type_multi": "multi",
+  "source_type_torrent": "torrent",
+  "source_language_dart": "Dart",
+  "source_language_javascript": "JavaScript",
+  "source_language_lnreader_compiled_js": "LNReader compiled JS",
+  "source_created_successfully": "Source created successfully",
+  "source_already_exists": "Source already exists",
+  "error_when_creating_source": "Error when creating source",
+  "cookies_deleted": "Cookies deleted!",
+  "delete_all_cookies": "Delete all cookies",
   "chapter_number": "Chapter number",
   "episode_number": "Episode number",
   "share": "Share",
@@ -740,8 +789,85 @@
   "local_folder": "Local folders",
   "add_local_folder": "Add local folder",
   "rescan_local_folder": "Rescan all local folders now",
+  "default_download_destination": "Default download destination",
+  "ask_download_destination": "Ask for download destination",
+  "ask_download_destination_desc": "Choose a local folder each time a download starts.",
+  "select_download_destination": "Select download destination",
+  "clear_local_library": "Clear local library",
+  "clear_local_library_desc": "Remove local folder and archive entries from the library.",
+  "clear_local_library_msg": "This will remove local folder and archive entries from your library. It will not delete files from disk.",
+  "custom": "Custom",
+  "no_local_folder_available_for_downloads": "No local folder is available for downloads",
+  "failed_to_create_cbz": "Failed to create CBZ: {error}",
+  "@failed_to_create_cbz": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "error_reading_cover_image": "Error reading cover image: {error}",
+  "@error_reading_cover_image": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "error_reading_metadata": "Error reading metadata: {error}",
+  "@error_reading_metadata": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "error_saving_chapter_episode_to_library": "Error saving chapter/episode to library: {error}",
+  "@error_saving_chapter_episode_to_library": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "error_reading_chapter_cover_image": "Error reading chapter cover image: {error}",
+  "@error_reading_chapter_cover_image": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "error_reading_archive_cover_image": "Error reading archive cover image: {error}",
+  "@error_reading_archive_cover_image": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "error_getting_local_library": "Error getting local library: {error}",
+  "@error_getting_local_library": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "export_metadata": "Export metadata",
   "exported": "Exported",
+  "failed_to_export_metadata": "Failed to export metadata: {error}",
+  "@failed_to_export_metadata": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "cloudflare_resolution_webview_server_start_failed": "Couldn't start Cloudflare Resolution Webview Server.",
+  "tracker_token_expired": "{tracker} Token expired",
+  "@tracker_token_expired": {
+    "placeholders": {
+      "tracker": {}
+    }
+  },
+  "video_list_empty": "Video list is empty",
+  "playback_speed_multiplier": "x{value}",
+  "@playback_speed_multiplier": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "could_not_launch_url": "Could not launch {url}",
+  "@could_not_launch_url": {
+    "placeholders": {
+      "url": {}
+    }
+  },
   "text_size": "Text Size :",
   "text_align": "Text Align",
   "line_height": "Line Height",
@@ -834,7 +960,8 @@
   "proxy_server_ip_hint": "Server IP (e.g., 10.0.0.5 or https://example.com)",
   "not_configured": "Not configured",
   "zero_interpreter": "Zero interpreter",
-  "zero_interpreter_description": "The server starts automatically on launch. You can also control it manually.",
+  "zero_interpreter_description": "Control the Zero interpreter server automatically or manually.",
+  "start_server_on_launch": "Start server on launch",
   "runtime_status": "Runtime status",
   "running": "Running",
   "stopped": "Stopped",
@@ -930,6 +1057,133 @@
       }
     }
   },
+  "import_mode_title": "How should this be imported?",
+  "import_mode_message": "Choose whether to merge this backup into your current library, or replace your entire library with it.",
+  "import_mode_keep_existing": "Merge",
+  "import_mode_keep_existing_subtitle": "Adds new series and updates matching ones. Nothing in your current library is removed.",
+  "import_mode_replace": "Replace",
+  "import_mode_replace_subtitle": "Deletes your entire current library and replaces it with this backup.",
+  "replace_summary_title": "Ready to replace your library",
+  "replace_summary_message": "This deletes your entire current library ({currentCount} series) and replaces it with {backupCount} series from this backup. This can only be undone by rolling back.",
+  "@replace_summary_message": {
+    "placeholders": {
+      "currentCount": {},
+      "backupCount": {}
+    }
+  },
+  "replace_summary_confirm": "Replace",
+  "replace_result_message": "Replaced your library with {count} series from this backup.",
+  "@replace_result_message": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "category_conflict_title": "Existing categories found",
+  "category_conflict_message": "The backup has categories that already exist in your library. Keep to fold incoming series into the existing category, or delete to leave those series uncategorized instead.",
+  "category_conflict_keep": "Keep — merge into existing category",
+  "category_conflict_delete": "Delete — leave series uncategorized",
+  "source_conflict_title": "Sources not found",
+  "source_conflict_message": "These backup sources don't match an installed extension. Keep the original name (imported without a working source), or migrate to an installed extension so these series can be updated.",
+  "source_conflict_keep": "Keep original name (no live source)",
+  "import_summary_title": "Ready to import",
+  "import_summary_message": "{newSeries} new series, {updatedSeries} existing series will be updated, and {newChapters} new chapters will be added. Nothing already in your library will be removed.",
+  "@import_summary_message": {
+    "placeholders": {
+      "newSeries": {},
+      "updatedSeries": {},
+      "newChapters": {}
+    }
+  },
+  "import_summary_confirm": "Import",
+  "import_result_message": "Imported {newSeries} new series, updated {updatedSeries} existing, added {newChapters} new chapters.",
+  "@import_result_message": {
+    "placeholders": {
+      "newSeries": {},
+      "updatedSeries": {},
+      "newChapters": {}
+    }
+  },
+  "roll_back": "Roll back",
+  "roll_back_confirm_message": "This restores your library to the safety snapshot taken right before this change, undoing everything it just did.",
+  "roll_back_done": "Rolled back to the pre-change snapshot.",
+  "restoring_backup": "Restoring your library…",
+  "roll_back_last_change": "Roll back last change",
+  "roll_back_last_change_subtitle": "Snapshot from {date} — {description}",
+  "@roll_back_last_change_subtitle": {
+    "placeholders": {
+      "date": {},
+      "description": {}
+    }
+  },
+  "roll_back_available_count": "{count} recent changes available to roll back to",
+  "@roll_back_available_count": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "delete_source_title": "Delete a source & its manga",
+  "delete_source_subtitle": "Pick a source and remove every manga it has in your library, along with their chapters, downloads, history and tracking.",
+  "delete_source_pick_title": "Pick a source to delete",
+  "delete_source_empty": "No sources found in your library.",
+  "delete_source_confirm_title": "Delete {sourceName}?",
+  "@delete_source_confirm_title": {
+    "placeholders": {
+      "sourceName": {}
+    }
+  },
+  "delete_source_confirm_message": "This permanently deletes {mangaCount} manga, {chapterCount} chapters, {historyCount} history entries and {updateCount} update entries. Tracking links are kept. This cannot be undone except by rolling back.",
+  "@delete_source_confirm_message": {
+    "placeholders": {
+      "mangaCount": {},
+      "chapterCount": {},
+      "historyCount": {},
+      "updateCount": {}
+    }
+  },
+  "delete_source_also_remove_extension": "Also remove the installed extension",
+  "delete_source_keep_history": "Keep reading history",
+  "delete_source_keep_downloads": "Keep download records",
+  "delete_source_button": "Delete",
+  "delete_source_result_message": "Deleted {mangaCount} manga from {sourceName}.",
+  "@delete_source_result_message": {
+    "placeholders": {
+      "mangaCount": {},
+      "sourceName": {}
+    }
+  },
+  "merge_manga_title": "Merge duplicate manga",
+  "merge_manga_subtitle": "Finds manga with matching titles under the same source (e.g. after merging duplicate sources) and folds them into one, without deleting anything you'd want kept.",
+  "merge_manga_none_found": "No likely duplicate manga found.",
+  "merge_manga_pick_title": "Possible duplicate manga",
+  "merge_manga_choose_primary_title": "Which one should the others merge into?",
+  "merge_manga_choose_primary_message": "Chapters, history and tracking from the other entries will be folded into whichever one you pick — nothing is deleted.",
+  "merge_manga_chapters_subtitle": "{count, plural, =1{1 chapter} other{{count} chapters}}",
+  "@merge_manga_chapters_subtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "merge_manga_button": "Merge",
+  "merge_manga_result_message": "Merged {count} duplicate manga into {mangaName}.",
+  "@merge_manga_result_message": {
+    "placeholders": {
+      "count": {},
+      "mangaName": {}
+    }
+  },
+  "merge_preview_title": "Confirm merge",
+  "merge_manga_preview_message": "{totalChapters} chapters found across the other entries. {duplicateChapters} are duplicates and will be dropped (keeping whichever copy has reading progress); {keptChapters} will be added. {duplicateTracks} duplicate tracking link(s) will also be dropped.",
+  "@merge_manga_preview_message": {
+    "placeholders": {
+      "totalChapters": {},
+      "duplicateChapters": {},
+      "keptChapters": {},
+      "duplicateTracks": {}
+    }
+  },
+  "beta": "Beta",
   "cloud_drive_management": "Cloud Drive Management",
   "@cloud_drive_management": {
     "description": "Cloud drive management page title",

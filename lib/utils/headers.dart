@@ -11,6 +11,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'headers.g.dart';
 
+/// Headers are static per source version, but computing them spins up a full
+/// JS/Dart extension runtime. Cache them so widget builds never pay that cost.
+final _sourceHeadersCache = <String, Map<String, String>>{};
+
 @riverpod
 Map<String, String> headers(
   Ref ref, {
@@ -31,19 +35,22 @@ Map<String, String> headers(
   ref.onDispose(() => timer?.cancel());
   final mSource = getSource(lang, source, sourceId);
 
-  Map<String, String> headers = {};
+  if (mSource == null) return {};
 
-  if (mSource != null) {
-    // Built-in sources: return basic headers.
-    if (BuiltInSources.isBuiltIn(mSource)) {
-      return {
-        'Referer': mSource.baseUrl ?? '',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      };
-    }
+  // Built-in sources: return basic headers.
+  if (BuiltInSources.isBuiltIn(mSource)) {
+    return {
+      'Referer': mSource.baseUrl ?? '',
+      'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    };
+  }
 
+  final cacheKey =
+      '${mSource.id}|${mSource.version}|${mSource.sourceCode?.hashCode}|$androidProxyServer';
+  final base = _sourceHeadersCache.putIfAbsent(cacheKey, () {
+    final headers = <String, String>{};
     final fromSource = mSource.headers;
-
     if (fromSource != null && fromSource.isNotEmpty) {
       headers.addAll((jsonDecode(fromSource) as Map).toMapStringString!);
     }
@@ -53,10 +60,12 @@ Map<String, String> headers(
     } finally {
       service.dispose();
     }
-    if (mSource.sourceCodeLanguage == SourceCodeLanguage.mihon) {
-      headers['user-agent'] = ref.watch(userAgentStateProvider);
-    }
-  }
+    return headers;
+  });
 
+  if (mSource.sourceCodeLanguage != SourceCodeLanguage.mihon) return base;
+
+  final headers = Map<String, String>.of(base);
+  headers['user-agent'] = ref.watch(userAgentStateProvider);
   return headers;
 }

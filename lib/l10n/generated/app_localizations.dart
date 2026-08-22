@@ -572,7 +572,7 @@ abstract class AppLocalizations {
   /// No description provided for @mass_migration_finding_matches.
   ///
   /// In en, this message translates to:
-  /// **'Finding matches in {source} 鈥?{language}'**
+  /// **'Finding matches in {source} • {language}'**
   String mass_migration_finding_matches(Object source, Object language);
 
   /// No description provided for @mass_migration_processing_item.
@@ -680,7 +680,7 @@ abstract class AppLocalizations {
   /// No description provided for @mass_migration_route_summary.
   ///
   /// In en, this message translates to:
-  /// **'{source} 鈫?{destination}'**
+  /// **'{source} → {destination}'**
   String mass_migration_route_summary(Object source, Object destination);
 
   /// No description provided for @mass_migration_processed.
@@ -940,6 +940,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Name'**
   String get name;
+
+  /// No description provided for @label_value.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: {value}'**
+  String label_value(Object label, Object value);
+
+  /// No description provided for @url.
+  ///
+  /// In en, this message translates to:
+  /// **'URL'**
+  String get url;
 
   /// No description provided for @category_name_required.
   ///
@@ -1253,6 +1265,12 @@ abstract class AppLocalizations {
   /// **'Version'**
   String get version;
 
+  /// No description provided for @beta_version.
+  ///
+  /// In en, this message translates to:
+  /// **'Beta ({version})'**
+  String beta_version(Object version);
+
   /// No description provided for @check_for_update.
   ///
   /// In en, this message translates to:
@@ -1355,6 +1373,30 @@ abstract class AppLocalizations {
   /// **'Unknown'**
   String get unknown;
 
+  /// No description provided for @empty_placeholder.
+  ///
+  /// In en, this message translates to:
+  /// **'EMPTY\nMPTY\nMTY\nMT\n\n'**
+  String get empty_placeholder;
+
+  /// No description provided for @error.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get error;
+
+  /// No description provided for @error_with_message.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String error_with_message(Object error);
+
+  /// No description provided for @no_pages_available.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: no pages available'**
+  String get no_pages_available;
+
   /// No description provided for @set_categories.
   ///
   /// In en, this message translates to:
@@ -1414,6 +1456,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Source title'**
   String get source_title;
+
+  /// No description provided for @create_extension.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Extension'**
+  String get create_extension;
+
+  /// No description provided for @choose_extension_language.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose extension language'**
+  String get choose_extension_language;
+
+  /// No description provided for @lang.
+  ///
+  /// In en, this message translates to:
+  /// **'Lang'**
+  String get lang;
+
+  /// No description provided for @base_url.
+  ///
+  /// In en, this message translates to:
+  /// **'BaseUrl'**
+  String get base_url;
+
+  /// No description provided for @api_url_optional.
+  ///
+  /// In en, this message translates to:
+  /// **'ApiUrl (optional)'**
+  String get api_url_optional;
+
+  /// No description provided for @icon_url.
+  ///
+  /// In en, this message translates to:
+  /// **'iconUrl'**
+  String get icon_url;
+
+  /// No description provided for @source_icon_url.
+  ///
+  /// In en, this message translates to:
+  /// **'Source icon url'**
+  String get source_icon_url;
+
+  /// No description provided for @notes.
+  ///
+  /// In en, this message translates to:
+  /// **'notes'**
+  String get notes;
+
+  /// No description provided for @extension_name_example.
+  ///
+  /// In en, this message translates to:
+  /// **'ex: myAnime'**
+  String get extension_name_example;
+
+  /// No description provided for @language_code_example.
+  ///
+  /// In en, this message translates to:
+  /// **'ex: en'**
+  String get language_code_example;
+
+  /// No description provided for @base_url_example.
+  ///
+  /// In en, this message translates to:
+  /// **'ex: https://example.com'**
+  String get base_url_example;
+
+  /// No description provided for @api_url_example.
+  ///
+  /// In en, this message translates to:
+  /// **'ex: https://api.example.com'**
+  String get api_url_example;
+
+  /// No description provided for @extension_notes_example.
+  ///
+  /// In en, this message translates to:
+  /// **'ex: this extension requires login'**
+  String get extension_notes_example;
+
+  /// No description provided for @type.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get type;
+
+  /// No description provided for @target.
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get target;
+
+  /// No description provided for @source_type_single.
+  ///
+  /// In en, this message translates to:
+  /// **'single'**
+  String get source_type_single;
+
+  /// No description provided for @source_type_multi.
+  ///
+  /// In en, this message translates to:
+  /// **'multi'**
+  String get source_type_multi;
+
+  /// No description provided for @source_type_torrent.
+  ///
+  /// In en, this message translates to:
+  /// **'torrent'**
+  String get source_type_torrent;
+
+  /// No description provided for @source_language_dart.
+  ///
+  /// In en, this message translates to:
+  /// **'Dart'**
+  String get source_language_dart;
+
+  /// No description provided for @source_language_javascript.
+  ///
+  /// In en, this message translates to:
+  /// **'JavaScript'**
+  String get source_language_javascript;
+
+  /// No description provided for @source_language_lnreader_compiled_js.
+  ///
+  /// In en, this message translates to:
+  /// **'LNReader compiled JS'**
+  String get source_language_lnreader_compiled_js;
+
+  /// No description provided for @source_created_successfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Source created successfully'**
+  String get source_created_successfully;
+
+  /// No description provided for @source_already_exists.
+  ///
+  /// In en, this message translates to:
+  /// **'Source already exists'**
+  String get source_already_exists;
+
+  /// No description provided for @error_when_creating_source.
+  ///
+  /// In en, this message translates to:
+  /// **'Error when creating source'**
+  String get error_when_creating_source;
+
+  /// No description provided for @cookies_deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Cookies deleted!'**
+  String get cookies_deleted;
+
+  /// No description provided for @delete_all_cookies.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all cookies'**
+  String get delete_all_cookies;
 
   /// No description provided for @chapter_number.
   ///
@@ -3731,6 +3929,102 @@ abstract class AppLocalizations {
   /// **'Rescan all local folders now'**
   String get rescan_local_folder;
 
+  /// No description provided for @default_download_destination.
+  ///
+  /// In en, this message translates to:
+  /// **'Default download destination'**
+  String get default_download_destination;
+
+  /// No description provided for @ask_download_destination.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for download destination'**
+  String get ask_download_destination;
+
+  /// No description provided for @ask_download_destination_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a local folder each time a download starts.'**
+  String get ask_download_destination_desc;
+
+  /// No description provided for @select_download_destination.
+  ///
+  /// In en, this message translates to:
+  /// **'Select download destination'**
+  String get select_download_destination;
+
+  /// No description provided for @clear_local_library.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear local library'**
+  String get clear_local_library;
+
+  /// No description provided for @clear_local_library_desc.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove local folder and archive entries from the library.'**
+  String get clear_local_library_desc;
+
+  /// No description provided for @clear_local_library_msg.
+  ///
+  /// In en, this message translates to:
+  /// **'This will remove local folder and archive entries from your library. It will not delete files from disk.'**
+  String get clear_local_library_msg;
+
+  /// No description provided for @custom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get custom;
+
+  /// No description provided for @no_local_folder_available_for_downloads.
+  ///
+  /// In en, this message translates to:
+  /// **'No local folder is available for downloads'**
+  String get no_local_folder_available_for_downloads;
+
+  /// No description provided for @failed_to_create_cbz.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create CBZ: {error}'**
+  String failed_to_create_cbz(Object error);
+
+  /// No description provided for @error_reading_cover_image.
+  ///
+  /// In en, this message translates to:
+  /// **'Error reading cover image: {error}'**
+  String error_reading_cover_image(Object error);
+
+  /// No description provided for @error_reading_metadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Error reading metadata: {error}'**
+  String error_reading_metadata(Object error);
+
+  /// No description provided for @error_saving_chapter_episode_to_library.
+  ///
+  /// In en, this message translates to:
+  /// **'Error saving chapter/episode to library: {error}'**
+  String error_saving_chapter_episode_to_library(Object error);
+
+  /// No description provided for @error_reading_chapter_cover_image.
+  ///
+  /// In en, this message translates to:
+  /// **'Error reading chapter cover image: {error}'**
+  String error_reading_chapter_cover_image(Object error);
+
+  /// No description provided for @error_reading_archive_cover_image.
+  ///
+  /// In en, this message translates to:
+  /// **'Error reading archive cover image: {error}'**
+  String error_reading_archive_cover_image(Object error);
+
+  /// No description provided for @error_getting_local_library.
+  ///
+  /// In en, this message translates to:
+  /// **'Error getting local library: {error}'**
+  String error_getting_local_library(Object error);
+
   /// No description provided for @export_metadata.
   ///
   /// In en, this message translates to:
@@ -3742,6 +4036,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Exported'**
   String get exported;
+
+  /// No description provided for @failed_to_export_metadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to export metadata: {error}'**
+  String failed_to_export_metadata(Object error);
+
+  /// No description provided for @cloudflare_resolution_webview_server_start_failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t start Cloudflare Resolution Webview Server.'**
+  String get cloudflare_resolution_webview_server_start_failed;
+
+  /// No description provided for @tracker_token_expired.
+  ///
+  /// In en, this message translates to:
+  /// **'{tracker} Token expired'**
+  String tracker_token_expired(Object tracker);
+
+  /// No description provided for @video_list_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Video list is empty'**
+  String get video_list_empty;
+
+  /// No description provided for @playback_speed_multiplier.
+  ///
+  /// In en, this message translates to:
+  /// **'x{value}'**
+  String playback_speed_multiplier(Object value);
+
+  /// No description provided for @could_not_launch_url.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not launch {url}'**
+  String could_not_launch_url(Object url);
 
   /// No description provided for @text_size.
   ///
@@ -4268,8 +4598,14 @@ abstract class AppLocalizations {
   /// No description provided for @zero_interpreter_description.
   ///
   /// In en, this message translates to:
-  /// **'The server starts automatically on launch. You can also control it manually.'**
+  /// **'Control the Zero interpreter server automatically or manually.'**
   String get zero_interpreter_description;
+
+  /// No description provided for @start_server_on_launch.
+  ///
+  /// In en, this message translates to:
+  /// **'Start server on launch'**
+  String get start_server_on_launch;
 
   /// No description provided for @runtime_status.
   ///
@@ -4672,6 +5008,330 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 source with no results} other{{count} sources with no results}}'**
   String sources_with_no_results(int count);
+
+  /// No description provided for @import_mode_title.
+  ///
+  /// In en, this message translates to:
+  /// **'How should this be imported?'**
+  String get import_mode_title;
+
+  /// No description provided for @import_mode_message.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose whether to merge this backup into your current library, or replace your entire library with it.'**
+  String get import_mode_message;
+
+  /// No description provided for @import_mode_keep_existing.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge'**
+  String get import_mode_keep_existing;
+
+  /// No description provided for @import_mode_keep_existing_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds new series and updates matching ones. Nothing in your current library is removed.'**
+  String get import_mode_keep_existing_subtitle;
+
+  /// No description provided for @import_mode_replace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get import_mode_replace;
+
+  /// No description provided for @import_mode_replace_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletes your entire current library and replaces it with this backup.'**
+  String get import_mode_replace_subtitle;
+
+  /// No description provided for @replace_summary_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to replace your library'**
+  String get replace_summary_title;
+
+  /// No description provided for @replace_summary_message.
+  ///
+  /// In en, this message translates to:
+  /// **'This deletes your entire current library ({currentCount} series) and replaces it with {backupCount} series from this backup. This can only be undone by rolling back.'**
+  String replace_summary_message(Object currentCount, Object backupCount);
+
+  /// No description provided for @replace_summary_confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get replace_summary_confirm;
+
+  /// No description provided for @replace_result_message.
+  ///
+  /// In en, this message translates to:
+  /// **'Replaced your library with {count} series from this backup.'**
+  String replace_result_message(Object count);
+
+  /// No description provided for @category_conflict_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Existing categories found'**
+  String get category_conflict_title;
+
+  /// No description provided for @category_conflict_message.
+  ///
+  /// In en, this message translates to:
+  /// **'The backup has categories that already exist in your library. Keep to fold incoming series into the existing category, or delete to leave those series uncategorized instead.'**
+  String get category_conflict_message;
+
+  /// No description provided for @category_conflict_keep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep — merge into existing category'**
+  String get category_conflict_keep;
+
+  /// No description provided for @category_conflict_delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete — leave series uncategorized'**
+  String get category_conflict_delete;
+
+  /// No description provided for @source_conflict_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources not found'**
+  String get source_conflict_title;
+
+  /// No description provided for @source_conflict_message.
+  ///
+  /// In en, this message translates to:
+  /// **'These backup sources don\'t match an installed extension. Keep the original name (imported without a working source), or migrate to an installed extension so these series can be updated.'**
+  String get source_conflict_message;
+
+  /// No description provided for @source_conflict_keep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep original name (no live source)'**
+  String get source_conflict_keep;
+
+  /// No description provided for @import_summary_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to import'**
+  String get import_summary_title;
+
+  /// No description provided for @import_summary_message.
+  ///
+  /// In en, this message translates to:
+  /// **'{newSeries} new series, {updatedSeries} existing series will be updated, and {newChapters} new chapters will be added. Nothing already in your library will be removed.'**
+  String import_summary_message(
+    Object newSeries,
+    Object updatedSeries,
+    Object newChapters,
+  );
+
+  /// No description provided for @import_summary_confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get import_summary_confirm;
+
+  /// No description provided for @import_result_message.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {newSeries} new series, updated {updatedSeries} existing, added {newChapters} new chapters.'**
+  String import_result_message(
+    Object newSeries,
+    Object updatedSeries,
+    Object newChapters,
+  );
+
+  /// No description provided for @roll_back.
+  ///
+  /// In en, this message translates to:
+  /// **'Roll back'**
+  String get roll_back;
+
+  /// No description provided for @roll_back_confirm_message.
+  ///
+  /// In en, this message translates to:
+  /// **'This restores your library to the safety snapshot taken right before this change, undoing everything it just did.'**
+  String get roll_back_confirm_message;
+
+  /// No description provided for @roll_back_done.
+  ///
+  /// In en, this message translates to:
+  /// **'Rolled back to the pre-change snapshot.'**
+  String get roll_back_done;
+
+  /// No description provided for @restoring_backup.
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring your library…'**
+  String get restoring_backup;
+
+  /// No description provided for @roll_back_last_change.
+  ///
+  /// In en, this message translates to:
+  /// **'Roll back last change'**
+  String get roll_back_last_change;
+
+  /// No description provided for @roll_back_last_change_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Snapshot from {date} — {description}'**
+  String roll_back_last_change_subtitle(Object date, Object description);
+
+  /// No description provided for @roll_back_available_count.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} recent changes available to roll back to'**
+  String roll_back_available_count(Object count);
+
+  /// No description provided for @delete_source_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete a source & its manga'**
+  String get delete_source_title;
+
+  /// No description provided for @delete_source_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a source and remove every manga it has in your library, along with their chapters, downloads, history and tracking.'**
+  String get delete_source_subtitle;
+
+  /// No description provided for @delete_source_pick_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a source to delete'**
+  String get delete_source_pick_title;
+
+  /// No description provided for @delete_source_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No sources found in your library.'**
+  String get delete_source_empty;
+
+  /// No description provided for @delete_source_confirm_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {sourceName}?'**
+  String delete_source_confirm_title(Object sourceName);
+
+  /// No description provided for @delete_source_confirm_message.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes {mangaCount} manga, {chapterCount} chapters, {historyCount} history entries and {updateCount} update entries. Tracking links are kept. This cannot be undone except by rolling back.'**
+  String delete_source_confirm_message(
+    Object mangaCount,
+    Object chapterCount,
+    Object historyCount,
+    Object updateCount,
+  );
+
+  /// No description provided for @delete_source_also_remove_extension.
+  ///
+  /// In en, this message translates to:
+  /// **'Also remove the installed extension'**
+  String get delete_source_also_remove_extension;
+
+  /// No description provided for @delete_source_keep_history.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep reading history'**
+  String get delete_source_keep_history;
+
+  /// No description provided for @delete_source_keep_downloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep download records'**
+  String get delete_source_keep_downloads;
+
+  /// No description provided for @delete_source_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete_source_button;
+
+  /// No description provided for @delete_source_result_message.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {mangaCount} manga from {sourceName}.'**
+  String delete_source_result_message(Object mangaCount, Object sourceName);
+
+  /// No description provided for @merge_manga_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge duplicate manga'**
+  String get merge_manga_title;
+
+  /// No description provided for @merge_manga_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Finds manga with matching titles under the same source (e.g. after merging duplicate sources) and folds them into one, without deleting anything you\'d want kept.'**
+  String get merge_manga_subtitle;
+
+  /// No description provided for @merge_manga_none_found.
+  ///
+  /// In en, this message translates to:
+  /// **'No likely duplicate manga found.'**
+  String get merge_manga_none_found;
+
+  /// No description provided for @merge_manga_pick_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Possible duplicate manga'**
+  String get merge_manga_pick_title;
+
+  /// No description provided for @merge_manga_choose_primary_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Which one should the others merge into?'**
+  String get merge_manga_choose_primary_title;
+
+  /// No description provided for @merge_manga_choose_primary_message.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapters, history and tracking from the other entries will be folded into whichever one you pick — nothing is deleted.'**
+  String get merge_manga_choose_primary_message;
+
+  /// No description provided for @merge_manga_chapters_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 chapter} other{{count} chapters}}'**
+  String merge_manga_chapters_subtitle(int count);
+
+  /// No description provided for @merge_manga_button.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge'**
+  String get merge_manga_button;
+
+  /// No description provided for @merge_manga_result_message.
+  ///
+  /// In en, this message translates to:
+  /// **'Merged {count} duplicate manga into {mangaName}.'**
+  String merge_manga_result_message(Object count, Object mangaName);
+
+  /// No description provided for @merge_preview_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm merge'**
+  String get merge_preview_title;
+
+  /// No description provided for @merge_manga_preview_message.
+  ///
+  /// In en, this message translates to:
+  /// **'{totalChapters} chapters found across the other entries. {duplicateChapters} are duplicates and will be dropped (keeping whichever copy has reading progress); {keptChapters} will be added. {duplicateTracks} duplicate tracking link(s) will also be dropped.'**
+  String merge_manga_preview_message(
+    Object totalChapters,
+    Object duplicateChapters,
+    Object keptChapters,
+    Object duplicateTracks,
+  );
+
+  /// No description provided for @beta.
+  ///
+  /// In en, this message translates to:
+  /// **'Beta'**
+  String get beta;
 
   /// Cloud drive management page title
   ///

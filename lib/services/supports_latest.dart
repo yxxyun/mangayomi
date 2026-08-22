@@ -11,10 +11,5 @@ bool supportsLatest(Ref ref, {required Source source}) {
   if (BuiltInSources.isBuiltIn(source)) return true;
 
   final androidProxy = ref.read(androidProxyServerStateProvider);
-  final service = getExtensionService(source, androidProxy);
-  try {
-    return service.supportsLatest;
-  } finally {
-    service.dispose();
-  }
+  return getCachedExtensionService(source, androidProxy).supportsLatest;
 }

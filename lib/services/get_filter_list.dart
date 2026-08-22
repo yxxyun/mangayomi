@@ -19,10 +19,5 @@ List<dynamic> getFilterList({required Source source}) {
     return [];
   }
 
-  final service = getExtensionService(source, "");
-  try {
-    return service.getFilterList().filters;
-  } finally {
-    service.dispose();
-  }
+  return getCachedExtensionService(source, "").getFilterList().filters;
 }
