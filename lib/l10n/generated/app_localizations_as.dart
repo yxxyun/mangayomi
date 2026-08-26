@@ -879,6 +879,11 @@ class AppLocalizationsAs extends AppLocalizations {
   }
 
   @override
+  String missing_chapters(Object count) {
+    return 'Missing $count chapters';
+  }
+
+  @override
   String get no_description => 'কোনো বিৱৰণ নাই';
 
   @override
@@ -1073,6 +1078,9 @@ class AppLocalizationsAs extends AppLocalizations {
   String get sync_failed => 'সিংক বিফল';
 
   @override
+  String get sync_restore_in_progress => 'Sync skipped — restore in progress';
+
+  @override
   String get sync_button_sync => 'প্ৰগতি সিংক কৰক';
 
   @override
@@ -1088,6 +1096,27 @@ class AppLocalizationsAs extends AppLocalizations {
   @override
   String get sync_button_download_info =>
       'এই অপাৰেশনে ল\'কেল ডাটা সম্পূৰ্ণৰূপে ৰিম\'ট ডাটাৰ সৈতে প্ৰতিস্থাপন কৰিব!';
+
+  @override
+  String get sync_status_not_configured => 'Not connected';
+
+  @override
+  String get sync_status_checking => 'Checking connection...';
+
+  @override
+  String get sync_status_connected => 'Connected';
+
+  @override
+  String get sync_status_unauthorized => 'Session expired, please log in again';
+
+  @override
+  String get sync_status_unreachable => 'Can\'t reach server';
+
+  @override
+  String get sync_section_general => 'General';
+
+  @override
+  String get sync_section_data_types => 'What to sync';
 
   @override
   String get sync_on => 'সিংক সক্ষম কৰক';
@@ -1154,6 +1183,11 @@ class AppLocalizationsAs extends AppLocalizations {
   @override
   String n_episodes(Object n) {
     return '$n খণ্ড';
+  }
+
+  @override
+  String missing_episodes(Object count) {
+    return 'Missing $count episodes';
   }
 
   @override
@@ -1360,6 +1394,39 @@ class AppLocalizationsAs extends AppLocalizations {
   String get restore_backup => 'বেকআপ পুনৰুদ্ধাৰ';
 
   @override
+  String get encrypt_backups => 'Encrypt backups';
+
+  @override
+  String get encrypt_backups_info =>
+      'Password-protect backup files using AES encryption';
+
+  @override
+  String get no_secure_storage => 'No secure storage found';
+
+  @override
+  String get no_keyring_warning =>
+      'This system doesn\'t have a keyring service available (e.g. gnome-keyring or kwallet on Linux), so the password can\'t be stored securely.\n\nStore it unencrypted in the local app database instead? Anyone with access to this device\'s app data would be able to read it.';
+
+  @override
+  String get enter_backup_password => 'Enter backup password';
+
+  @override
+  String get incorrect_password_try_again => 'Incorrect password, try again.';
+
+  @override
+  String get set_backup_password => 'Set backup password';
+
+  @override
+  String get confirm_password => 'Confirm password';
+
+  @override
+  String get passwords_do_not_match => 'Passwords do not match';
+
+  @override
+  String get password_required_to_restore =>
+      'A password is required to restore this backup.';
+
+  @override
   String get restore_backup_subtitle =>
       'বেকআপ ফাইলৰ পৰা পুথিভঁৰাল পুনৰুদ্ধাৰ কৰক';
 
@@ -1409,6 +1476,43 @@ class AppLocalizationsAs extends AppLocalizations {
   @override
   String get restore_backup_warning_title =>
       'বেকআপ পুনৰুদ্ধাৰে সকলো বিদ্যমান তথ্য ওভাৰৰাইট কৰিব।\n\nপুনৰুদ্ধাৰ অব্যাহত ৰাখিব নে?';
+
+  @override
+  String get restore_sync_question_title => 'Sync this restore?';
+
+  @override
+  String get restore_sync_question_message =>
+      'This device is connected to a sync server. Upload this restored data to it now? If not, sync will be turned off so the server\'s old data doesn\'t overwrite what you just restored.';
+
+  @override
+  String get restore_sync_question_confirm => 'Yes, sync';
+
+  @override
+  String get restore_sync_question_deny => 'No, disable sync';
+
+  @override
+  String get sync_disabled_after_restore =>
+      'Sync is disabled. You can turn it on again in Settings.';
+
+  @override
+  String get restore_sync_disabled_question_title =>
+      'Sync is currently disabled';
+
+  @override
+  String get restore_sync_disabled_question_message =>
+      'Sync is turned off. Turn it back on and upload this restored data to your server?';
+
+  @override
+  String get restore_sync_question_reenable => 'Yes, re-enable and sync';
+
+  @override
+  String get restore_sync_question_keep_disabled => 'Keep it disabled';
+
+  @override
+  String get restore_sync_uploading => 'Syncing restored data to server…';
+
+  @override
+  String get restore_sync_upload_success => 'Restored data synced to server';
 
   @override
   String get services => 'সেৱা';
@@ -1787,10 +1891,11 @@ class AppLocalizationsAs extends AppLocalizations {
   String get custom_dns => 'কাষ্টম DNS (ছিষ্টেম DNS ব্যৱহাৰ কৰিবলৈ খালী ৰাখক)';
 
   @override
-  String get android_proxy_server => 'Android প্ৰক্সি চাৰ্ভাৰ (ApkBridge)';
+  String get android_proxy_server =>
+      'Android প্ৰক্সি চাৰ্ভাৰ (M-Extension-Server)';
 
   @override
-  String get get_apk_bridge => 'ApkBridge প্ৰাপ্ত কৰক';
+  String get get_m_extension_server => 'M-Extension-Server প্ৰাপ্ত কৰক';
 
   @override
   String get get_sync_server => 'সিংক চাৰ্ভাৰ ইয়াত প্ৰাপ্ত কৰক';
@@ -2196,6 +2301,11 @@ class AppLocalizationsAs extends AppLocalizations {
   }
 
   @override
+  String unrecognized_chapter_numbers(Object count) {
+    return '$count chapter(s) couldn\'t be auto-numbered and may be out of order or missing from the reader.';
+  }
+
+  @override
   String get cloudflare_resolution_webview_server_start_failed =>
       'Couldn\'t start Cloudflare Resolution Webview Server.';
 
@@ -2433,8 +2543,8 @@ class AppLocalizationsAs extends AppLocalizations {
   String get latest_version => 'Latest version';
 
   @override
-  String get apkbridge_description =>
-      'Use ApkBridge when you need a separate Android device proxy. Set the proxy address here and download the APK from GitHub.';
+  String get m_extension_server_description =>
+      'Use M-Extension-Server when you need a separate Android device proxy. Set the proxy address here and download the APK from GitHub.';
 
   @override
   String get set_proxy_address => 'Set proxy address';
@@ -2496,7 +2606,7 @@ class AppLocalizationsAs extends AppLocalizations {
 
   @override
   String get could_not_launch_apk_bridge_page =>
-      'Could not launch the ApkBridge page.';
+      'Could not launch the M-Extension-Server page.';
 
   @override
   String get proxy_server_ip_hint =>
@@ -2948,6 +3058,169 @@ class AppLocalizationsAs extends AppLocalizations {
 
   @override
   String get beta => 'Beta';
+
+  @override
+  String get error_reports => 'Error reports';
+
+  @override
+  String get error_reports_subtitle =>
+      'Errors the app caught, and a way to report them';
+
+  @override
+  String get error_reports_empty =>
+      'Nothing has gone wrong. Errors the app catches are kept here so you can report them.';
+
+  @override
+  String get error_reports_likely_cause => 'Likely cause';
+
+  @override
+  String get error_reports_report => 'Report on GitHub';
+
+  @override
+  String get error_reports_banner => 'Mangayomi ran into an error';
+
+  @override
+  String get error_reports_banner_action => 'See it';
+
+  @override
+  String get error_reports_copy => 'Copy';
+
+  @override
+  String get error_reports_copied => 'Copied to the clipboard';
+
+  @override
+  String get error_reports_clear => 'Clear';
+
+  @override
+  String get share_unavailable_copied =>
+      'Sharing isn\'t available on this platform, so it was copied to the clipboard instead.';
+
+  @override
+  String get onboarding_title => 'Welcome to Mangayomi';
+
+  @override
+  String get onboarding_libraries_body =>
+      'Pick what you read and watch. The ones you leave out stay out of the navigation bar, and you can change this later under Appearance.';
+
+  @override
+  String get onboarding_nav_title => 'Your libraries';
+
+  @override
+  String get onboarding_nav_body =>
+      'Keep a tab for each of them, or put them together behind one Library tab you can switch inside.';
+
+  @override
+  String get onboarding_nav_split => 'A tab each';
+
+  @override
+  String get onboarding_nav_merged => 'One Library tab';
+
+  @override
+  String get onboarding_nav_inside => 'Tapping Library swaps the bar for these';
+
+  @override
+  String get onboarding_next => 'Next';
+
+  @override
+  String get onboarding_restore => 'Restore a backup';
+
+  @override
+  String get onboarding_or_local => 'Or use files you already have';
+
+  @override
+  String get onboarding_local_folder => 'Add a folder';
+
+  @override
+  String onboarding_local_existing(Object count) {
+    return '$count folders already set up';
+  }
+
+  @override
+  String get onboarding_local_any_type =>
+      'Manga, anime and novels all work. Each title goes to the right library based on what is inside it.';
+
+  @override
+  String get onboarding_local_scanning => 'Scanning the folder';
+
+  @override
+  String onboarding_local_found(Object count) {
+    return '$count titles found';
+  }
+
+  @override
+  String get onboarding_local_remove => 'Remove that folder';
+
+  @override
+  String get onboarding_local_in_downloads =>
+      'That is the app\'s downloads folder. Adding it makes a second, local copy of a library the app already manages.';
+
+  @override
+  String get onboarding_local_empty =>
+      'Nothing found. Pick the folder that holds your manga folders, not one manga.';
+
+  @override
+  String get onboarding_repo_failed =>
+      'Couldn\'t read that repository. Check the address and your connection.';
+
+  @override
+  String get onboarding_repo_title => 'Add a source';
+
+  @override
+  String get onboarding_body =>
+      'Mangayomi comes with no sources of its own. Add a repository and the extensions it holds become available to install and browse.';
+
+  @override
+  String get onboarding_add => 'Add repository';
+
+  @override
+  String get onboarding_skip => 'Skip for now';
+
+  @override
+  String get onboarding_continue => 'Continue';
+
+  @override
+  String get onboarding_later =>
+      'You can add one later in Settings, under Browse.';
+
+  @override
+  String get onboarding_replay => 'Show the welcome screen';
+
+  @override
+  String get onboarding_replay_subtitle =>
+      'Opens the first-run screen again, the one a new install starts on.';
+
+  @override
+  String get missing_source_check_title => 'Check for missing sources';
+
+  @override
+  String get missing_source_check_subtitle =>
+      'Find library entries whose extension isn\'t installed - restoring a backup can leave entries pointing at a source you never installed on this device.';
+
+  @override
+  String get missing_source_check_none_found =>
+      'Every library entry\'s source is installed.';
+
+  @override
+  String missing_source_check_result_title(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sources missing',
+      one: '1 source missing',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get missing_source_check_result_message =>
+      'These library entries point at a source that isn\'t installed on this device. Tap one to migrate it to an installed source, install the matching extension, or use \"Delete a source & its manga\" to remove them.';
+
+  @override
+  String get get_apk_bridge => 'Get ApkBridge';
+
+  @override
+  String get apkbridge_description =>
+      'Use ApkBridge when you need a separate Android device proxy. Set the proxy address here and download the APK from GitHub.';
 
   @override
   String get cloud_drive_management => 'Cloud Drive Management';

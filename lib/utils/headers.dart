@@ -33,7 +33,7 @@ Map<String, String> headers(
   });
   ref.onResume(() => timer?.cancel());
   ref.onDispose(() => timer?.cancel());
-  final mSource = getSource(lang, source, sourceId);
+  final mSource = getSource(lang, source, sourceId, installedOnly: true);
 
   if (mSource == null) return {};
 

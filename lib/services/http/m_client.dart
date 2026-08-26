@@ -104,6 +104,17 @@ class MClient {
     );
   }
 
+  // Matches request/stored hosts either way (exact, or one a subdomain of
+  // the other) on a real dot boundary - a plain host.contains(stored) check
+  // only matched when the stored host happened to be the shorter one, so a
+  // cookie captured under a more specific host (e.g. the WebView landing on
+  // "www.example.com") never got attached to requests against the bare
+  // domain "example.com" a source actually scrapes, leaving Cloudflare
+  // looking "unresolved" even right after a successful manual bypass.
+  static bool _hostsMatch(String a, String b) {
+    return a == b || a.endsWith('.$b') || b.endsWith('.$a');
+  }
+
   static Map<String, String> getCookiesPref(String url) {
     final cookiesList = isar.settings.getSync(227)?.cookiesList ?? [];
     if (cookiesList.isEmpty) return {};
@@ -126,7 +137,7 @@ class MClient {
     final host = Uri.parse(url).host;
     final cookies = cookiesList
         .firstWhere(
-          (element) => element.host == host || host.contains(element.host!),
+          (element) => _hostsMatch(host, element.host!),
           orElse: () => MCookie(cookie: ""),
         )
         .cookie!;
@@ -190,7 +201,7 @@ class MClient {
     String host,
   ) {
     return allCookies
-        .where((cookie) => cookie.host != host && !host.contains(cookie.host!))
+        .where((cookie) => !_hostsMatch(host, cookie.host!))
         .toList();
   }
 

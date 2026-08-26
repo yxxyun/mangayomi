@@ -66,7 +66,7 @@ final class GetChapterPagesProvider
   }
 }
 
-String _$getChapterPagesHash() => r'0fc7d1195921b0ea5b3573ff0f6bb896d8576275';
+String _$getChapterPagesHash() => r'7b8cb5e8d4a1d5cc8f9405ebccbd785237568d4e';
 
 final class GetChapterPagesFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<GetChapterPagesModel>, Chapter> {

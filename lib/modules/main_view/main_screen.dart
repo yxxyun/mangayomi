@@ -67,7 +67,34 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         (timer) => _onSyncTimerTick(timer),
       );
     }
-    Future.microtask(() {
+
+    // Pauses the auto-sync timer for the duration of a restore (and its
+    // post-restore upload), instead of just rescheduling it — a restore can
+    // outlast one sync interval, so a reschedule alone could still let the
+    // timer fire mid-restore. syncServerProvider.startSync also checks this
+    // guard directly, covering a manual sync trigger too.
+    ref.listenManual<bool>(restoreSyncGuardProvider, (_, restoring) {
+      if (restoring) {
+        _syncTimer?.cancel();
+        return;
+      }
+      // Re-read the live setting rather than the _autoSyncFrequency snapshot
+      // taken at init — a restore can turn sync off (frequency reset to 0),
+      // and that must take effect immediately, not just on next app launch.
+      final freq = ref.read(synchingProvider(syncId: 1)).autoSyncFrequency;
+      _syncTimer?.cancel();
+      if (freq != 0) {
+        _syncTimer = Timer.periodic(Duration(seconds: freq), _onSyncTimerTick);
+      }
+    });
+    _initializeProviders();
+  }
+
+  void _initializeProviders() {
+    // The extension-repo fetches (one per item type) and the GitHub update
+    // check hit the network; delay them so they don't compete with the first
+    // paint and the initial library queries.
+    Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         for (final type in ItemType.values) {
           ref.read(
