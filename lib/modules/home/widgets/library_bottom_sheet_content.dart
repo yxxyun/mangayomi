@@ -36,8 +36,7 @@ class _LibraryBottomSheetContentState
     final settingsStream = ref.watch(getSettingsStreamProvider);
 
     return settingsStream.when(
-      data: (settingsList) {
-        final settings = settingsList.first;
+      data: (settings) {
         return _Content(
           itemType: widget.itemType,
           settings: settings,

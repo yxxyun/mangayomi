@@ -1,10 +1,12 @@
 import 'package:mangayomi/utils/chapter_recognition.dart';
-import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/update.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/services/built_in_sources.dart';
+import 'package:mangayomi/repositories/chapter_repository.dart';
+import 'package:mangayomi/repositories/manga_repository.dart';
+import 'package:mangayomi/repositories/update_repository.dart';
 import 'package:mangayomi/services/get_detail.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:mangayomi/utils/fetch_interval.dart';
@@ -29,7 +31,7 @@ Future<dynamic> updateMangaDetail(
   bool showToast = true,
 }) async {
   try {
-    final manga = isar.mangas.getSync(mangaId!);
+    final manga = mangaRepository.findById(mangaId!);
     if (manga == null) return;
 
     manga.chapters.loadSync();
@@ -85,8 +87,8 @@ Future<dynamic> updateMangaDetail(
 
     final chaps = getManga.chapters;
 
-    await isar.writeTxn(() async {
-      final savedMangaId = await isar.mangas.put(manga);
+    await mangaRepository.writeTransactionAsync(() async {
+      final savedMangaId = await mangaRepository.putAsync(manga);
 
       if (chaps == null || chaps.isEmpty) return;
 
@@ -102,27 +104,27 @@ Future<dynamic> updateMangaDetail(
           if (c.name != null) oldByName[c.name!] = c;
         }
         if (oldIds.isNotEmpty) {
-          await isar.chapters.deleteAll(oldIds);
+          await chapterRepository.deleteAllAsync(oldIds);
         }
       }
 
       final existingChapters = manga.chapters.toList();
       final recognition = ChapterRecognition();
 
-      // The exact number, not the sort key. parseChapterNumber truncates, so
-      // chapters 12, 12.1 and 12.5 all answer 12 and every use of this below
-      // treats them as the same chapter: the composite key drops two of the
-      // three before they reach the library, and read state carries across
-      // all three. rawSeasonAndNumber keeps the fraction, and answers null
-      // for a name with no number at all rather than folding every "Special"
-      // and "Prologue" onto zero.
-      double? numberOf(Chapter c) {
+      // Season and episode together, never the episode alone. The episode
+      // alone makes season 2 episode 1 the same chapter as season 1 episode 1,
+      // so whichever arrives second is dropped before it reaches the library
+      // and a two season show displays one season.
+      //
+      // Not parseChapterNumber either: that truncates, so 12, 12.1 and 12.5
+      // all answer 12 and two of the three are dropped the same way.
+      String? identityOf(Chapter c, {bool withScanlator = true}) {
         if (c.name == null) return null;
-        final (_, number) = recognition.rawSeasonAndNumber(
+        return recognition.chapterIdentityKey(
           manga.name ?? '',
           c.name!,
+          withScanlator ? (c.scanlator ?? '') : null,
         );
-        return (number ?? 0) > 0 ? number : null;
       }
 
       final existingByUrl = <String, Chapter>{};
@@ -131,8 +133,7 @@ Future<dynamic> updateMangaDetail(
       for (final c in existingChapters) {
         final u = c.url?.trim();
         final urlKey = (u == null || u.isEmpty) ? null : u.getUrlWithoutDomain;
-        final num = numberOf(c);
-        final compositeKey = num == null ? null : '$num::${c.scanlator ?? ''}';
+        final compositeKey = identityOf(c);
 
         final prior =
             (urlKey != null ? existingByUrl[urlKey] : null) ??
@@ -151,12 +152,15 @@ Future<dynamic> updateMangaDetail(
         }
       }
 
-      final readByNumber = <double, bool>{};
+      // Keyed without the scanlator: the same episode from a different group
+      // is still that episode, so read state carries. Keyed with the season
+      // for the same reason as above.
+      final readByEpisode = <String, bool>{};
       for (final c in existingChapters) {
-        final num = numberOf(c);
-        if (num != null) {
-          readByNumber[num] =
-              (readByNumber[num] ?? false) || (c.isRead ?? false);
+        final key = identityOf(c, withScanlator: false);
+        if (key != null) {
+          readByEpisode[key] =
+              (readByEpisode[key] ?? false) || (c.isRead ?? false);
         }
       }
 
@@ -169,13 +173,16 @@ Future<dynamic> updateMangaDetail(
         if (url == null || url.isEmpty) continue;
         final key = url.getUrlWithoutDomain;
 
-        final (_, chapNumber) = chap.name != null
-            ? recognition.rawSeasonAndNumber(manga.name!, chap.name!)
-            : (0, null);
-        final chapNum = chapNumber ?? 0;
-        final compositeKey = chapNum > 0
-            ? '$chapNum::${chap.scanlator ?? ''}'
-            : null;
+        final compositeKey = chap.name == null
+            ? null
+            : recognition.chapterIdentityKey(
+                manga.name!,
+                chap.name!,
+                chap.scanlator ?? '',
+              );
+        final episodeKey = chap.name == null
+            ? null
+            : recognition.chapterIdentityKey(manga.name!, chap.name!);
 
         if (!seenKeys.add(key)) continue;
         if (compositeKey != null && !seenKeys.add('c:$compositeKey')) {
@@ -187,7 +194,8 @@ Future<dynamic> updateMangaDetail(
             (compositeKey != null ? existingByComposite[compositeKey] : null);
 
         if (existing == null) {
-          final alreadyRead = chapNum > 0 && (readByNumber[chapNum] ?? false);
+          final alreadyRead =
+              episodeKey != null && (readByEpisode[episodeKey] ?? false);
 
           final newChapter = Chapter(
             name: chap.name!,
@@ -241,7 +249,7 @@ Future<dynamic> updateMangaDetail(
       }
 
       if (chaptersToUpdate.isNotEmpty) {
-        await isar.chapters.putAll(chaptersToUpdate);
+        await chapterRepository.putAllAsync(chaptersToUpdate);
       }
 
       if (newChapters.isNotEmpty) {
@@ -253,7 +261,7 @@ Future<dynamic> updateMangaDetail(
           chap.manga.value = manga;
         }
 
-        await isar.chapters.putAll(orderedNew);
+        await chapterRepository.putAllAsync(orderedNew);
         for (final chap in orderedNew) {
           await chap.manga.save();
         }
@@ -273,7 +281,7 @@ Future<dynamic> updateMangaDetail(
         }
 
         if (updatesToInsert.isNotEmpty) {
-          await isar.updates.putAll(updatesToInsert);
+          await updateRepository.putAllAsync(updatesToInsert);
           for (final upd in updatesToInsert) {
             await upd.chapter.save();
           }
@@ -281,7 +289,7 @@ Future<dynamic> updateMangaDetail(
       }
 
       if (duplicateIds.isNotEmpty) {
-        await isar.chapters.deleteAll(duplicateIds.toList());
+        await chapterRepository.deleteAllAsync(duplicateIds.toList());
       }
 
       final dedupedExisting = duplicateIds.isEmpty
@@ -297,7 +305,7 @@ Future<dynamic> updateMangaDetail(
         manga
           ..id = savedMangaId
           ..smartUpdateDays = interval;
-        await isar.mangas.put(manga);
+        await mangaRepository.putAsync(manga);
       }
     });
   } catch (e, s) {

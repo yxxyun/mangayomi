@@ -20,8 +20,9 @@ import 'package:mangayomi/models/custom_button.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
+import 'package:mangayomi/repositories/custom_button_repository.dart';
+import 'package:mangayomi/repositories/track_repository.dart';
 import 'package:mangayomi/models/track.dart' as track;
-import 'package:mangayomi/models/track_preference.dart';
 import 'package:mangayomi/models/track_search.dart';
 import 'package:mangayomi/modules/manga/detail/providers/track_state_providers.dart';
 import 'package:mangayomi/modules/more/data_and_storage/providers/storage_usage.dart';
@@ -40,7 +41,7 @@ import 'package:mangayomi/services/m_extension_server.dart';
 import 'package:mangayomi/services/download_manager/m_downloader.dart';
 import 'package:mangayomi/src/rust/frb_generated.dart';
 import 'package:mangayomi/utils/discord_rpc.dart';
-import 'package:mangayomi/modules/more/about/widgets/crash_report_banner.dart';
+import 'package:mangayomi/services/crash_native.dart';
 import 'package:mangayomi/services/crash_report.dart';
 import 'package:mangayomi/utils/log/logger.dart';
 import 'package:mangayomi/utils/platform_utils.dart';
@@ -65,6 +66,8 @@ import 'package:mangayomi/services/cloud_drive/services/xunlei_drive.dart';
 import 'package:mangayomi/services/cloud_drive/services/yun139_drive.dart';
 import 'package:mangayomi/services/cloud_drive/cloud_drive_manager.dart';
 import 'package:mangayomi/modules/manga/reader/subsampling_scale_image_view/subsampling_scale_image_view.dart';
+import 'package:mangayomi/modules/more/settings/general/providers/memory_probe_provider.dart';
+import 'package:mangayomi/modules/widgets/memory_overlay.dart';
 import 'package:mangayomi/modules/widgets/app_ui_scale.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/app_ui_scale_state_provider.dart';
 
@@ -151,7 +154,15 @@ void main(List<String> args) async {
       // "Enable logs". Anything raised before this is held in memory and
       // written out here.
       unawaited(
-        storage.getDefaultDirectory().then(CrashReports.init).catchError((_) {}),
+        storage
+            .getDefaultDirectory()
+            .then((directory) async {
+              await CrashReports.init(directory);
+              // After CrashReports, because a native crash from the last run
+              // is recorded into it.
+              await NativeCrashHandler.init(directory);
+            })
+            .catchError((_) {}),
       );
       Object? startupError;
       try {
@@ -218,7 +229,6 @@ class _StartupErrorApp extends StatelessWidget {
 Future<void> _postLaunchInit(StorageProvider storage) async {
   stdout.writeln('[MAIN] _postLaunchInit start');
   await AppLogger.init();
-  unawaited(maybeShowCrashBanner());
   unawaited(MDownloader.initializeIsolatePool(poolSize: 6));
   final hivePath = isApple ? "databases" : p.join("Mangayomi", "databases");
   await Hive.initFlutter(Platform.isAndroid ? "" : hivePath);
@@ -372,6 +382,22 @@ class _MyAppState extends ConsumerState<MyApp>
               children: [withBackHandler, const AppLockScreen()],
             );
           }
+        }
+
+        // Sits above everything, including the lock screen, because a
+        // measurement is not worth taking if navigating away ends it.
+        if (ref.watch(memoryOverlayVisibleProvider)) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              withBackHandler,
+              MemoryOverlay(
+                probe: ref.read(memoryProbeProvider),
+                onClose: () =>
+                    ref.read(memoryOverlayVisibleProvider.notifier).set(false),
+              ),
+            ],
+          );
         }
 
         return withBackHandler;
@@ -530,16 +556,13 @@ class _MyAppState extends ConsumerState<MyApp>
                         child: Text(l10n.add),
                         onPressed: () async {
                           if (context.mounted) Navigator.of(context).pop();
-                          await isar.writeTxn(() async {
-                            await isar.customButtons.put(
-                              customButton
-                                ..pos = await isar.customButtons.count()
-                                ..isFavourite = false
-                                ..id = null
-                                ..updatedAt =
-                                    DateTime.now().millisecondsSinceEpoch,
-                            );
-                          });
+                          final pos = await customButtonRepository.count();
+                          await customButtonRepository.save(
+                            customButton
+                              ..pos = pos
+                              ..isFavourite = false
+                              ..id = null,
+                          );
                           botToast(l10n.custom_buttons_added);
                         },
                       ),
@@ -619,10 +642,7 @@ class _MyAppState extends ConsumerState<MyApp>
   }
 
   Future<void> _checkTrackerRefresh() async {
-    final prefs = await isar.trackPreferences
-        .filter()
-        .syncIdIsNotNull()
-        .findAll();
+    final prefs = await trackRepository.getAllPreferencesWithSyncId();
     for (final pref in prefs) {
       final temp = track.Track(
         syncId: pref.syncId,

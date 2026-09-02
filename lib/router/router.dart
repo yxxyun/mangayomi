@@ -19,6 +19,7 @@ import 'package:mangayomi/modules/calendar/calendar_screen.dart';
 import 'package:mangayomi/modules/manga/detail/widgets/migrate_screen.dart';
 import 'package:mangayomi/modules/mass_migration/mass_migration_source_selection_screen.dart';
 import 'package:mangayomi/modules/manga/detail/widgets/recommendation_screen.dart';
+import 'package:mangayomi/modules/manga/detail/widgets/related_screen.dart';
 import 'package:mangayomi/modules/manga/detail/widgets/watch_order_screen.dart';
 import 'package:mangayomi/modules/more/data_and_storage/create_backup.dart';
 import 'package:mangayomi/modules/more/data_and_storage/data_and_storage.dart';
@@ -130,9 +131,23 @@ class RouterCurrentLocationState extends _$RouterCurrentLocationState {
 
 class RouterNotifier extends ChangeNotifier {
   List<RouteBase> get _routes => [
-    StatefulShellRoute.indexedStack(
+// Each tab lives in its own StatefulShellBranch so switching tabs keeps
+    // the other screens mounted (scroll position, queries, images preserved).
+    //
+    // Except on a television, where that retention is not affordable. Measured
+    // on a Fire TV: every branch left mounted holds roughly 14 MB of GPU
+    // surfaces, three tabs took Graphics from 27 MB to 69 MB, and the box has
+    // around 300 MB free with most of its swap already spent. Off TV the
+    // trade is the other way round and IndexedStack stays.
+    StatefulShellRoute(
       builder: (context, state, navigationShell) =>
           MainScreen(navigationShell: navigationShell),
+      navigatorContainerBuilder: (context, navigationShell, children) => isTv
+          ? children[navigationShell.currentIndex]
+          : IndexedStack(
+              index: navigationShell.currentIndex,
+              children: children,
+            ),
       branches: [
         StatefulShellBranch(
           routes: [
@@ -304,6 +319,10 @@ class RouterNotifier extends ChangeNotifier {
     _genericRoute<(Manga, TrackSearch)>(
       name: "migrate/tracker",
       builder: (data) => MigrationScreen(manga: data.$1, trackSearch: data.$2),
+    ),
+    _genericRoute<(String, ItemType)>(
+      name: "related",
+      builder: (data) => RelatedScreen(name: data.$1, itemType: data.$2),
     ),
     _genericRoute<(String, ItemType, AlgorithmWeights)>(
       name: "recommendations",

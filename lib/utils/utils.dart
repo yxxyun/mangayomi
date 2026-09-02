@@ -3,6 +3,7 @@ import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/services/built_in_sources.dart';
+import 'package:mangayomi/repositories/source_repository.dart';
 
 Source? getSource(
   String lang,
@@ -18,11 +19,9 @@ Source? getSource(
   }
 
   try {
-    var sourcesFilter = isar.sources.filter().idIsNotNull();
-    if (installedOnly) {
-      sourcesFilter = sourcesFilter.isActiveEqualTo(true).isAddedEqualTo(true);
-    }
-    final sourcesList = sourcesFilter.findAllSync();
+    final sourcesList = sourceRepository.getAllOrInstalled(
+      installedOnly: installedOnly,
+    );
     bool byNameAndLang(Source element) =>
         element.name!.toLowerCase() == name.toLowerCase() &&
         element.lang == lang &&

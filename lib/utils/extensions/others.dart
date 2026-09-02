@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import 'package:mangayomi/modules/manga/reader/u_chap_data_preload.dart';
 import 'package:mangayomi/modules/widgets/custom_extended_image_provider.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
+import 'package:mangayomi/utils/constant.dart';
 import 'package:mangayomi/utils/downloaded_page_file.dart';
 import 'package:mangayomi/utils/headers.dart';
 import 'package:mangayomi/utils/reg_exp_matcher.dart';
@@ -82,8 +83,18 @@ extension UChapDataPreloadExtensions on UChapDataPreload {
     if (isTransitionPage) return null;
     if (archiveImage != null) {
       final tempDir = Directory.systemTemp;
+      final sourceKey = [
+        chapter?.id?.toString(),
+        chapter?.archivePath,
+        directory?.path,
+        chapter?.url,
+      ].whereType<String>().where((value) => value.isNotEmpty).join('|');
+      final chapterKey = keyToMd5(sourceKey);
       final tempFile = File(
-        p.join(tempDir.path, 'mangayomi_archive_${index ?? pageIndex}.jpg'),
+        p.join(
+          tempDir.path,
+          'mangayomi_archive_${chapterKey}_${index ?? pageIndex}.jpg',
+        ),
       );
       if (!tempFile.existsSync()) {
         tempFile.writeAsBytesSync(archiveImage!);
@@ -130,8 +141,7 @@ extension UChapDataPreloadExtensions on UChapDataPreload {
     final data = this;
 
     if (data.isTransitionPage) {
-      return const AssetImage('assets/transparent.png')
-          as ImageProvider<Object>;
+      return const AssetImage(transparentAsset) as ImageProvider<Object>;
     }
 
     final isLocale = data.isLocale!;
