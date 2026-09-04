@@ -28,6 +28,11 @@ class GetChapterPagesModel {
   List<PageUrl> pageUrls = [];
   List<bool> isLocaleList = [];
   List<Uint8List?> archiveImages = [];
+  // Parallel to archiveImages: the real on-disk path for pages that are
+  // standalone files (local image-folder chapters), so they never have to be
+  // read into memory just to get a path back out. Null for every page that
+  // isn't a plain folder page (archive entries, downloaded/remote pages).
+  List<String?> localImagePaths = [];
   List<UChapDataPreload> uChapDataPreload;
   GetChapterPagesModel({
     required this.path,
@@ -35,6 +40,7 @@ class GetChapterPagesModel {
     required this.isLocaleList,
     required this.archiveImages,
     required this.uChapDataPreload,
+    required this.localImagePaths,
   });
 }
 
@@ -125,6 +131,7 @@ Future<GetChapterPagesModel> getChapterPages(
       isLocaleList: isLocaleList,
       archiveImages: archiveImages,
       uChapDataPreload: [],
+      localImagePaths: <String?>[],
     );
 
     final archivePath = isLocalArchive
@@ -137,7 +144,12 @@ Future<GetChapterPagesModel> getChapterPages(
           getArchiveDataFromFileProvider(archivePath).future,
         );
         for (var image in local.images!) {
-          archiveImages.add(image.image!);
+          // Folder pages carry a real path instead of pre-read bytes (see
+          // LocalImage.path) - keep archiveImages/localImagePaths parallel
+          // to isLocaleList so index i always refers to the same page across
+          // all three lists.
+          archiveImages.add(image.image);
+          chapterModel.localImagePaths.add(image.path);
           isLocaleList.add(true);
         }
       } else {
@@ -148,6 +160,7 @@ Future<GetChapterPagesModel> getChapterPages(
             : downloaded!.pageCount;
         for (var i = 0; i < pageCount; i++) {
           archiveImages.add(null);
+          chapterModel.localImagePaths.add(null);
           if (await findDownloadedPageFileAsync(path!, i) != null) {
             isLocaleList.add(true);
           } else {
@@ -224,6 +237,9 @@ Future<GetChapterPagesModel> getChapterPages(
             i,
             chapterModel,
             i,
+            localImagePath: i < chapterModel.localImagePaths.length
+                ? chapterModel.localImagePaths[i]
+                : null,
           ),
         );
       }

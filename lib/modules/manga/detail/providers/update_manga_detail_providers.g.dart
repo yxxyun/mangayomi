@@ -64,7 +64,7 @@ final class UpdateMangaDetailProvider
   }
 }
 
-String _$updateMangaDetailHash() => r'71c9d570d8714c943410dd1eee6541b1694020a3';
+String _$updateMangaDetailHash() => r'ed9fb5f65b9663a27fe63df1e0966ed69264a5ea';
 
 final class UpdateMangaDetailFamily extends $Family
     with

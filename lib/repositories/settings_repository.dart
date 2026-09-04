@@ -8,7 +8,13 @@ import 'package:mangayomi/repositories/db_write_queue.dart';
 class SettingsRepository {
   Settings get current => isar.settings.getSync(227)!;
 
-  Settings? get currentOrNull => isar.settings.getSync(227);
+  Settings? get currentOrNull {
+    try {
+      return isar.settings.getSync(227);
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<Settings?> get currentAsync => isar.settings.get(227);
 
@@ -22,7 +28,10 @@ class SettingsRepository {
 
   Future<void> update(void Function(Settings s) mutate) => dbWriteQueue.run(() {
     isar.writeTxnSync(() {
-      final s = current;
+      // A damaged/partially-created database must not turn every settings
+      // control into a null-check crash. Recreate the singleton row with its
+      // model defaults and apply the requested change in the same transaction.
+      final s = currentOrNull ?? Settings();
       mutate(s);
       s.updatedAt = DateTime.now().millisecondsSinceEpoch;
       isar.settings.putSync(s);
