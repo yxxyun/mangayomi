@@ -35,6 +35,7 @@ import 'package:mangayomi/providers/storage_provider.dart';
 import 'package:mangayomi/router/router.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/theme_mode_state_provider.dart';
 import 'package:mangayomi/l10n/generated/app_localizations.dart';
+import 'package:mangayomi/services/library_updater.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/services/m_extension_server.dart';
@@ -44,6 +45,7 @@ import 'package:mangayomi/utils/discord_rpc.dart';
 import 'package:mangayomi/services/crash_native.dart';
 import 'package:mangayomi/services/crash_report.dart';
 import 'package:mangayomi/utils/log/logger.dart';
+import 'package:mangayomi/utils/client_id.dart';
 import 'package:mangayomi/utils/platform_utils.dart';
 import 'package:mangayomi/utils/url_protocol/api.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/theme_provider.dart';
@@ -229,6 +231,10 @@ class _StartupErrorApp extends StatelessWidget {
 Future<void> _postLaunchInit(StorageProvider storage) async {
   stdout.writeln('[MAIN] _postLaunchInit start');
   await AppLogger.init();
+  // Backfills clientId on rows saved before that field existed. Runs on every
+  // launch rather than gating on a version check - once caught up it's just
+  // six empty indexed lookups, so there's no real cost to checking again.
+  unawaited(backfillMissingClientIds());
   unawaited(MDownloader.initializeIsolatePool(poolSize: 6));
   final hivePath = isApple ? "databases" : p.join("Mangayomi", "databases");
   await Hive.initFlutter(Platform.isAndroid ? "" : hivePath);
@@ -279,6 +285,15 @@ class _MyAppState extends ConsumerState<MyApp>
     _setupMpvConfig();
     unawaited(ref.read(scanLocalLibraryProvider.future));
 
+    // The scheduled library refresh, when one is due. It goes last and stays
+    // quiet: launch is already busy, and this walks the whole library.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(seconds: 5), () {
+        if (!mounted) return;
+        unawaited(autoUpdateLibraryIfDue(ref));
+      });
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       MExtensionServerPlatform(ref).startServer();
       if (ref.read(clearChapterCacheOnAppLaunchStateProvider)) {
@@ -304,6 +319,12 @@ class _MyAppState extends ConsumerState<MyApp>
       if (lockEnabled) {
         ref.read(appUnlockedStateProvider.notifier).lock();
       }
+    } else if (state == AppLifecycleState.resumed) {
+      // Launch is the other trigger for the scheduled refresh, so without this
+      // a session that stays open for days - a desktop one, typically - would
+      // never run one. The interval check makes this a no-op the rest of the
+      // time.
+      unawaited(autoUpdateLibraryIfDue(ref));
     }
   }
 
@@ -503,9 +524,11 @@ class _MyAppState extends ConsumerState<MyApp>
                               final clean = e.trim().toLowerCase();
                               return !existingUrls.contains(clean) &&
                                   !existingUrls.contains('$clean/') &&
-                                  !existingUrls.contains(clean.endsWith('/')
-                                      ? clean.substring(0, clean.length - 1)
-                                      : clean);
+                                  !existingUrls.contains(
+                                    clean.endsWith('/')
+                                        ? clean.substring(0, clean.length - 1)
+                                        : clean,
+                                  );
                             })
                             .map(
                               (e) => Repo(

@@ -1060,9 +1060,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get syncing => 'Синхронизация';
 
   @override
-  String get sync_password => 'Пароль (минимум 8 символов)';
-
-  @override
   String get sync_logged => 'Вход выполнен успешно';
 
   @override
@@ -1070,20 +1067,13 @@ class AppLocalizationsRu extends AppLocalizations {
       'Синхронизируйте свой прогресс на нескольких устройствах через собственный \nserver. Загляните на наш сервер discord для получения дополнительной информации!';
 
   @override
-  String get last_sync_manga => 'Последняя синхронизация манги:';
+  String get last_sync => 'Last sync at: ';
 
   @override
-  String get last_sync_history => 'Последняя история синхронизирована на:';
-
-  @override
-  String get last_sync_update => 'Последнее обновление синхронизировано на:';
+  String get sync_login_browser => 'Log in with browser';
 
   @override
   String get sync_server => 'Адрес сервера синхронизации';
-
-  @override
-  String get sync_login_invalid_creds =>
-      'Неверный адрес электронной почты или пароль';
 
   @override
   String get sync_starting => 'Начало синхронизации...';
@@ -1097,6 +1087,14 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get sync_restore_in_progress =>
       'Синхронизация пропущена — идет восстановление';
+
+  @override
+  String sync_progress_percent(Object percent) {
+    return 'Syncing… $percent%';
+  }
+
+  @override
+  String get sync_progress_indeterminate => 'Syncing…';
 
   @override
   String get sync_button_sync => 'Синхронизировать прогресс';
@@ -1132,9 +1130,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get sync_section_general => 'Общие';
-
-  @override
-  String get sync_section_data_types => 'Что синхронизировать';
 
   @override
   String get sync_on => 'Включить синхронизацию';
@@ -2084,15 +2079,6 @@ class AppLocalizationsRu extends AppLocalizations {
       'Показывать текущее изображение обложки в Discord';
 
   @override
-  String get sync_enable_histories => 'Синхронизировать данные истории';
-
-  @override
-  String get sync_enable_updates => 'Синхронизировать данные обновлений';
-
-  @override
-  String get sync_enable_settings => 'Синхронизировать настройки';
-
-  @override
   String get enable_mpv => 'Включить шейдеры / скрипты mpv';
 
   @override
@@ -2751,6 +2737,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get dual_page_rotate_to_fit_invert => 'Обратное направление вращения';
+
+  @override
+  String get double_page_single_first_page => 'Single first page';
+
+  @override
+  String get double_page_single_first_page_subtitle =>
+      'Display the first page alone in double page mode';
 
   @override
   String get landscape_zoom => 'Автоматическое масштабирование в альбоме';
@@ -3623,4 +3616,33 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get cloud_drive_qr_retry => 'Retry';
+
+  @override
+  String get auto_library_update => 'Automatic library updates';
+
+  @override
+  String get auto_library_update_subtitle =>
+      'Check every entry in your library for new chapters when the app starts.';
+
+  @override
+  String get auto_library_update_never => 'Never';
+
+  @override
+  String get auto_library_update_12_hours => 'Every 12 hours';
+
+  @override
+  String get auto_library_update_daily => 'Daily';
+
+  @override
+  String get auto_library_update_2_days => 'Every 2 days';
+
+  @override
+  String get auto_library_update_weekly => 'Weekly';
+
+  @override
+  String get auto_library_update_wifi_only => 'Only on Wi-Fi';
+
+  @override
+  String get auto_library_update_wifi_only_subtitle =>
+      'Skip the scheduled update while on mobile data.';
 }

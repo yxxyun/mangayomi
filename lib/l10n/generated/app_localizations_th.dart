@@ -1043,9 +1043,6 @@ class AppLocalizationsTh extends AppLocalizations {
   String get syncing => 'การซิงค์';
 
   @override
-  String get sync_password => 'รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)';
-
-  @override
   String get sync_logged => 'เข้าสู่ระบบสำเร็จ';
 
   @override
@@ -1053,19 +1050,13 @@ class AppLocalizationsTh extends AppLocalizations {
       'ซิงค์ความคืบหน้าของคุณระหว่างอุปกรณ์ต่างๆ ผ่านเซิร์ฟเวอร์ที่โฮสต์ด้วยตนเอง ดูข้อมูลเพิ่มเติมได้ที่เซิร์ฟเวอร์ Discord ของเรา';
 
   @override
-  String get last_sync_manga => 'ซิงค์มังงะล่าสุดเมื่อ:';
+  String get last_sync => 'Last sync at: ';
 
   @override
-  String get last_sync_history => 'ประวัติการซิงค์ครั้งล่าสุด:';
-
-  @override
-  String get last_sync_update => 'อัปเดตข้อมูลล่าสุดเมื่อ:';
+  String get sync_login_browser => 'Log in with browser';
 
   @override
   String get sync_server => 'ที่อยู่เซิร์ฟเวอร์ซิงค์';
-
-  @override
-  String get sync_login_invalid_creds => 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
 
   @override
   String get sync_starting => 'กำลังเริ่มการซิงค์...';
@@ -1078,6 +1069,14 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get sync_restore_in_progress => 'ข้ามการซิงค์ — กำลังกู้คืน';
+
+  @override
+  String sync_progress_percent(Object percent) {
+    return 'Syncing… $percent%';
+  }
+
+  @override
+  String get sync_progress_indeterminate => 'Syncing…';
 
   @override
   String get sync_button_sync => 'ซิงค์ความคืบหน้า';
@@ -1114,9 +1113,6 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get sync_section_general => 'ทั่วไป';
-
-  @override
-  String get sync_section_data_types => 'สิ่งที่ต้องการซิงค์';
 
   @override
   String get sync_on => 'เปิดการซิงค์';
@@ -2048,15 +2044,6 @@ class AppLocalizationsTh extends AppLocalizations {
   String get rpc_show_cover_image => 'แสดงภาพปกปัจจุบันใน Discord';
 
   @override
-  String get sync_enable_histories => 'ซิงค์ข้อมูลประวัติ';
-
-  @override
-  String get sync_enable_updates => 'ซิงค์ข้อมูลอัปเดต';
-
-  @override
-  String get sync_enable_settings => 'ซิงค์การตั้งค่า';
-
-  @override
   String get enable_mpv => 'เปิดใช้งาน mpv shaders / scripts';
 
   @override
@@ -2705,6 +2692,13 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get dual_page_rotate_to_fit_invert => 'กลับทิศทางการหมุน';
+
+  @override
+  String get double_page_single_first_page => 'Single first page';
+
+  @override
+  String get double_page_single_first_page_subtitle =>
+      'Display the first page alone in double page mode';
 
   @override
   String get landscape_zoom => 'ซูมแนวนอนอัตโนมัติ';
@@ -3560,4 +3554,33 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get cloud_drive_qr_retry => 'Retry';
+
+  @override
+  String get auto_library_update => 'Automatic library updates';
+
+  @override
+  String get auto_library_update_subtitle =>
+      'Check every entry in your library for new chapters when the app starts.';
+
+  @override
+  String get auto_library_update_never => 'Never';
+
+  @override
+  String get auto_library_update_12_hours => 'Every 12 hours';
+
+  @override
+  String get auto_library_update_daily => 'Daily';
+
+  @override
+  String get auto_library_update_2_days => 'Every 2 days';
+
+  @override
+  String get auto_library_update_weekly => 'Weekly';
+
+  @override
+  String get auto_library_update_wifi_only => 'Only on Wi-Fi';
+
+  @override
+  String get auto_library_update_wifi_only_subtitle =>
+      'Skip the scheduled update while on mobile data.';
 }

@@ -1035,9 +1035,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncing => '同期中';
 
   @override
-  String get sync_password => 'パスワード（8文字以上）';
-
-  @override
   String get sync_logged => 'ログイン成功';
 
   @override
@@ -1045,19 +1042,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'セルフホストサーバーを通じて複数デバイス間で進行状況を同期します。詳細はDiscordサーバーをご覧ください！';
 
   @override
-  String get last_sync_manga => '最終マンガ同期: ';
+  String get last_sync => 'Last sync at: ';
 
   @override
-  String get last_sync_history => '最終履歴同期: ';
-
-  @override
-  String get last_sync_update => '最終更新同期: ';
+  String get sync_login_browser => 'Log in with browser';
 
   @override
   String get sync_server => '同期サーバーアドレス';
-
-  @override
-  String get sync_login_invalid_creds => '無効なメールアドレスまたはパスワード';
 
   @override
   String get sync_starting => '同期を開始しています...';
@@ -1070,6 +1061,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get sync_restore_in_progress => '同期をスキップ — 復元中';
+
+  @override
+  String sync_progress_percent(Object percent) {
+    return 'Syncing… $percent%';
+  }
+
+  @override
+  String get sync_progress_indeterminate => 'Syncing…';
 
   @override
   String get sync_button_sync => '進行状況を同期';
@@ -1103,9 +1102,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get sync_section_general => '一般';
-
-  @override
-  String get sync_section_data_types => '同期する項目';
 
   @override
   String get sync_on => '同期を有効化';
@@ -2013,15 +2009,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get rpc_show_cover_image => 'Discordに現在のカバー画像を表示';
 
   @override
-  String get sync_enable_histories => '履歴データを同期';
-
-  @override
-  String get sync_enable_updates => '更新データを同期';
-
-  @override
-  String get sync_enable_settings => '設定を同期';
-
-  @override
   String get enable_mpv => 'mpvシェーダー/スクリプトを有効化';
 
   @override
@@ -2661,6 +2648,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get dual_page_rotate_to_fit_invert => '回転方向を反転';
+
+  @override
+  String get double_page_single_first_page => 'Single first page';
+
+  @override
+  String get double_page_single_first_page_subtitle =>
+      'Display the first page alone in double page mode';
 
   @override
   String get landscape_zoom => '横画面自動ズーム';
@@ -3499,4 +3493,33 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get cloud_drive_qr_retry => 'Retry';
+
+  @override
+  String get auto_library_update => 'Automatic library updates';
+
+  @override
+  String get auto_library_update_subtitle =>
+      'Check every entry in your library for new chapters when the app starts.';
+
+  @override
+  String get auto_library_update_never => 'Never';
+
+  @override
+  String get auto_library_update_12_hours => 'Every 12 hours';
+
+  @override
+  String get auto_library_update_daily => 'Daily';
+
+  @override
+  String get auto_library_update_2_days => 'Every 2 days';
+
+  @override
+  String get auto_library_update_weekly => 'Weekly';
+
+  @override
+  String get auto_library_update_wifi_only => 'Only on Wi-Fi';
+
+  @override
+  String get auto_library_update_wifi_only_subtitle =>
+      'Skip the scheduled update while on mobile data.';
 }

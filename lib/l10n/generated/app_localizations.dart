@@ -1937,12 +1937,6 @@ abstract class AppLocalizations {
   /// **'Sync'**
   String get syncing;
 
-  /// No description provided for @sync_password.
-  ///
-  /// In en, this message translates to:
-  /// **'Password (at least 8 characters)'**
-  String get sync_password;
-
   /// No description provided for @sync_logged.
   ///
   /// In en, this message translates to:
@@ -1955,35 +1949,23 @@ abstract class AppLocalizations {
   /// **'Sync your progress across multiple devices via a self-hosted \nserver. Check out our discord server for more info!'**
   String get syncing_subtitle;
 
-  /// No description provided for @last_sync_manga.
+  /// No description provided for @last_sync.
   ///
   /// In en, this message translates to:
-  /// **'Last manga sync at: '**
-  String get last_sync_manga;
+  /// **'Last sync at: '**
+  String get last_sync;
 
-  /// No description provided for @last_sync_history.
+  /// No description provided for @sync_login_browser.
   ///
   /// In en, this message translates to:
-  /// **'Last history sync at: '**
-  String get last_sync_history;
-
-  /// No description provided for @last_sync_update.
-  ///
-  /// In en, this message translates to:
-  /// **'Last update sync at: '**
-  String get last_sync_update;
+  /// **'Log in with browser'**
+  String get sync_login_browser;
 
   /// No description provided for @sync_server.
   ///
   /// In en, this message translates to:
   /// **'Sync Server Address'**
   String get sync_server;
-
-  /// No description provided for @sync_login_invalid_creds.
-  ///
-  /// In en, this message translates to:
-  /// **'Invalid email or password'**
-  String get sync_login_invalid_creds;
 
   /// No description provided for @sync_starting.
   ///
@@ -2009,6 +1991,18 @@ abstract class AppLocalizations {
   /// **'Sync skipped — restore in progress'**
   String get sync_restore_in_progress;
 
+  /// No description provided for @sync_progress_percent.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing… {percent}%'**
+  String sync_progress_percent(Object percent);
+
+  /// No description provided for @sync_progress_indeterminate.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing…'**
+  String get sync_progress_indeterminate;
+
   /// No description provided for @sync_button_sync.
   ///
   /// In en, this message translates to:
@@ -2024,7 +2018,7 @@ abstract class AppLocalizations {
   /// No description provided for @sync_button_upload_info.
   ///
   /// In en, this message translates to:
-  /// **'This operation will fully replace the remote data with local data!'**
+  /// **'This device\'s data will overwrite the server\'s for anything it also has. Nothing on the server gets deleted.'**
   String get sync_button_upload_info;
 
   /// No description provided for @sync_button_download.
@@ -2036,7 +2030,7 @@ abstract class AppLocalizations {
   /// No description provided for @sync_button_download_info.
   ///
   /// In en, this message translates to:
-  /// **'This operation will fully replace the local data with remote data!'**
+  /// **'Pulls in everything from the server. Nothing on this device gets deleted.'**
   String get sync_button_download_info;
 
   /// No description provided for @sync_status_not_configured.
@@ -2074,12 +2068,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'General'**
   String get sync_section_general;
-
-  /// No description provided for @sync_section_data_types.
-  ///
-  /// In en, this message translates to:
-  /// **'What to sync'**
-  String get sync_section_data_types;
 
   /// No description provided for @sync_on.
   ///
@@ -3797,24 +3785,6 @@ abstract class AppLocalizations {
   /// **'Show current cover image in Discord'**
   String get rpc_show_cover_image;
 
-  /// No description provided for @sync_enable_histories.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync history data'**
-  String get sync_enable_histories;
-
-  /// No description provided for @sync_enable_updates.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync update data'**
-  String get sync_enable_updates;
-
-  /// No description provided for @sync_enable_settings.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync settings'**
-  String get sync_enable_settings;
-
   /// No description provided for @enable_mpv.
   ///
   /// In en, this message translates to:
@@ -4966,6 +4936,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Invert rotation direction'**
   String get dual_page_rotate_to_fit_invert;
+
+  /// No description provided for @double_page_single_first_page.
+  ///
+  /// In en, this message translates to:
+  /// **'Single first page'**
+  String get double_page_single_first_page;
+
+  /// No description provided for @double_page_single_first_page_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Display the first page alone in double page mode'**
+  String get double_page_single_first_page_subtitle;
 
   /// No description provided for @landscape_zoom.
   ///
@@ -6412,6 +6394,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get cloud_drive_qr_retry;
+
+  /// No description provided for @auto_library_update.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic library updates'**
+  String get auto_library_update;
+
+  /// No description provided for @auto_library_update_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check every entry in your library for new chapters when the app starts.'**
+  String get auto_library_update_subtitle;
+
+  /// No description provided for @auto_library_update_never.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get auto_library_update_never;
+
+  /// No description provided for @auto_library_update_12_hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 12 hours'**
+  String get auto_library_update_12_hours;
+
+  /// No description provided for @auto_library_update_daily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get auto_library_update_daily;
+
+  /// No description provided for @auto_library_update_2_days.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 2 days'**
+  String get auto_library_update_2_days;
+
+  /// No description provided for @auto_library_update_weekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get auto_library_update_weekly;
+
+  /// No description provided for @auto_library_update_wifi_only.
+  ///
+  /// In en, this message translates to:
+  /// **'Only on Wi-Fi'**
+  String get auto_library_update_wifi_only;
+
+  /// No description provided for @auto_library_update_wifi_only_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip the scheduled update while on mobile data.'**
+  String get auto_library_update_wifi_only_subtitle;
 }
 
 class _AppLocalizationsDelegate

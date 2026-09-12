@@ -1045,9 +1045,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get syncing => 'Synchronisierung';
 
   @override
-  String get sync_password => 'Passwort (mind. 8 Zeichen)';
-
-  @override
   String get sync_logged => 'Login erfolgreich!';
 
   @override
@@ -1055,19 +1052,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Synchronisiere deinen Fortschritt über mehrere Geräte mithilfe \neines selbstgehosteten Servers. Mehr Info gibt es bei unserem Discord Server!';
 
   @override
-  String get last_sync_manga => 'Manga zuletzt synchronisiert: ';
+  String get last_sync => 'Last sync at: ';
 
   @override
-  String get last_sync_history => 'Verlauf zuletzt synchronisiert: ';
-
-  @override
-  String get last_sync_update => 'Update zuletzt synchronisiert: ';
+  String get sync_login_browser => 'Log in with browser';
 
   @override
   String get sync_server => 'Sync Server IP Adresse / Domain';
-
-  @override
-  String get sync_login_invalid_creds => 'Ungültiger Email oder Passwort';
 
   @override
   String get sync_starting => 'Sync gestartet...';
@@ -1081,6 +1072,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get sync_restore_in_progress =>
       'Synchronisierung übersprungen – Wiederherstellung läuft';
+
+  @override
+  String sync_progress_percent(Object percent) {
+    return 'Syncing… $percent%';
+  }
+
+  @override
+  String get sync_progress_indeterminate => 'Syncing…';
 
   @override
   String get sync_button_sync => 'Jetzt synchronisieren';
@@ -1117,9 +1116,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get sync_section_general => 'Allgemein';
-
-  @override
-  String get sync_section_data_types => 'Zu synchronisierende Daten';
 
   @override
   String get sync_on => 'Sync aktivieren';
@@ -2068,15 +2064,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get rpc_show_cover_image => 'Aktuelles Cover-Bild in Discord anzeigen';
 
   @override
-  String get sync_enable_histories => 'Verlaufsdaten synchronisieren';
-
-  @override
-  String get sync_enable_updates => 'Aktualisierungsdaten synchronisieren';
-
-  @override
-  String get sync_enable_settings => 'Einstellungen synchronisieren';
-
-  @override
   String get enable_mpv => 'mpv Shader / Skripte aktivieren';
 
   @override
@@ -2734,6 +2721,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get dual_page_rotate_to_fit_invert => 'Drehrichtung umkehren';
+
+  @override
+  String get double_page_single_first_page => 'Single first page';
+
+  @override
+  String get double_page_single_first_page_subtitle =>
+      'Display the first page alone in double page mode';
 
   @override
   String get landscape_zoom => 'Automatischer Querformat-Zoom';
@@ -3604,4 +3598,33 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get cloud_drive_qr_retry => 'Retry';
+
+  @override
+  String get auto_library_update => 'Automatic library updates';
+
+  @override
+  String get auto_library_update_subtitle =>
+      'Check every entry in your library for new chapters when the app starts.';
+
+  @override
+  String get auto_library_update_never => 'Never';
+
+  @override
+  String get auto_library_update_12_hours => 'Every 12 hours';
+
+  @override
+  String get auto_library_update_daily => 'Daily';
+
+  @override
+  String get auto_library_update_2_days => 'Every 2 days';
+
+  @override
+  String get auto_library_update_weekly => 'Weekly';
+
+  @override
+  String get auto_library_update_wifi_only => 'Only on Wi-Fi';
+
+  @override
+  String get auto_library_update_wifi_only_subtitle =>
+      'Skip the scheduled update while on mobile data.';
 }

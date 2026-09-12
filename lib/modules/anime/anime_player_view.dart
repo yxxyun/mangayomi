@@ -24,6 +24,7 @@ import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/video.dart' as vid;
 import 'package:mangayomi/modules/anime/providers/anime_player_controller_provider.dart';
 import 'package:mangayomi/modules/anime/providers/auto_play_next_provider.dart';
+import 'package:mangayomi/modules/anime/utils/player_lifecycle.dart';
 import 'package:mangayomi/modules/anime/widgets/aniskip_countdown_btn.dart';
 import 'package:mangayomi/modules/anime/widgets/tv_player_controls.dart';
 import 'package:mangayomi/modules/anime/widgets/tv_player_settings_panel.dart';
@@ -78,10 +79,15 @@ class _AnimePlayerViewState extends riv.ConsumerState<AnimePlayerView> {
   late final Chapter episode = chapterRepository.getById(widget.episodeId);
   List<String> _infoHashList = [];
   bool desktopFullScreenPlayer = false;
+  bool _episodeReplacementInProgress = false;
   @override
   void dispose() {
-    if (isDesktop) {
-      setFullScreen(value: desktopFullScreenPlayer);
+    if (shouldExitDesktopFullscreenOnDispose(
+      isDesktop: isDesktop,
+      isFullscreen: desktopFullScreenPlayer,
+      isEpisodeReplacement: _episodeReplacementInProgress,
+    )) {
+      unawaited(setFullScreen(value: false));
     }
     for (var infoHash in _infoHashList) {
       MTorrentServer().removeTorrent(infoHash);
@@ -115,6 +121,17 @@ class _AnimePlayerViewState extends riv.ConsumerState<AnimePlayerView> {
   @override
   Widget build(BuildContext context) {
     final defaultSubtitleLang = ref.watch(defaultSubtitleLangStateProvider);
+    ref.listen(getVideoListProvider(episode: episode), (previous, next) {
+      if (next is riv.AsyncData) {
+        final infoHashes = next.value?.$3 ?? [];
+        _infoHashList = infoHashes;
+        if (!mounted) {
+          for (var infoHash in infoHashes) {
+            MTorrentServer().removeTorrent(infoHash);
+          }
+        }
+      }
+    });
     final serversData = ref.watch(getVideoListProvider(episode: episode));
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     return serversData.when(
@@ -144,8 +161,12 @@ class _AnimePlayerViewState extends riv.ConsumerState<AnimePlayerView> {
           videos: videos,
           isLocal: isLocal,
           isTorrent: infoHashList.isNotEmpty,
+          infoHashList: infoHashList,
           desktopFullScreenPlayer: (value) {
             desktopFullScreenPlayer = value;
+          },
+          onEpisodeReplacement: () {
+            _episodeReplacementInProgress = true;
           },
           mpvDirectory: mpvDirectory,
         );
@@ -192,8 +213,10 @@ class AnimeStreamPage extends riv.ConsumerStatefulWidget {
   final String defaultSubtitle;
   final bool isLocal;
   final bool isTorrent;
+  final List<String> infoHashList;
   final Directory? mpvDirectory;
   final void Function(bool) desktopFullScreenPlayer;
+  final VoidCallback onEpisodeReplacement;
   const AnimeStreamPage({
     super.key,
     required this.defaultSubtitle,
@@ -201,7 +224,9 @@ class AnimeStreamPage extends riv.ConsumerStatefulWidget {
     required this.videos,
     required this.episode,
     required this.isTorrent,
+    this.infoHashList = const [],
     required this.desktopFullScreenPlayer,
+    required this.onEpisodeReplacement,
     required this.mpvDirectory,
   });
 
@@ -220,6 +245,8 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
         _AlwaysOnTopStateMixin,
         TickerProviderStateMixin,
         WidgetsBindingObserver {
+  bool _routeExitInProgress = false;
+  bool _videoTextureVisible = true;
   late final GlobalKey<VideoState> _key = GlobalKey<VideoState>();
   late final useLibass = ref.read(useLibassStateProvider);
   late final useMpvConfig = ref.read(useMpvConfigStateProvider);
@@ -322,6 +349,11 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
   bool _hasOpeningSkip = false;
   bool _hasEndingSkip = false;
   bool _initSubtitleAndAudio = true;
+  // Whatever subtitle/audio track is actually active right now, whether
+  // picked by the user or applied as the default - so a quality change can
+  // restore it instead of always falling back to the default track.
+  SubtitleTrack? _activeSubtitleTrack;
+  AudioTrack? _activeAudioTrack;
   bool _includeSubtitles = false;
   int _subDelay = 0;
   final _subDelayController = TextEditingController(text: "0");
@@ -342,20 +374,38 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
   bool get hasNextEpisode => _streamController.hasNextEpisode;
 
   late final StreamSubscription<bool> _completed = _player.stream.completed
-      .listen((val) {
-        if (hasNextEpisode && val && ref.read(autoPlayNextEpisodeProvider)) {
-          if (mounted) {
-            pushToNewEpisode(context, _streamController.getNextEpisode());
-          }
-        }
-        // If the last episode of an Anime has ended, exit fullscreen mode
-        final isFullScreen = ref.read(fullscreenProvider);
-        if (!hasNextEpisode && val && isDesktop && isFullScreen) {
-          setFullScreen(value: false);
-          ref.read(fullscreenProvider.notifier).state = false;
-          widget.desktopFullScreenPlayer.call(false);
-        }
-      });
+      .listen(_handlePlaybackCompleted);
+
+  Future<void> _handlePlaybackCompleted(bool completed) async {
+    if (!completed || !mounted) return;
+
+    _watchStopwatch.stop();
+    final reportedDuration = _currentTotalDuration.value;
+    final totalDuration =
+        reportedDuration != null && reportedDuration > Duration.zero
+        ? reportedDuration
+        : _player.state.duration;
+    await _streamController.completeEpisode(
+      totalDuration,
+      elapsedSeconds: _watchStopwatch.elapsed.inSeconds,
+    );
+    _watchStopwatch.reset();
+    if (!mounted) return;
+
+    final hasNext = hasNextEpisode;
+    if (hasNext && ref.read(autoPlayNextEpisodeProvider)) {
+      pushToNewEpisode(context, _streamController.getNextEpisode());
+      return;
+    }
+
+    // If the last episode of an Anime has ended, exit fullscreen mode.
+    final isFullScreen = ref.read(fullscreenProvider);
+    if (!hasNext && isDesktop && isFullScreen) {
+      setFullScreen(value: false);
+      ref.read(fullscreenProvider.notifier).state = false;
+      widget.desktopFullScreenPlayer.call(false);
+    }
+  }
 
   Future<void> _handleMpvEvents(Pointer<generated.mpv_event> event) async {
     try {
@@ -720,11 +770,47 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     _customButtons.value = customButtons;
   }
 
-  void pushToNewEpisode(BuildContext context, Chapter episode) {
+
+  Future<void> pushToNewEpisode(BuildContext context, Chapter episode) async {
+    if (_routeExitInProgress) return;
+    _routeExitInProgress = true;
+    bool _hasPushedToNewEpisode = false;
     widget.desktopFullScreenPlayer.call(ref.read(fullscreenProvider));
+    widget.onEpisodeReplacement();
+    await _retireVideoTexture();
     if (context.mounted) {
       pushReplacementMangaReaderView(context: context, chapter: episode);
     }
+  }
+
+  Future<void> _retireVideoTexture() async {
+    if (!_videoTextureVisible || !mounted) return;
+    await retirePlaybackSurface(
+      hideSurface: () {
+        if (mounted) setState(() => _videoTextureVisible = false);
+      },
+      waitForFrame: () => WidgetsBinding.instance.endOfFrame,
+    );
+  }
+
+  Future<void> _exitDesktopFullScreen() async {
+    final isFullScreen = await setFullScreen(value: false);
+    if (!mounted) return;
+    ref.read(fullscreenProvider.notifier).state = isFullScreen;
+    widget.desktopFullScreenPlayer.call(isFullScreen);
+  }
+
+  Future<void> _goBackToDetail() async {
+    if (_routeExitInProgress) return;
+    _routeExitInProgress = true;
+    if (isDesktop && ref.read(fullscreenProvider)) {
+      await _exitDesktopFullScreen();
+    }
+    restoreSystemUI();
+    await _retireVideoTexture();
+    if (!mounted) return;
+    _firstTime = true;
+    Navigator.pop(context);
   }
 
   void _unifiedPositionHandler(Duration position) {
@@ -739,7 +825,16 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     _currentPosition.value = position;
     if (_initSubtitleAndAudio) {
       _initSubtitleAndAudio = false;
-      if (_firstVid.subtitles?.isNotEmpty ?? false) {
+      if (_activeSubtitleTrack != null) {
+        try {
+          _player.setSubtitleTrack(_activeSubtitleTrack!);
+        } catch (_) {}
+        if (_activeAudioTrack != null) {
+          try {
+            _player.setAudioTrack(_activeAudioTrack!);
+          } catch (_) {}
+        }
+      } else if (_firstVid.subtitles?.isNotEmpty ?? false) {
         try {
           final defaultTrack = _firstVid.subtitles!.firstWhere(
             (sub) => sub.label == widget.defaultSubtitle,
@@ -750,18 +845,19 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
           final track = (file.startsWith("http") || file.startsWith("file"))
               ? SubtitleTrack.uri(file, title: label, language: label)
               : SubtitleTrack.data(file, title: label, language: label);
+          _activeSubtitleTrack = track;
           _player.setSubtitleTrack(track);
         } catch (_) {}
         if (_firstVid.audios?.isNotEmpty ?? false) {
           try {
             final at = _firstVid.audios!.first;
-            _player.setAudioTrack(
-              AudioTrack.uri(
-                at.file ?? "",
-                title: at.label,
-                language: at.label,
-              ),
+            final track = AudioTrack.uri(
+              at.file ?? "",
+              title: at.label,
+              language: at.label,
             );
+            _activeAudioTrack = track;
+            _player.setAudioTrack(track);
           } catch (_) {}
         }
       }
@@ -846,7 +942,10 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
       _player,
       configuration: VideoControllerConfiguration(
         hwdec: hwdecMode,
-        enableHardwareAcceleration: enableHardwareAccel,
+        enableHardwareAcceleration: shouldUseHardwareAcceleratedVideoOutput(
+          userEnabled: enableHardwareAccel,
+          isWindows: Platform.isWindows,
+        ),
         vo: Platform.isAndroid
             ? useGpuNext
                   ? "gpu-next"
@@ -882,17 +981,19 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
         "$defaultSkipIntroLength",
       );
     } catch (_) {}
-    if (isDesktop && _firstTime) {
-      final globalFullscreen = ref.read(fullScreenPlayerStateProvider);
-      // Delay fullscreen until after the first frame so the window is ready.
-      // On Windows, calling setFullScreen before the widget tree is built
-      // can silently fail, leaving the title bar visible.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        setFullScreen(value: globalFullscreen);
-        ref.read(fullscreenProvider.notifier).state = globalFullscreen;
-        widget.desktopFullScreenPlayer.call(globalFullscreen);
-      });
-      _firstTime = false;
+    if (isDesktop) {
+      if (_firstTime) {
+        final globalFullscreen = ref.read(fullScreenPlayerStateProvider);
+        // Delay fullscreen until after the first frame so the window is ready.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          setFullScreen(value: globalFullscreen);
+          ref.read(fullscreenProvider.notifier).state = globalFullscreen;
+          widget.desktopFullScreenPlayer.call(globalFullscreen);
+        });
+        _firstTime = false;
+      } else {
+        widget.desktopFullScreenPlayer.call(ref.read(fullscreenProvider));
+      }
     }
     if (!isDesktop) {
       final forceLandscape = ref.read(forceLandscapePlayerStateProvider);
@@ -1039,10 +1140,18 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     _subSpeedController.removeListener(_onSubSpeedChanged);
     WidgetsBinding.instance.removeObserver(this);
     _setCurrentPosition(true, saveWatchTime: true);
-    _player.stop();
-    _completed.cancel();
-    _currentPositionSub.cancel();
-    _currentTotalDurationSub.cancel();
+    final playerCleanup = disposePlaybackSession(
+      listenerCancellations: [
+        _completed.cancel(),
+        _currentPositionSub.cancel(),
+        _currentTotalDurationSub.cancel(),
+      ],
+      beforeDisposePlayer: Platform.isWindows
+          ? () => Future<void>.delayed(const Duration(milliseconds: 250))
+          : null,
+      disposePlayer: _player.dispose,
+    );
+    unawaited(playerCleanup.catchError((_) {}));
     _currentPosition.dispose();
     _currentTotalDuration.dispose();
     _video.dispose();
@@ -1059,7 +1168,11 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     discordRpc?.showIdleText();
     discordRpc?.showOriginalTimestamp();
     _streamController.keepAliveLink?.close();
-    _player.dispose();
+    if (widget.isTorrent) {
+      for (final hash in widget.infoHashList) {
+        MTorrentServer().removeTorrent(hash);
+      }
+    }
     super.dispose();
   }
 
@@ -1397,6 +1510,7 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
               onTap: () {
                 Navigator.pop(context);
                 try {
+                  _activeSubtitleTrack = sub.subtitle!;
                   _player.setSubtitleTrack(sub.subtitle!);
                 } catch (_) {}
               },
@@ -1410,7 +1524,9 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
                 final file = await FilePicker.pickFile();
 
                 if (file != null && context.mounted) {
-                  _player.setSubtitleTrack(SubtitleTrack.uri(file.path!));
+                  final track = SubtitleTrack.uri(file.path!);
+                  _activeSubtitleTrack = track;
+                  _player.setSubtitleTrack(track);
                 }
                 if (!context.mounted) return;
                 Navigator.pop(context);
@@ -1431,13 +1547,13 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
                   isLocal: widget.isLocal,
                 ) as ImdbSubtitle?;
                 if (subtitle != null && context.mounted) {
-                  _player.setSubtitleTrack(
-                    SubtitleTrack.uri(
-                      subtitle.url!,
-                      title: subtitle.language,
-                      language: subtitle.language,
-                    ),
+                  final track = SubtitleTrack.uri(
+                    subtitle.url!,
+                    title: subtitle.language,
+                    language: subtitle.language,
                   );
+                  _activeSubtitleTrack = track;
+                  _player.setSubtitleTrack(track);
                 }
                 if (!context.mounted) return;
                 Navigator.pop(context);
@@ -1511,6 +1627,7 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
             onTap: () {
               Navigator.pop(context);
               try {
+                _activeAudioTrack = aud.audio!;
                 _player.setAudioTrack(aud.audio!);
               } catch (_) {}
             },
@@ -1652,6 +1769,7 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
         selected: selected,
         onTap: () {
           try {
+            _activeSubtitleTrack = sub.subtitle!;
             _player.setSubtitleTrack(sub.subtitle!);
           } catch (_) {}
         },
@@ -1710,6 +1828,7 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
         selected: selected,
         onTap: () {
           try {
+            _activeAudioTrack = aud.audio!;
             _player.setAudioTrack(aud.audio!);
           } catch (_) {}
         },
@@ -1830,7 +1949,7 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
       // Direct pop, not maybePop: the on-screen back arrow always exits the
       // player, bypassing the PopScope that makes the remote Back hide the
       // panel first.
-      onBack: () => Navigator.pop(context),
+      onBack: _goBackToDetail,
       onRestart: () => _player.seek(Duration.zero),
       onSettings: () {
         // On TV the settings open as the docked side panel; phones/desktop keep
@@ -2232,21 +2351,7 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
         children: [
           BackButton(
             color: Colors.white,
-            onPressed: () {
-              if (isDesktop && fullScreen) {
-                setFullScreen(value: !fullScreen);
-                ref.read(fullscreenProvider.notifier).state = !fullScreen;
-                widget.desktopFullScreenPlayer.call(!fullScreen);
-              } else {
-                restoreSystemUI();
-              }
-              if (mounted) {
-                // Set variable to true, so the player uses the global
-                // "Use Fullscreen" setting again.
-                _firstTime = true;
-                Navigator.pop(context);
-              }
-            },
+            onPressed: _goBackToDetail,
           ),
           Flexible(
             child: ListTile(
@@ -2372,7 +2477,8 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     final splitSettings = isTv && _tvSettingsOpen;
     final Widget player = Stack(
       children: [
-        Video(
+        if (_videoTextureVisible)
+          Video(
           pip: const PipConfig(autoEnter: true),
           subtitleViewConfiguration: SubtitleViewConfiguration(
             visible: false,
@@ -2424,7 +2530,9 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
           width: splitSettings ? null : context.width(1),
           height: splitSettings ? null : context.height(1),
           resumeUponEnteringForegroundMode: true,
-        ),
+          )
+        else
+          const SizedBox.expand(),
         Stack(
           alignment: AlignmentDirectional.center,
           children: [

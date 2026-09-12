@@ -1046,9 +1046,6 @@ class AppLocalizationsId extends AppLocalizations {
   String get syncing => 'Sinkronisasi';
 
   @override
-  String get sync_password => 'Kata sandi (minimal 8 karakter)';
-
-  @override
   String get sync_logged => 'Berhasil masuk';
 
   @override
@@ -1056,19 +1053,13 @@ class AppLocalizationsId extends AppLocalizations {
       'Sinkronkan kemajuan Anda di beberapa perangkat melalui \nserver yang dihosting sendiri. Lihat server discord kami untuk info lebih lanjut!';
 
   @override
-  String get last_sync_manga => 'Sinkronisasi manga terakhir di:';
+  String get last_sync => 'Last sync at: ';
 
   @override
-  String get last_sync_history => 'Sinkronisasi riwayat terakhir pada:';
-
-  @override
-  String get last_sync_update => 'Sinkronisasi pembaruan terakhir pada:';
+  String get sync_login_browser => 'Log in with browser';
 
   @override
   String get sync_server => 'Alamat Server Sinkronisasi';
-
-  @override
-  String get sync_login_invalid_creds => 'Email atau kata sandi tidak valid';
 
   @override
   String get sync_starting => 'Memulai sinkronisasi...';
@@ -1082,6 +1073,14 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get sync_restore_in_progress =>
       'Sinkronisasi dilewati — pemulihan sedang berlangsung';
+
+  @override
+  String sync_progress_percent(Object percent) {
+    return 'Syncing… $percent%';
+  }
+
+  @override
+  String get sync_progress_indeterminate => 'Syncing…';
 
   @override
   String get sync_button_sync => 'Sinkronkan progres';
@@ -1117,9 +1116,6 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get sync_section_general => 'Umum';
-
-  @override
-  String get sync_section_data_types => 'Yang disinkronkan';
 
   @override
   String get sync_on => 'Aktifkan sinkronisasi';
@@ -2057,15 +2053,6 @@ class AppLocalizationsId extends AppLocalizations {
       'Tampilkan gambar sampul saat ini di Discord';
 
   @override
-  String get sync_enable_histories => 'Sinkronkan data riwayat';
-
-  @override
-  String get sync_enable_updates => 'Sinkronkan data pembaruan';
-
-  @override
-  String get sync_enable_settings => 'Sinkronkan pengaturan';
-
-  @override
   String get enable_mpv => 'Aktifkan shader / skrip mpv';
 
   @override
@@ -2716,6 +2703,13 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get dual_page_rotate_to_fit_invert => 'Balikkan arah rotasi';
+
+  @override
+  String get double_page_single_first_page => 'Single first page';
+
+  @override
+  String get double_page_single_first_page_subtitle =>
+      'Display the first page alone in double page mode';
 
   @override
   String get landscape_zoom => 'Zoom lanskap otomatis';
@@ -3583,4 +3577,33 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get cloud_drive_qr_retry => 'Retry';
+
+  @override
+  String get auto_library_update => 'Automatic library updates';
+
+  @override
+  String get auto_library_update_subtitle =>
+      'Check every entry in your library for new chapters when the app starts.';
+
+  @override
+  String get auto_library_update_never => 'Never';
+
+  @override
+  String get auto_library_update_12_hours => 'Every 12 hours';
+
+  @override
+  String get auto_library_update_daily => 'Daily';
+
+  @override
+  String get auto_library_update_2_days => 'Every 2 days';
+
+  @override
+  String get auto_library_update_weekly => 'Weekly';
+
+  @override
+  String get auto_library_update_wifi_only => 'Only on Wi-Fi';
+
+  @override
+  String get auto_library_update_wifi_only_subtitle =>
+      'Skip the scheduled update while on mobile data.';
 }

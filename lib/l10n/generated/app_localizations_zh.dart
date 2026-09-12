@@ -1024,9 +1024,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncing => '同步';
 
   @override
-  String get sync_password => '密码（至少8个字符）';
-
-  @override
   String get sync_logged => '登录成功';
 
   @override
@@ -1034,19 +1031,13 @@ class AppLocalizationsZh extends AppLocalizations {
       '通过自托管的 \n服务器在多个设备上同步你的进度。查看我们的 discord 服务器，了解更多信息！';
 
   @override
-  String get last_sync_manga => '最新漫画同步于: ';
+  String get last_sync => 'Last sync at: ';
 
   @override
-  String get last_sync_history => '最后历史同步时间：';
-
-  @override
-  String get last_sync_update => '最后更新同步于: ';
+  String get sync_login_browser => 'Log in with browser';
 
   @override
   String get sync_server => '同步服务器地址';
-
-  @override
-  String get sync_login_invalid_creds => '无效的电子邮件或密码';
 
   @override
   String get sync_starting => '开始同步...';
@@ -1059,6 +1050,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get sync_restore_in_progress => '已跳过同步 — 正在恢复中';
+
+  @override
+  String sync_progress_percent(Object percent) {
+    return 'Syncing… $percent%';
+  }
+
+  @override
+  String get sync_progress_indeterminate => 'Syncing…';
 
   @override
   String get sync_button_sync => '同步进度';
@@ -1092,9 +1091,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get sync_section_general => '通用';
-
-  @override
-  String get sync_section_data_types => '同步内容';
 
   @override
   String get sync_on => '启用同步';
@@ -1990,15 +1986,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rpc_show_cover_image => '在 Discord 中显示当前封面图片';
 
   @override
-  String get sync_enable_histories => '同步历史记录数据';
-
-  @override
-  String get sync_enable_updates => '同步更新数据';
-
-  @override
-  String get sync_enable_settings => '同步设置';
-
-  @override
   String get enable_mpv => '启用 mpv 着色器/脚本';
 
   @override
@@ -2622,6 +2609,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dual_page_rotate_to_fit_invert => '反转旋转方向';
+
+  @override
+  String get double_page_single_first_page => 'Single first page';
+
+  @override
+  String get double_page_single_first_page_subtitle =>
+      'Display the first page alone in double page mode';
 
   @override
   String get landscape_zoom => '横屏自动缩放';
@@ -3457,4 +3451,33 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cloud_drive_qr_retry => 'Retry';
+
+  @override
+  String get auto_library_update => 'Automatic library updates';
+
+  @override
+  String get auto_library_update_subtitle =>
+      'Check every entry in your library for new chapters when the app starts.';
+
+  @override
+  String get auto_library_update_never => 'Never';
+
+  @override
+  String get auto_library_update_12_hours => 'Every 12 hours';
+
+  @override
+  String get auto_library_update_daily => 'Daily';
+
+  @override
+  String get auto_library_update_2_days => 'Every 2 days';
+
+  @override
+  String get auto_library_update_weekly => 'Weekly';
+
+  @override
+  String get auto_library_update_wifi_only => 'Only on Wi-Fi';
+
+  @override
+  String get auto_library_update_wifi_only_subtitle =>
+      'Skip the scheduled update while on mobile data.';
 }
