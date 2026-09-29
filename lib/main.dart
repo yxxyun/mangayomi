@@ -36,6 +36,7 @@ import 'package:mangayomi/router/router.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/theme_mode_state_provider.dart';
 import 'package:mangayomi/l10n/generated/app_localizations.dart';
 import 'package:mangayomi/services/library_updater.dart';
+import 'package:mangayomi/services/sync_server.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/services/m_extension_server.dart';
@@ -134,17 +135,6 @@ void main(List<String> args) async {
       }
       if (Platform.isWindows) {
         registerProtocolHandler("mangayomi");
-      }
-      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
-        final availableVersion = await WebViewEnvironment.getAvailableVersion();
-        if (availableVersion != null) {
-          final document = await getApplicationDocumentsDirectory();
-          webViewEnvironment = await WebViewEnvironment.create(
-            settings: WebViewEnvironmentSettings(
-              userDataFolder: p.join(document.path, 'flutter_inappwebview'),
-            ),
-          );
-        }
       }
       final storage = StorageProvider();
       // Don't force the Android "all files access" (MANAGE_EXTERNAL_STORAGE)
@@ -245,6 +235,22 @@ Future<void> _postLaunchInit(StorageProvider storage) async {
   }
   await storage.deleteBtDirectory();
   await webviewServer();
+  // Deferred until after runApp() creates the window: on Windows,
+  // WebViewEnvironment.create() needs COM initialized on a thread with an
+  // active message pump, which doesn't exist yet during main()'s pre-launch
+  // setup. Running it here (post-first-frame territory) avoids the
+  // "CoInitialize has not been called" PlatformException.
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+    final availableVersion = await WebViewEnvironment.getAvailableVersion();
+    if (availableVersion != null) {
+      final document = await getApplicationDocumentsDirectory();
+      webViewEnvironment = await WebViewEnvironment.create(
+        settings: WebViewEnvironmentSettings(
+          userDataFolder: p.join(document.path, 'flutter_inappwebview'),
+        ),
+      );
+    }
+  }
   // Register cloud drive services (synchronous — registration is fast)
   CloudDriveManager.instance
     ..register(AliDriveService())
@@ -285,12 +291,13 @@ class _MyAppState extends ConsumerState<MyApp>
     _setupMpvConfig();
     unawaited(ref.read(scanLocalLibraryProvider.future));
 
-    // The scheduled library refresh, when one is due. It goes last and stays
-    // quiet: launch is already busy, and this walks the whole library.
+    // The scheduled library refresh and auto-sync, when due. They go last and
+    // stay quiet: launch is already busy, and these walk data or hit network.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(seconds: 5), () {
         if (!mounted) return;
         unawaited(autoUpdateLibraryIfDue(ref));
+        unawaited(autoSyncIfDue(ref));
       });
     });
 
@@ -325,6 +332,7 @@ class _MyAppState extends ConsumerState<MyApp>
       // never run one. The interval check makes this a no-op the rest of the
       // time.
       unawaited(autoUpdateLibraryIfDue(ref));
+      unawaited(autoSyncIfDue(ref));
     }
   }
 
@@ -510,7 +518,10 @@ class _MyAppState extends ConsumerState<MyApp>
                         return;
                       }
 
-                      void addRepos(ItemType type, List<String>? urls) {
+                      Future<void> addRepos(
+                        ItemType type,
+                        List<String>? urls,
+                      ) async {
                         if (urls == null) return;
                         final current = ref.read(
                           extensionsRepoStateProvider(type),
@@ -540,14 +551,16 @@ class _MyAppState extends ConsumerState<MyApp>
                             .toList();
                         if (newRepos.isEmpty) return;
                         final updated = [...current, ...newRepos];
-                        ref
+                        await ref
                             .read(extensionsRepoStateProvider(type).notifier)
                             .set(updated);
                       }
 
-                      addRepos(ItemType.manga, mangaRepoUrls);
-                      addRepos(ItemType.anime, animeRepoUrls);
-                      addRepos(ItemType.novel, novelRepoUrls);
+                      await Future.wait([
+                        addRepos(ItemType.manga, mangaRepoUrls),
+                        addRepos(ItemType.anime, animeRepoUrls),
+                        addRepos(ItemType.novel, novelRepoUrls),
+                      ]);
                       botToast(l10n.repo_added);
                     },
                   ),

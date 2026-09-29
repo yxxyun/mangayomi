@@ -301,7 +301,9 @@ class _OnboardingScreenState extends ConsumerState<_OnboardingBody>
   Future<void> _addLocalFolder() async {
     final path =
         await LocalDirectoryAccess.pickDirectory() ??
-        await FilePicker.getDirectoryPath();
+        await FilePicker.getDirectoryPath(
+          linuxOptions: const LinuxOptions(lockParentWindow: true),
+        );
     if (path == null || !mounted) return;
     final folders = ref.read(localFoldersStateProvider).toList();
     // Picking the same folder twice used to add it twice, and the name
@@ -442,7 +444,7 @@ class _OnboardingScreenState extends ConsumerState<_OnboardingBody>
     try {
       final repo = await ref.read(getRepoInfosProvider(jsonUrl: url).future);
       if (repo == null) {
-        setState(() => _error = l10n.unsupported_repo);
+        setState(() => _error = l10n.onboarding_repo_failed);
         return;
       }
       final currentRepos = ref.read(extensionsRepoStateProvider(_repoType));
@@ -450,14 +452,16 @@ class _OnboardingScreenState extends ConsumerState<_OnboardingBody>
         final rUrl = r.jsonUrl?.trim().toLowerCase();
         final newUrl = repo.jsonUrl?.trim().toLowerCase();
         return (rUrl != null &&
-                (rUrl == newUrl ||
-                    rUrl == '$newUrl/' ||
-                    '$rUrl/' == newUrl)) ||
+                (rUrl == newUrl || rUrl == '$newUrl/' || '$rUrl/' == newUrl)) ||
             r == repo;
       });
       if (!alreadyExists) {
-        ref.read(extensionsRepoStateProvider(_repoType).notifier).set([...currentRepos, repo]);
+        await ref.read(extensionsRepoStateProvider(_repoType).notifier).set([
+          ...currentRepos,
+          repo,
+        ]);
       }
+      if (!mounted) return;
       setState(() {
         _added = repo;
         _addedFor = _repoType;

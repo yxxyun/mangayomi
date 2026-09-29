@@ -788,6 +788,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get create_extension => 'एक्सटेंशन बनाएं';
 
   @override
+  String get developer_mode => 'डेवलपर मोड';
+
+  @override
+  String get developer_mode_subtitle =>
+      'एक्सटेंशन डेवलपर उपकरण दिखाएं (एक्सटेंशन बनाएं, कोड संपादित करें)';
+
+  @override
   String get choose_extension_language => 'एक्सटेंशन की भाषा चुनें';
 
   @override
@@ -1050,10 +1057,10 @@ class AppLocalizationsHi extends AppLocalizations {
       'स्व-होस्ट किए गए सर्वर के माध्यम से कई उपकरणों में अपनी प्रगति को समन्वयित करें। अधिक जानकारी के लिए हमारे डिस्कॉर्ड सर्वर देखें!';
 
   @override
-  String get last_sync => 'Last sync at: ';
+  String get last_sync => 'अंतिम सिंक समय: ';
 
   @override
-  String get sync_login_browser => 'Log in with browser';
+  String get sync_login_browser => 'ब्राउज़र से लॉग इन करें';
 
   @override
   String get sync_server => 'सिंक सर्वर पता';
@@ -1073,11 +1080,11 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String sync_progress_percent(Object percent) {
-    return 'Syncing… $percent%';
+    return 'सिंक हो रहा है… $percent%';
   }
 
   @override
-  String get sync_progress_indeterminate => 'Syncing…';
+  String get sync_progress_indeterminate => 'सिंक हो रहा है…';
 
   @override
   String get sync_button_sync => 'प्रगति सिंक करें';
@@ -1256,6 +1263,26 @@ class AppLocalizationsHi extends AppLocalizations {
   String uninstall_extension(Object ext) {
     return '$ext एक्सटेंशन हटाएँ?';
   }
+
+  @override
+  String double_tap_search_hint(Object type) {
+    return 'सभी $type खोजने के लिए दो बार टैप करें';
+  }
+
+  @override
+  String get show_nav_double_tap_tooltip => 'डबल-टैप खोज संकेत दिखाएं';
+
+  @override
+  String get show_nav_double_tap_tooltip_subtitle =>
+      'मंगा/एनीमे/उपन्यास नेविगेशन पर एक टूलटिप दिखाएं जिसमें बताया गया हो कि डबल-टैप करने से ग्लोबल खोज खुलती है।';
+
+  @override
+  String already_in_library(Object source, Object title) {
+    return '\"$title\" पहले से ही $source के माध्यम से आपकी लाइब्रेरी में है।';
+  }
+
+  @override
+  String get add_anyway => 'फिर भी जोड़ें';
 
   @override
   String get langauage => 'भाषा';
@@ -1761,6 +1788,13 @@ class AppLocalizationsHi extends AppLocalizations {
       'उपशीर्षकों को अनुकूलित करने में सक्षम होने के लिए प्लेयर सेटिंग्स में `libass उपयोग करें` को अक्षम करें।';
 
   @override
+  String get override_ass_subtitles => 'ASS उपशीर्षक ओवरराइड करें';
+
+  @override
+  String get override_ass_subtitles_info =>
+      'ASS/SSA उपशीर्षक पर कस्टम स्टाइलिंग लागू करें';
+
+  @override
   String get torrent_stream => 'टॉरेंट स्ट्रीम';
 
   @override
@@ -1951,7 +1985,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get repo_added => 'स्रोत रिपोजिटरी जोड़ी गई!';
 
   @override
-  String get repo_already_exists => 'Repository already exists!';
+  String get repo_already_exists => 'रिपॉजिटरी पहले से मौजूद है!';
 
   @override
   String get add_repo => 'रिपोजिटरी जोड़ें?';
@@ -2165,6 +2199,18 @@ class AppLocalizationsHi extends AppLocalizations {
   String get subtitle_speed => 'गति';
 
   @override
+  String get tracks => 'ट्रैक';
+
+  @override
+  String get playback_speed => 'प्लेबैक गति';
+
+  @override
+  String get shaders => 'शेडर्स';
+
+  @override
+  String get video_fit => 'फ़िट';
+
+  @override
   String get calendar => 'कैलेंडर';
 
   @override
@@ -2371,6 +2417,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get authenticating => 'प्रमाणीकरण चल रहा है...';
+
+  @override
+  String get lock => 'Lock';
 
   @override
   String get unlock => 'अनलॉक करें';
@@ -2703,11 +2752,18 @@ class AppLocalizationsHi extends AppLocalizations {
   String get dual_page_rotate_to_fit_invert => 'घूर्णन की दिशा उलटें';
 
   @override
-  String get double_page_single_first_page => 'Single first page';
+  String get double_page_single_first_page => 'पहला पृष्ठ एकल';
 
   @override
   String get double_page_single_first_page_subtitle =>
-      'Display the first page alone in double page mode';
+      'दोहरे पृष्ठ मोड में पहले पृष्ठ को अकेले प्रदर्शित करें';
+
+  @override
+  String get double_page_auto => 'स्वचालित दोहरा पृष्ठ';
+
+  @override
+  String get double_page_auto_subtitle =>
+      'लैंडस्केप में स्वचालित रूप से दोहरे पृष्ठ मोड पर स्विच करें';
 
   @override
   String get landscape_zoom => 'स्वचालित लैंडस्केप ज़ूम';
@@ -3056,11 +3112,11 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get memory_overlay => 'Show memory usage';
+  String get memory_overlay => 'मेमोरी उपयोग दिखाएं';
 
   @override
   String get memory_overlay_subtitle =>
-      'A live readout of what the app is holding. For measuring on the device rather than guessing: watch it while scrolling the library or reading a chapter.';
+      'ऐप द्वारा उपयोग की जा रही मेमोरी का लाइव विवरण। उपकरण पर सटीक माप के लिए: लाइब्रेरी स्क्रॉल करते समय या अध्याय पढ़ते समय देखें।';
 
   @override
   String get beta => 'बीटा';
@@ -3098,14 +3154,15 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get error_reports_extension_failure =>
-      'This came from an extension, not from Mangayomi. Extensions are written and maintained by whoever runs the repository you installed this source from, so a fix has to go there. The source name and what you were opening are the useful details to give them.';
+      'यह त्रुटि किसी एक्सटेंशन से आई है, Mangayomi से नहीं। एक्सटेंशन उस रिपॉजिटरी के प्रबंधकों द्वारा लिखे और बनाए रखे जाते हैं जहाँ से आपने यह स्रोत स्थापित किया है, इसलिए सुधार वहीं होना चाहिए।';
 
   @override
-  String get error_reports_already_reported => 'Already reported';
+  String get error_reports_already_reported =>
+      'पहले ही रिपोर्ट किया जा चुका है';
 
   @override
   String get error_reports_expected_failure =>
-      'This one is usually the source or the network rather than the app: a link that expired, a server that was down, or a connection that dropped. Worth reporting only if it keeps happening on a source that works elsewhere.';
+      'यह आमतौर पर ऐप के बजाय स्रोत या नेटवर्क के कारण होता है: समाप्त हो चुका लिंक, डाउन सर्वर या टूटा हुआ कनेक्शन।';
 
   @override
   String get share_unavailable_copied =>
@@ -3225,66 +3282,66 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String global_search_no_sources(String itemType) {
-    return 'No $itemType sources are installed.';
+    return 'कोई $itemType स्रोत स्थापित नहीं है।';
   }
 
   @override
   String get global_search_no_sources_hint =>
-      'Add a repository under Browse, then install an extension for it.';
+      'ब्राउज़ के तहत एक रिपॉजिटरी जोड़ें, फिर इसके लिए एक एक्सटेंशन स्थापित करें।';
 
   @override
   String global_search_only_pinned(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count sources',
-      one: '1 source',
+      other: '$count स्रोत',
+      one: '1 स्रोत',
     );
-    return 'You have $_temp0 for this, but only pinned ones are searched.';
+    return 'आपके पास इसके लिए $_temp0 हैं, लेकिन केवल पिन किए गए स्रोतों में खोज की जाती है।';
   }
 
   @override
   String get global_search_only_pinned_hint =>
-      'Pin one, or turn off \"Only include pinned sources\" in Browse settings.';
+      'किसी एक को पिन करें, या ब्राउज़ सेटिंग्स में \"केवल पिन किए गए स्रोतों को शामिल करें\" बंद करें।';
 
   @override
   String get global_search_all_nsfw =>
-      'Every source you have for this is marked NSFW, and those are hidden.';
+      'इसके लिए आपके सभी स्रोत NSFW चिह्नित हैं और छिपे हुए हैं।';
 
   @override
   String get global_search_all_nsfw_hint =>
-      'Turn on NSFW sources in Browse settings to search them.';
+      'उन्हें खोजने के लिए ब्राउज़ सेटिंग्स में NSFW स्रोत चालू करें।';
 
   @override
   String get missing_source_check_result_message =>
       'ये प्रविष्टियां ऐसे स्रोत की ओर इशारा करती हैं जो स्थापित नहीं है। माइग्रेट करने के लिए टैप करें या एक्सटेंशन स्थापित करें।';
 
   @override
-  String get related_titles => 'Related';
+  String get related_titles => 'संबंधित';
 
   @override
-  String get related_none => 'Nothing related was found for this title.';
+  String get related_none => 'इस शीर्षक के लिए कोई संबंधित सामग्री नहीं मिली।';
 
   @override
-  String get relation_adaptation => 'Adaptation';
+  String get relation_adaptation => 'रूपांतरण';
 
   @override
-  String get relation_sequel => 'Sequel';
+  String get relation_sequel => 'सीक्वल';
 
   @override
-  String get relation_prequel => 'Prequel';
+  String get relation_prequel => 'प्रीक्वल';
 
   @override
-  String get relation_parent => 'Parent story';
+  String get relation_parent => 'मूल कहानी';
 
   @override
-  String get relation_side_story => 'Side story';
+  String get relation_side_story => 'साइड स्टोरी';
 
   @override
-  String get relation_spin_off => 'Spin-off';
+  String get relation_spin_off => 'स्पिन-ऑफ';
 
   @override
-  String get relation_alternative => 'Alternative version';
+  String get relation_alternative => 'वैकल्पिक संस्करण';
 
   @override
   String get get_apk_bridge => 'Get ApkBridge';
@@ -3572,31 +3629,85 @@ class AppLocalizationsHi extends AppLocalizations {
   String get cloud_drive_qr_retry => 'Retry';
 
   @override
-  String get auto_library_update => 'Automatic library updates';
+  String get auto_library_update => 'स्वचालित लाइब्रेरी अपडेट';
 
   @override
   String get auto_library_update_subtitle =>
-      'Check every entry in your library for new chapters when the app starts.';
+      'ऐप शुरू होने पर नए अध्यायों के लिए अपनी लाइब्रेरी की प्रत्येक प्रविष्टि की जांच करें।';
 
   @override
-  String get auto_library_update_never => 'Never';
+  String get auto_library_update_never => 'कभी नहीं';
 
   @override
-  String get auto_library_update_12_hours => 'Every 12 hours';
+  String get auto_library_update_12_hours => 'प्रत्येक 12 घंटे में';
 
   @override
-  String get auto_library_update_daily => 'Daily';
+  String get auto_library_update_daily => 'दैनिक';
 
   @override
-  String get auto_library_update_2_days => 'Every 2 days';
+  String get auto_library_update_2_days => 'प्रत्येक 2 दिन में';
 
   @override
-  String get auto_library_update_weekly => 'Weekly';
+  String get auto_library_update_weekly => 'साप्ताहिक';
 
   @override
-  String get auto_library_update_wifi_only => 'Only on Wi-Fi';
+  String get auto_library_update_wifi_only => 'केवल वाई-फ़ाई पर';
 
   @override
   String get auto_library_update_wifi_only_subtitle =>
-      'Skip the scheduled update while on mobile data.';
+      'मोबाइल डेटा पर होने पर निर्धारित अपडेट छोड़ें।';
+
+  @override
+  String get padding => 'पैडिंग';
+
+  @override
+  String get page_mode => 'पृष्ठ मोड';
+
+  @override
+  String get single_page => 'एकल पृष्ठ';
+
+  @override
+  String get double_page => 'दोहरा पृष्ठ';
+
+  @override
+  String get speed => 'गति';
+
+  @override
+  String get theme_dark => 'गहरा';
+
+  @override
+  String get theme_light => 'हल्का';
+
+  @override
+  String get theme_black => 'काला';
+
+  @override
+  String get theme_sepia => 'सेपिया';
+
+  @override
+  String get decrease => 'घटाएं';
+
+  @override
+  String get increase => 'बढ़ाएं';
+
+  @override
+  String get chapter_swipe_actions => 'अध्याय स्वाइप क्रियाएं';
+
+  @override
+  String get chapter_swipe_start => 'दाएं स्वाइप करें';
+
+  @override
+  String get chapter_swipe_end => 'बाएं स्वाइप करें';
+
+  @override
+  String get chapter_swipe_toggle_bookmark => 'बुकमार्क टॉगल करें';
+
+  @override
+  String get chapter_swipe_toggle_read => 'पढ़ा गया टॉगल करें';
+
+  @override
+  String get chapter_swipe_download => 'डाउनलोड करें';
+
+  @override
+  String get chapter_swipe_disabled => 'अक्षम';
 }

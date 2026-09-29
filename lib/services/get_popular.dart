@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:mangayomi/eval/model/m_manga.dart';
 import 'package:mangayomi/eval/model/m_pages.dart';
 import 'package:mangayomi/models/source.dart';
@@ -8,6 +6,7 @@ import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/repositories/manga_repository.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/services/jmcomic/jmcomic_service.dart';
+import 'package:mangayomi/services/local_source_page.dart';
 import 'package:mangayomi/services/wogg/wogg_service.dart';
 import 'package:mangayomi/services/yydsys/yydsys_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -20,13 +19,14 @@ Future<MPages?> getPopular(
   required int page,
 }) async {
   if (source.name == "local" && source.lang == "") {
-    final result =
-        (await mangaRepository.getLocalByItemTypeSortedByName(
-          source.itemType,
-          max(0, page - 1) * 50,
-          50,
-        )).map((e) => MManga(name: e.name)).toList();
-    return MPages(list: result, hasNextPage: true);
+    return localSourcePage(
+      (offset, limit) => mangaRepository.getLocalByItemTypeSortedByName(
+        source.itemType,
+        offset,
+        limit,
+      ),
+      page,
+    );
   }
 
   // Built-in sources: run in main isolate.

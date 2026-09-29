@@ -789,6 +789,13 @@ class AppLocalizationsTh extends AppLocalizations {
   String get create_extension => 'สร้างส่วนขยาย';
 
   @override
+  String get developer_mode => 'โหมดนักพัฒนา';
+
+  @override
+  String get developer_mode_subtitle =>
+      'แสดงเครื่องมือนักพัฒนาส่วนขยาย (สร้างส่วนขยาย, แก้ไขโค้ด)';
+
+  @override
   String get choose_extension_language => 'เลือกภาษาส่วนขยาย';
 
   @override
@@ -1050,10 +1057,10 @@ class AppLocalizationsTh extends AppLocalizations {
       'ซิงค์ความคืบหน้าของคุณระหว่างอุปกรณ์ต่างๆ ผ่านเซิร์ฟเวอร์ที่โฮสต์ด้วยตนเอง ดูข้อมูลเพิ่มเติมได้ที่เซิร์ฟเวอร์ Discord ของเรา';
 
   @override
-  String get last_sync => 'Last sync at: ';
+  String get last_sync => 'การซิงค์ล่าสุดเมื่อ: ';
 
   @override
-  String get sync_login_browser => 'Log in with browser';
+  String get sync_login_browser => 'เข้าสู่ระบบด้วยเบราว์เซอร์';
 
   @override
   String get sync_server => 'ที่อยู่เซิร์ฟเวอร์ซิงค์';
@@ -1072,11 +1079,11 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String sync_progress_percent(Object percent) {
-    return 'Syncing… $percent%';
+    return 'กำลังซิงค์… $percent%';
   }
 
   @override
-  String get sync_progress_indeterminate => 'Syncing…';
+  String get sync_progress_indeterminate => 'กำลังซิงค์…';
 
   @override
   String get sync_button_sync => 'ซิงค์ความคืบหน้า';
@@ -1254,6 +1261,27 @@ class AppLocalizationsTh extends AppLocalizations {
   String uninstall_extension(Object ext) {
     return 'ถอนการติดตั้งส่วนขยาย $ext หรือไม่?';
   }
+
+  @override
+  String double_tap_search_hint(Object type) {
+    return 'แตะสองครั้งเพื่อค้นหา $type ทั้งหมด';
+  }
+
+  @override
+  String get show_nav_double_tap_tooltip =>
+      'แสดงคำแนะนำการค้นหาด้วยการแตะสองครั้ง';
+
+  @override
+  String get show_nav_double_tap_tooltip_subtitle =>
+      'แสดงคำแนะนำในแท็บ มังงะ/อนิเมะ/นิยาย ว่าการแตะสองครั้งจะเปิดการค้นหาทั่วโลก';
+
+  @override
+  String already_in_library(Object source, Object title) {
+    return '\"$title\" มีอยู่ในคลังของคุณแล้วผ่าน $source';
+  }
+
+  @override
+  String get add_anyway => 'เพิ่มต่อไป';
 
   @override
   String get langauage => 'ภาษา';
@@ -1758,6 +1786,13 @@ class AppLocalizationsTh extends AppLocalizations {
       'ปิดการใช้งาน `ใช้ libass` ในการตั้งค่าเพลเยอร์เพื่อให้สามารถปรับแต่งคำบรรยายได้';
 
   @override
+  String get override_ass_subtitles => 'แทนที่คำบรรยาย ASS';
+
+  @override
+  String get override_ass_subtitles_info =>
+      'ใช้สไตล์ที่กำหนดเองกับคำบรรยาย ASS/SSA';
+
+  @override
   String get torrent_stream => 'สตรีมทอเรนต์';
 
   @override
@@ -1946,7 +1981,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get repo_added => 'เพิ่มที่เก็บข้อมูลแล้ว!';
 
   @override
-  String get repo_already_exists => 'Repository already exists!';
+  String get repo_already_exists => 'มีที่เก็บนี้อยู่แล้ว!';
 
   @override
   String get add_repo => 'เพิ่มที่เก็บข้อมูล?';
@@ -2157,6 +2192,18 @@ class AppLocalizationsTh extends AppLocalizations {
   String get subtitle_speed => 'ความเร็ว';
 
   @override
+  String get tracks => 'แทร็ก';
+
+  @override
+  String get playback_speed => 'ความเร็วในการเล่น';
+
+  @override
+  String get shaders => 'เชเดอร์';
+
+  @override
+  String get video_fit => 'พอดีหน้าจอ';
+
+  @override
   String get calendar => 'ปฏิทิน';
 
   @override
@@ -2362,6 +2409,9 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get authenticating => 'กำลังยืนยันตัวตน...';
+
+  @override
+  String get lock => 'Lock';
 
   @override
   String get unlock => 'ปลดล็อก';
@@ -2694,11 +2744,18 @@ class AppLocalizationsTh extends AppLocalizations {
   String get dual_page_rotate_to_fit_invert => 'กลับทิศทางการหมุน';
 
   @override
-  String get double_page_single_first_page => 'Single first page';
+  String get double_page_single_first_page => 'หน้าแรกหน้าเดียว';
 
   @override
   String get double_page_single_first_page_subtitle =>
-      'Display the first page alone in double page mode';
+      'แสดงหน้าแรกเดี่ยวๆ ในโหมดสองหน้า';
+
+  @override
+  String get double_page_auto => 'หน้าคู่อัตโนมัติ';
+
+  @override
+  String get double_page_auto_subtitle =>
+      'สลับเป็นโหมดหน้าคู่อัตโนมัติในแนวนอน';
 
   @override
   String get landscape_zoom => 'ซูมแนวนอนอัตโนมัติ';
@@ -3046,11 +3103,11 @@ class AppLocalizationsTh extends AppLocalizations {
   }
 
   @override
-  String get memory_overlay => 'Show memory usage';
+  String get memory_overlay => 'แสดงการใช้งานหน่วยความจำ';
 
   @override
   String get memory_overlay_subtitle =>
-      'A live readout of what the app is holding. For measuring on the device rather than guessing: watch it while scrolling the library or reading a chapter.';
+      'แสดงข้อมูลการใช้หน่วยความจำของแอปแบบเรียลไทม์ สำหรับการวัดบนอุปกรณ์: สังเกตขณะเลื่อนดูชั้นหนังสือหรืออ่านตอน';
 
   @override
   String get beta => 'เบต้า';
@@ -3087,14 +3144,14 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get error_reports_extension_failure =>
-      'This came from an extension, not from Mangayomi. Extensions are written and maintained by whoever runs the repository you installed this source from, so a fix has to go there. The source name and what you were opening are the useful details to give them.';
+      'ข้อผิดพลาดนี้มาจากส่วนขยาย ไม่ใช่จาก Mangayomi ส่วนขยายเขียนและดูแลโดยผู้ดูแลที่เก็บที่คุณติดตั้งแหล่งที่มานี้ การแก้ไขจึงต้องทำที่นั่น';
 
   @override
-  String get error_reports_already_reported => 'Already reported';
+  String get error_reports_already_reported => 'รายงานแล้ว';
 
   @override
   String get error_reports_expected_failure =>
-      'This one is usually the source or the network rather than the app: a link that expired, a server that was down, or a connection that dropped. Worth reporting only if it keeps happening on a source that works elsewhere.';
+      'ปัญหานี้มักเกิดจากแหล่งที่มาหรือเครือข่ายมากกว่าตัวแอป เช่น ลิงก์หมดอายุ เซิร์ฟเวอร์ล่ม หรือการเชื่อมต่อหลุด';
 
   @override
   String get share_unavailable_copied =>
@@ -3209,66 +3266,65 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String global_search_no_sources(String itemType) {
-    return 'No $itemType sources are installed.';
+    return 'ไม่ได้ติดตั้งแหล่งที่มาของ $itemType';
   }
 
   @override
   String get global_search_no_sources_hint =>
-      'Add a repository under Browse, then install an extension for it.';
+      'เพิ่มที่เก็บใต้เมนูเรียกดู จากนั้นติดตั้งส่วนขยายที่เกี่ยวข้อง';
 
   @override
   String global_search_only_pinned(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count sources',
-      one: '1 source',
+      other: '$count แหล่งที่มา',
     );
-    return 'You have $_temp0 for this, but only pinned ones are searched.';
+    return 'คุณมี $_temp0 สำหรับสิ่งนี้ แต่จะค้นหาเฉพาะแหล่งที่ถูกปักหมุดไว้เท่านั้น';
   }
 
   @override
   String get global_search_only_pinned_hint =>
-      'Pin one, or turn off \"Only include pinned sources\" in Browse settings.';
+      'ปักหมุดแหล่งที่มา หรือปิด \"รวมเฉพาะแหล่งที่มาที่ปักหมุดไว้\" ในการตั้งค่าการเรียกดู';
 
   @override
   String get global_search_all_nsfw =>
-      'Every source you have for this is marked NSFW, and those are hidden.';
+      'แหล่งที่มาทั้งหมดที่คุณมีสำหรับสิ่งนี้ถูกทำเครื่องหมายเป็น NSFW และถูกซ่อนไว้';
 
   @override
   String get global_search_all_nsfw_hint =>
-      'Turn on NSFW sources in Browse settings to search them.';
+      'เปิดใช้งานแหล่งที่มา NSFW ในการตั้งค่าการเรียกดูเพื่อค้นหา';
 
   @override
   String get missing_source_check_result_message =>
       'รายการเหล่านี้เชื่อมโยงกับแหล่งที่มาที่ไม่ได้ติดตั้ง แตะเพื่อย้ายหรือติดตั้งส่วนขยาย';
 
   @override
-  String get related_titles => 'Related';
+  String get related_titles => 'เรื่องที่เกี่ยวข้อง';
 
   @override
-  String get related_none => 'Nothing related was found for this title.';
+  String get related_none => 'ไม่พบเรื่องที่เกี่ยวข้องสำหรับเรื่องนี้';
 
   @override
-  String get relation_adaptation => 'Adaptation';
+  String get relation_adaptation => 'ดัดแปลง';
 
   @override
-  String get relation_sequel => 'Sequel';
+  String get relation_sequel => 'ภาคต่อ';
 
   @override
-  String get relation_prequel => 'Prequel';
+  String get relation_prequel => 'ภาคก่อน';
 
   @override
-  String get relation_parent => 'Parent story';
+  String get relation_parent => 'เรื่องหลัก';
 
   @override
-  String get relation_side_story => 'Side story';
+  String get relation_side_story => 'เรื่องย่อย';
 
   @override
-  String get relation_spin_off => 'Spin-off';
+  String get relation_spin_off => 'สปินออฟ';
 
   @override
-  String get relation_alternative => 'Alternative version';
+  String get relation_alternative => 'ฉบับอื่น';
 
   @override
   String get get_apk_bridge => 'Get ApkBridge';
@@ -3556,31 +3612,85 @@ class AppLocalizationsTh extends AppLocalizations {
   String get cloud_drive_qr_retry => 'Retry';
 
   @override
-  String get auto_library_update => 'Automatic library updates';
+  String get auto_library_update => 'อัปเดตชั้นหนังสืออัตโนมัติ';
 
   @override
   String get auto_library_update_subtitle =>
-      'Check every entry in your library for new chapters when the app starts.';
+      'ตรวจสอบตอนใหม่สำหรับทุกเรื่องในชั้นหนังสือของคุณเมื่อเปิดแอป';
 
   @override
-  String get auto_library_update_never => 'Never';
+  String get auto_library_update_never => 'ไม่เคย';
 
   @override
-  String get auto_library_update_12_hours => 'Every 12 hours';
+  String get auto_library_update_12_hours => 'ทุก 12 ชั่วโมง';
 
   @override
-  String get auto_library_update_daily => 'Daily';
+  String get auto_library_update_daily => 'ทุกวัน';
 
   @override
-  String get auto_library_update_2_days => 'Every 2 days';
+  String get auto_library_update_2_days => 'ทุก 2 วัน';
 
   @override
-  String get auto_library_update_weekly => 'Weekly';
+  String get auto_library_update_weekly => 'ทุกสัปดาห์';
 
   @override
-  String get auto_library_update_wifi_only => 'Only on Wi-Fi';
+  String get auto_library_update_wifi_only => 'เฉพาะ Wi-Fi เท่านั้น';
 
   @override
   String get auto_library_update_wifi_only_subtitle =>
-      'Skip the scheduled update while on mobile data.';
+      'ข้ามการอัปเดตตามกำหนดเวลาเมื่อใช้ข้อมูลมือถือ';
+
+  @override
+  String get padding => 'ระยะขอบ';
+
+  @override
+  String get page_mode => 'โหมดหน้า';
+
+  @override
+  String get single_page => 'หน้าเดี่ยว';
+
+  @override
+  String get double_page => 'หน้าคู่';
+
+  @override
+  String get speed => 'ความเร็ว';
+
+  @override
+  String get theme_dark => 'มืด';
+
+  @override
+  String get theme_light => 'สว่าง';
+
+  @override
+  String get theme_black => 'ดำ';
+
+  @override
+  String get theme_sepia => 'ซีเปีย';
+
+  @override
+  String get decrease => 'ลด';
+
+  @override
+  String get increase => 'เพิ่ม';
+
+  @override
+  String get chapter_swipe_actions => 'การกระทำการปัดตอน';
+
+  @override
+  String get chapter_swipe_start => 'ปัดไปทางขวา';
+
+  @override
+  String get chapter_swipe_end => 'ปัดไปทางซ้าย';
+
+  @override
+  String get chapter_swipe_toggle_bookmark => 'สลับบุ๊กมาร์ก';
+
+  @override
+  String get chapter_swipe_toggle_read => 'สลับสถานะการอ่าน';
+
+  @override
+  String get chapter_swipe_download => 'ดาวน์โหลด';
+
+  @override
+  String get chapter_swipe_disabled => 'ปิดใช้งาน';
 }

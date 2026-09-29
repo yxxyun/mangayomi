@@ -58,7 +58,7 @@ final class GetPopularProvider
   }
 }
 
-String _$getPopularHash() => r'b3e23f692450d2b656dc0eff46480bded19b4620';
+String _$getPopularHash() => r'efb9047ee91554a3a039c8226e76750af4489f1b';
 
 final class GetPopularFamily extends $Family
     with

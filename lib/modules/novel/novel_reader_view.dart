@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_qjs/quickjs/ffi.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/chapter.dart';
@@ -21,6 +22,7 @@ import 'package:mangayomi/modules/novel/novel_reader_controller_provider.dart';
 import 'package:mangayomi/modules/novel/tts/novel_tts_service.dart';
 import 'package:mangayomi/modules/novel/tts/tts_player_bar.dart';
 import 'package:mangayomi/modules/novel/tts/tts_settings_tab.dart';
+import 'package:mangayomi/modules/novel/utils/novel_paginator.dart';
 import 'package:mangayomi/modules/novel/utils/novel_reader_fonts.dart';
 import 'package:mangayomi/modules/novel/widgets/novel_reader_settings_sheet.dart';
 import 'package:mangayomi/modules/widgets/custom_draggable_tabbar.dart';
@@ -35,6 +37,7 @@ import 'package:mangayomi/utils/utils.dart';
 import 'package:mangayomi/modules/manga/reader/providers/push_router.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:html/dom.dart' as dom;
@@ -80,6 +83,23 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
     initialScrollOffset: 0,
     keepScrollOffset: true,
   );
+  late PageMode _pageMode = _readerController.getPageMode();
+  PageMode? _lastEffectivePageMode;
+  late ReaderMode _readerMode = _readerController.getReaderMode();
+  ReaderMode? _lastReaderMode;
+  late final PageController _spreadController = PageController();
+  int _currentSpreadIndex = 0;
+  NovelPaginationResult? _cachedPagination;
+  String? _cachedPaginationHtml;
+  double? _cachedPaginationWidth;
+  double? _cachedPaginationHeight;
+  int? _cachedPaginationFontSize;
+  double? _cachedPaginationLineHeight;
+  int? _cachedPaginationPadding;
+  String? _cachedPaginationFontFamily;
+  bool? _cachedPaginationRemoveExtraSpacing;
+  TextAlign? _cachedPaginationTextAlign;
+
   bool scrolled = false;
   bool _scrollRestoreScheduled = false;
   double offset = 0;
@@ -102,13 +122,25 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
   void dispose() {
     _readingStopwatch.stop();
     WidgetsBinding.instance.removeObserver(this);
+    if (!_readerMode.isContinuous &&
+        _cachedPagination != null &&
+        _cachedPagination!.pageCount > 0) {
+      final progress = _lastEffectivePageMode == PageMode.doublePage
+          ? _cachedPagination!.progressForSpread(_currentSpreadIndex)
+          : _cachedPagination!.progressForPage(_currentSpreadIndex);
+      offset = progress * (maxOffset > 0 ? maxOffset : 100);
+      maxOffset = (maxOffset > 0 ? maxOffset : 100);
+    }
     _readerController.setChapterOffset(offset, maxOffset, true);
     _readerController.setHistoryUpdate(
       elapsedSeconds: _readingStopwatch.elapsed.inSeconds,
     );
     _scrollController.removeListener(onScroll);
     _scrollController.dispose();
+    _spreadController.dispose();
     _rebuildDetail.close();
+    _autoScrollTicker?.dispose();
+    _autoScroll.removeListener(_onAutoScrollChanged);
     _autoScroll.value = false;
     _autoScroll.dispose();
     _autoScrollPage.dispose();
@@ -127,16 +159,31 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
     if (discordReaderSession != null) {
       unawaited(discordRpc?.endReaderSession(discordReaderSession));
     }
+    WakelockPlus.disable();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    final keepOn = ref.read(keepScreenOnReaderStateProvider);
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       _readingStopwatch.stop();
+      if (keepOn) {
+        WakelockPlus.disable();
+      }
     } else if (state == AppLifecycleState.resumed) {
       _readingStopwatch.start();
+      if (keepOn) {
+        WakelockPlus.enable();
+      }
+    }
+  }
+
+  void _initWakelock() {
+    final keepOn = ref.read(keepScreenOnReaderStateProvider);
+    if (keepOn) {
+      WakelockPlus.enable();
     }
   }
 
@@ -155,12 +202,17 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
     );
     WidgetsBinding.instance.addObserver(this);
     _readingStopwatch.start();
+    _autoScroll.addListener(_onAutoScrollChanged);
+    _initWakelock();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollController.addListener(onScroll);
       final initFontSize = ref.read(novelFontSizeStateProvider);
       setState(() {
         fontSize = initFontSize;
       });
+      if (_autoScroll.value && _isContinuousMode()) {
+        _startAutoScroll();
+      }
     });
     if (!isDesktop) SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     _discordReaderSession = discordRpc?.beginReaderSession();
@@ -169,6 +221,19 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
     _ttsIndexSub = NovelTtsService.instance.paragraphIndexStream.listen((i) {
       _ttsProgress.value = (paragraph: i, wordStart: -1, wordEnd: -1);
       _scrollToTtsParagraph(i);
+      if (_lastEffectivePageMode == PageMode.doublePage &&
+          _cachedPagination != null) {
+        final targetSpread = _cachedPagination!.spreadForBlock(i);
+        if (_spreadController.hasClients &&
+            targetSpread != _currentSpreadIndex) {
+          _currentSpreadIndex = targetSpread;
+          _spreadController.animateToPage(
+            targetSpread,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      }
     });
     _ttsStateSub = NovelTtsService.instance.stateStream.listen((s) {
       if (s == TtsState.stopped) {
@@ -219,27 +284,79 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
     _readerController.autoScrollValues().$2,
   );
   late final _autoScrollPage = ValueNotifier(_autoScroll.value);
-  void _autoPagescroll() async {
-    for (int i = 0; i < 1; i++) {
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (!_autoScroll.value) {
+
+  Ticker? _autoScrollTicker;
+  Duration _lastAutoScrollTick = Duration.zero;
+  bool _isUserDragging = false;
+
+  bool _isContinuousMode() {
+    return _readerMode.isContinuous;
+  }
+
+  void _onAutoScrollChanged() {
+    if (_autoScroll.value && _isContinuousMode()) {
+      _startAutoScroll();
+    } else {
+      _stopAutoScroll();
+    }
+  }
+
+  void _startAutoScroll() {
+    _autoScrollTicker ??= createTicker(_onAutoScrollTick);
+    _lastAutoScrollTick = Duration.zero;
+    if (!_autoScrollTicker!.isActive) {
+      _autoScrollTicker!.start();
+    }
+  }
+
+  void _stopAutoScroll() {
+    if (_autoScrollTicker != null && _autoScrollTicker!.isActive) {
+      _autoScrollTicker!.stop();
+    }
+    _lastAutoScrollTick = Duration.zero;
+  }
+
+  void _onAutoScrollTick(Duration elapsed) {
+    if (!mounted || !_autoScroll.value || !_isContinuousMode()) {
+      _stopAutoScroll();
+      return;
+    }
+    if (_isUserDragging) {
+      _lastAutoScrollTick = elapsed;
+      return;
+    }
+    if (_lastAutoScrollTick == Duration.zero) {
+      _lastAutoScrollTick = elapsed;
+      return;
+    }
+    final double dt =
+        (elapsed - _lastAutoScrollTick).inMicroseconds / 1000000.0;
+    _lastAutoScrollTick = elapsed;
+
+    if (dt <= 0 || dt > 0.1) return;
+
+    if (_scrollController.hasClients) {
+      final position = _scrollController.position;
+      final double pixelsPerSecond = _pageOffset.value * 10.0;
+      final double delta = pixelsPerSecond * dt;
+      final double currentOffset = position.pixels;
+      final double maxScroll = position.maxScrollExtent;
+      final double minScroll = position.minScrollExtent;
+
+      if (currentOffset >= maxScroll && delta > 0) {
+        _autoScroll.value = false;
+        _stopAutoScroll();
         return;
       }
-      if (_scrollController.hasClients) {
-        final currentOffset = _scrollController.offset;
-        final maxScroll = _scrollController.position.maxScrollExtent;
 
-        if (!(currentOffset >= maxScroll)) {
-          final newOffset = currentOffset + _pageOffset.value;
-          _scrollController.animateTo(
-            min(newOffset, maxScroll),
-            duration: Duration(milliseconds: 100),
-            curve: Curves.linear,
-          );
-        }
+      final double newOffset = (currentOffset + delta).clamp(
+        minScroll,
+        maxScroll,
+      );
+      if (newOffset != currentOffset) {
+        _scrollController.jumpTo(newOffset);
       }
     }
-    _autoPagescroll();
   }
 
   void _scrollToTtsParagraph(int index) {
@@ -274,19 +391,94 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(keepScreenOnReaderStateProvider, (_, next) {
+      if (next) {
+        WakelockPlus.enable();
+      } else {
+        WakelockPlus.disable();
+      }
+    });
     final backgroundColor = ref.watch(backgroundColorStateProvider);
     final fullScreenReader = ref.watch(fullScreenReaderStateProvider);
+    final doublePageAuto = ref.watch(doublePageAutoStateProvider);
+    final orientation = MediaQuery.orientationOf(context);
+    final effectivePageMode = doublePageAuto
+        ? (orientation == Orientation.landscape
+              ? PageMode.doublePage
+              : PageMode.onePage)
+        : _pageMode;
+
+    final prevEffectiveMode = _lastEffectivePageMode ?? effectivePageMode;
+    final prevReaderMode = _lastReaderMode ?? _readerMode;
+    if (prevEffectiveMode != effectivePageMode || prevReaderMode != _readerMode) {
+      if (!_readerMode.isContinuous) {
+        _autoScroll.value = false;
+        _stopAutoScroll();
+        final double progress;
+        if (prevReaderMode.isContinuous) {
+          progress = maxOffset > 0 ? (offset / maxOffset).clamp(0.0, 1.0) : 0.0;
+        } else if (_cachedPagination != null && _cachedPagination!.pageCount > 0) {
+          progress = prevEffectiveMode == PageMode.doublePage
+              ? _cachedPagination!.progressForSpread(_currentSpreadIndex)
+              : _cachedPagination!.progressForPage(_currentSpreadIndex);
+        } else {
+          progress = maxOffset > 0 ? (offset / maxOffset).clamp(0.0, 1.0) : 0.0;
+        }
+        _cachedPagination = null;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (_cachedPagination != null && _spreadController.hasClients) {
+            final targetSpread = effectivePageMode == PageMode.doublePage
+                ? _cachedPagination!.spreadForProgress(progress)
+                : _cachedPagination!.pageForProgress(progress);
+            _currentSpreadIndex = targetSpread;
+            _spreadController.jumpToPage(targetSpread);
+          }
+        });
+      } else {
+        final progress = _cachedPagination != null && _cachedPagination!.pageCount > 0
+            ? (prevEffectiveMode == PageMode.doublePage
+                ? _cachedPagination!.progressForSpread(_currentSpreadIndex)
+                : _cachedPagination!.progressForPage(_currentSpreadIndex))
+            : (maxOffset > 0 ? (offset / maxOffset).clamp(0.0, 1.0) : 0.0);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (_scrollController.hasClients) {
+            final targetOffset =
+                progress * _scrollController.position.maxScrollExtent;
+            _scrollController.jumpTo(targetOffset);
+            if (_autoScroll.value) {
+              _startAutoScroll();
+            }
+          }
+        });
+      }
+      _lastEffectivePageMode = effectivePageMode;
+      _lastReaderMode = _readerMode;
+    }
+
     return ReaderKeyboardHandler(
       onEscape: () => _goBack(context),
       onFullScreen: () => _setFullScreen(),
       onNextChapter: () => _goToChapter(true),
       onPreviousChapter: () => _goToChapter(false),
+      onNextPage: () => _onBtnTapped(100),
+      onPreviousPage: () => _onBtnTapped(-100),
     ).wrapWithKeyboardListener(
-      child: NotificationListener<UserScrollNotification>(
+      child: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
-          if (notification.direction == ScrollDirection.idle) {
-            if (_isView) {
-              _isViewFunction();
+          if (notification is ScrollStartNotification) {
+            if (notification.dragDetails != null) {
+              _isUserDragging = true;
+            }
+          } else if (notification is ScrollEndNotification) {
+            _isUserDragging = false;
+          }
+          if (notification is UserScrollNotification) {
+            if (notification.direction == ScrollDirection.idle) {
+              if (_isView) {
+                _isViewFunction();
+              }
             }
           }
           return true;
@@ -329,43 +521,8 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                                 ref.watch(novelFontFamilyStateProvider),
                               );
 
-                              Color parseColor(String hex, {Color? fallback}) {
-                                try {
-                                  String hexColor = hex.trim().replaceAll(
-                                    '#',
-                                    '',
-                                  );
-                                  // Ensure we have a valid 6-character hex color
-                                  if (hexColor.length == 6) {
-                                    return Color(
-                                      int.parse('FF$hexColor', radix: 16),
-                                    );
-                                  } else if (hexColor.length == 8) {
-                                    // Already has alpha channel
-                                    return Color(
-                                      int.parse(hexColor, radix: 16),
-                                    );
-                                  }
-                                } catch (_) {
-                                  // If parsing fails, use fallback
-                                }
-                                return fallback ?? Colors.grey;
-                              }
-
-                              TextAlign getTextAlign() {
-                                switch (textAlign) {
-                                  case NovelTextAlign.left:
-                                    return TextAlign.left;
-                                  case NovelTextAlign.center:
-                                    return TextAlign.center;
-                                  case NovelTextAlign.right:
-                                    return TextAlign.right;
-                                  case NovelTextAlign.block:
-                                    return TextAlign.justify;
-                                }
-                              }
-
-                              if (!_scrollRestoreScheduled) {
+                              if (!_scrollRestoreScheduled &&
+                                  _readerMode.isContinuous) {
                                 _scrollRestoreScheduled = true;
                                 Future.delayed(
                                   const Duration(milliseconds: 100),
@@ -382,13 +539,18 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                                                       chapter.lastPageRead!,
                                                     ) ??
                                                     0),
-                                            duration: Duration(seconds: 1),
+                                            duration: const Duration(
+                                              seconds: 1,
+                                            ),
                                             curve: Curves.fastOutSlowIn,
                                           )
                                           .then((value) {
                                             if (!mounted) return;
-                                            _autoPagescroll();
                                             scrolled = true;
+                                            if (_autoScroll.value &&
+                                                _isContinuousMode()) {
+                                              _startAutoScroll();
+                                            }
                                           });
                                     }
                                   },
@@ -396,323 +558,343 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                               }
                               return Consumer(
                                 builder: (context, ref, _) {
-                                  final fontSize = ref.read(
+                                  final fontSize = ref.watch(
                                     novelFontSizeStateProvider,
                                   );
-                                  return Scrollbar(
-                                    controller: _scrollController,
-                                    interactive: true,
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.translucent,
-                                      onTap: () {
-                                        _isViewFunction();
-                                      },
-                                      child: CustomScrollView(
-                                        controller: _scrollController,
-                                        physics: const BouncingScrollPhysics(),
-                                        slivers: [
-                                          SliverToBoxAdapter(
-                                            child:
-                                                ValueListenableBuilder<
-                                                  ({
-                                                    int paragraph,
-                                                    int wordStart,
-                                                    int wordEnd,
-                                                  })
-                                                >(
-                                                  valueListenable: _ttsProgress,
-                                                  builder: (context, tts, _) {
-                                                    String htmlData = data.$1;
-                                                    if (_showTts &&
-                                                        tts.paragraph >= 0) {
-                                                      final result =
-                                                          NovelTtsService
-                                                              .instance
-                                                              .highlightHtml(
-                                                                data.$1,
-                                                                tts.paragraph,
-                                                                wordStart: tts
-                                                                    .wordStart,
-                                                                wordEnd:
-                                                                    tts.wordEnd,
-                                                              );
-                                                      htmlData = result.$1;
-                                                      _ttsTotalBlocks =
-                                                          result.$2;
-                                                    }
-                                                    return Html(
-                                                      data: htmlData,
-                                                      style: {
-                                                        "body": Style(
-                                                          fontFamily:
-                                                              fontFamily,
-                                                          fontSize: FontSize(
-                                                            fontSize.toDouble(),
-                                                          ),
-                                                          color: parseColor(
-                                                            customTextColor,
-                                                            fallback:
-                                                                Colors.white,
-                                                          ),
-                                                          backgroundColor:
-                                                              parseColor(
-                                                                customBackgroundColor,
-                                                                fallback:
-                                                                    const Color(
-                                                                      0xFF292832,
-                                                                    ),
-                                                              ),
-                                                          margin: Margins.zero,
-                                                          padding:
-                                                              HtmlPaddings.all(
-                                                                padding
-                                                                    .toDouble(),
-                                                              ),
-                                                          lineHeight:
-                                                              LineHeight(
-                                                                lineHeight,
-                                                              ),
-                                                          textAlign:
-                                                              getTextAlign(),
-                                                        ),
-                                                        "p": Style(
-                                                          fontFamily:
-                                                              fontFamily,
-                                                          margin:
-                                                              removeExtraSpacing
-                                                              ? Margins.only(
-                                                                  bottom: 4,
-                                                                )
-                                                              : Margins.only(
-                                                                  bottom: 8,
-                                                                ),
-                                                          fontSize: FontSize(
-                                                            fontSize.toDouble(),
-                                                          ),
-                                                          lineHeight:
-                                                              LineHeight(
-                                                                lineHeight,
-                                                              ),
-                                                          textAlign:
-                                                              getTextAlign(),
-                                                        ),
-                                                        "div": Style(
-                                                          fontFamily:
-                                                              fontFamily,
-                                                          fontSize: FontSize(
-                                                            fontSize.toDouble(),
-                                                          ),
-                                                          lineHeight:
-                                                              LineHeight(
-                                                                lineHeight,
-                                                              ),
-                                                          textAlign:
-                                                              getTextAlign(),
-                                                        ),
-                                                        "span": Style(
-                                                          fontFamily:
-                                                              fontFamily,
-                                                          fontSize: FontSize(
-                                                            fontSize.toDouble(),
-                                                          ),
-                                                          lineHeight:
-                                                              LineHeight(
-                                                                lineHeight,
-                                                              ),
-                                                        ),
-                                                        "h1, h2, h3, h4, h5, h6":
-                                                            Style(
-                                                              fontFamily:
-                                                                  fontFamily,
-                                                              color: parseColor(
-                                                                customTextColor,
-                                                                fallback: Colors
-                                                                    .white,
-                                                              ),
-                                                              lineHeight:
-                                                                  LineHeight(
-                                                                    lineHeight,
-                                                                  ),
-                                                              textAlign:
-                                                                  getTextAlign(),
-                                                            ),
-                                                        "a": Style(
-                                                          color: Colors.blue,
-                                                          textDecoration:
-                                                              TextDecoration
-                                                                  .underline,
-                                                        ),
-                                                        "img": Style(
-                                                          width: Width(
-                                                            100,
-                                                            Unit.percent,
-                                                          ),
-                                                          height: Height.auto(),
-                                                        ),
-                                                        "table": Style(
-                                                          border: Border.all(
-                                                            color: Colors.grey,
-                                                            width: 1,
-                                                          ),
-                                                          margin:
-                                                              Margins.symmetric(
-                                                                vertical: 10,
-                                                              ),
-                                                        ),
-                                                        "td, th": Style(
-                                                          border: Border.all(
-                                                            color: Colors.grey,
-                                                            width: 0.5,
-                                                          ),
-                                                          padding:
-                                                              HtmlPaddings.all(
-                                                                8,
-                                                              ),
-                                                        ),
-                                                        "th": Style(
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          backgroundColor:
-                                                              Colors.grey
-                                                                  .withValues(
-                                                                    alpha: 0.2,
-                                                                  ),
-                                                        ),
-                                                        "blockquote": Style(
-                                                          border: Border(
-                                                            left: BorderSide(
-                                                              color:
-                                                                  Colors.grey,
-                                                              width: 4,
-                                                            ),
-                                                          ),
-                                                          padding:
-                                                              HtmlPaddings.only(
-                                                                left: 15,
-                                                              ),
-                                                          margin:
-                                                              Margins.symmetric(
-                                                                vertical: 10,
-                                                              ),
-                                                          fontStyle:
-                                                              FontStyle.italic,
-                                                        ),
-                                                        "pre, code": Style(
-                                                          backgroundColor:
-                                                              Colors.grey
-                                                                  .withValues(
-                                                                    alpha: 0.2,
-                                                                  ),
-                                                          padding:
-                                                              HtmlPaddings.all(
-                                                                8,
-                                                              ),
-                                                          fontFamily:
-                                                              'monospace',
-                                                        ),
-                                                        "hr": Style(
-                                                          margin:
-                                                              Margins.symmetric(
-                                                                vertical: 20,
-                                                              ),
-                                                        ),
-                                                        if (_showTts &&
-                                                            tts.paragraph >= 0)
-                                                          "[data-tts-active]": Style(
-                                                            backgroundColor:
-                                                                Theme.of(
-                                                                      context,
-                                                                    )
-                                                                    .colorScheme
-                                                                    .primary
-                                                                    .withValues(
-                                                                      alpha:
-                                                                          0.10,
-                                                                    ),
-                                                            border: Border(
-                                                              left: BorderSide(
-                                                                color: Theme.of(
-                                                                  context,
-                                                                ).colorScheme.primary,
-                                                                width: 3,
-                                                              ),
-                                                            ),
-                                                            padding:
-                                                                HtmlPaddings.only(
-                                                                  left: 8,
-                                                                ),
-                                                          ),
-                                                        if (_showTts &&
-                                                            tts.paragraph >= 0)
-                                                          "[data-tts-word]": Style(
-                                                            backgroundColor:
-                                                                Theme.of(
-                                                                      context,
-                                                                    )
-                                                                    .colorScheme
-                                                                    .primary
-                                                                    .withValues(
-                                                                      alpha:
-                                                                          0.35,
-                                                                    ),
-                                                            textDecoration:
-                                                                TextDecoration
-                                                                    .underline,
-                                                            textDecorationColor:
-                                                                Theme.of(
-                                                                      context,
-                                                                    )
-                                                                    .colorScheme
-                                                                    .primary,
-                                                          ),
-                                                      },
-                                                      extensions: [
-                                                        TagExtension(
-                                                          tagsToExtend: {
-                                                            "img",
-                                                            "source",
-                                                          },
-                                                          builder: (extensionContext) {
-                                                            final element =
-                                                                extensionContext
-                                                                        .node
-                                                                    as dom.Element;
-                                                            final customWidget =
-                                                                _buildCustomWidgets(
-                                                                  element,
-                                                                );
-                                                            if (customWidget !=
-                                                                null) {
-                                                              return customWidget;
-                                                            }
+                                  return ValueListenableBuilder<
+                                    ({
+                                      int paragraph,
+                                      int wordStart,
+                                      int wordEnd,
+                                    })
+                                  >(
+                                    valueListenable: _ttsProgress,
+                                    builder: (context, tts, _) {
+                                      String htmlData = data.$1;
+                                      if (_showTts && tts.paragraph >= 0) {
+                                        final result = NovelTtsService.instance
+                                            .highlightHtml(
+                                              data.$1,
+                                              tts.paragraph,
+                                              wordStart: tts.wordStart,
+                                              wordEnd: tts.wordEnd,
+                                            );
+                                        htmlData = result.$1;
+                                        _ttsTotalBlocks = result.$2;
+                                      }
 
-                                                            return const SizedBox.shrink();
-                                                          },
+                                      final parsedTextColor = _parseColor(
+                                        customTextColor,
+                                        fallback: Colors.white,
+                                      );
+                                      final parsedBackgroundColor = _parseColor(
+                                        customBackgroundColor,
+                                        fallback: const Color(0xFF292832),
+                                      );
+                                      final textAlignEnum = _getTextAlign(
+                                        textAlign,
+                                      );
+
+                                      if (!_readerMode.isContinuous) {
+                                        return LayoutBuilder(
+                                          builder: (context, constraints) {
+                                            final isDouble =
+                                                effectivePageMode ==
+                                                PageMode.doublePage;
+                                            final singlePageWidth = isDouble
+                                                ? (constraints.maxWidth - 1.0) /
+                                                    2
+                                                : constraints.maxWidth;
+                                            final pageHeight =
+                                                constraints.maxHeight;
+
+                                            if (_cachedPagination == null ||
+                                                _cachedPaginationWidth !=
+                                                    singlePageWidth ||
+                                                _cachedPaginationHeight !=
+                                                    pageHeight ||
+                                                _cachedPaginationFontSize !=
+                                                    fontSize ||
+                                                _cachedPaginationLineHeight !=
+                                                    lineHeight ||
+                                                _cachedPaginationPadding !=
+                                                    padding ||
+                                                _cachedPaginationHtml !=
+                                                    htmlData ||
+                                                _cachedPaginationFontFamily !=
+                                                    fontFamily ||
+                                                _cachedPaginationRemoveExtraSpacing !=
+                                                    removeExtraSpacing ||
+                                                _cachedPaginationTextAlign !=
+                                                    textAlignEnum) {
+                                              _cachedPagination =
+                                                  NovelPaginator.paginate(
+                                                    htmlContent: htmlData,
+                                                    pageWidth: singlePageWidth,
+                                                    pageHeight: pageHeight,
+                                                    fontSize: fontSize
+                                                        .toDouble(),
+                                                    lineHeight: lineHeight,
+                                                    padding: padding.toDouble(),
+                                                    fontFamily: fontFamily,
+                                                    removeExtraSpacing:
+                                                        removeExtraSpacing,
+                                                    textAlign: textAlignEnum,
+                                                  );
+                                              _cachedPaginationWidth =
+                                                  singlePageWidth;
+                                              _cachedPaginationHeight =
+                                                  pageHeight;
+                                              _cachedPaginationFontSize =
+                                                  fontSize;
+                                              _cachedPaginationLineHeight =
+                                                  lineHeight;
+                                              _cachedPaginationPadding =
+                                                  padding;
+                                              _cachedPaginationHtml = htmlData;
+                                              _cachedPaginationFontFamily =
+                                                  fontFamily;
+                                              _cachedPaginationRemoveExtraSpacing =
+                                                  removeExtraSpacing;
+                                              _cachedPaginationTextAlign =
+                                                  textAlignEnum;
+                                            }
+
+                                            if (!_scrollRestoreScheduled) {
+                                              _scrollRestoreScheduled = true;
+                                              final progress =
+                                                  double.tryParse(
+                                                    chapter.lastPageRead ?? '',
+                                                  ) ??
+                                                  0.0;
+                                              final targetIndex = isDouble
+                                                  ? _cachedPagination!
+                                                      .spreadForProgress(
+                                                        progress,
+                                                      )
+                                                  : _cachedPagination!
+                                                      .pageForProgress(
+                                                        progress,
+                                                      );
+                                              _currentSpreadIndex =
+                                                  targetIndex;
+                                              WidgetsBinding.instance
+                                                  .addPostFrameCallback((_) {
+                                                    if (!mounted) return;
+                                                    if (_spreadController
+                                                        .hasClients) {
+                                                      _spreadController
+                                                          .jumpToPage(
+                                                            targetIndex,
+                                                          );
+                                                      scrolled = true;
+                                                    }
+                                                  });
+                                            }
+
+                                            final pagination =
+                                                _cachedPagination!;
+                                            final totalCount = isDouble
+                                                ? pagination.spreadCount
+                                                : pagination.pageCount;
+
+                                            return Container(
+                                              color: parsedBackgroundColor,
+                                              child: PageView.builder(
+                                                controller: _spreadController,
+                                                itemCount: totalCount,
+                                                onPageChanged: (pageIndex) {
+                                                  // Keep the page swipe isolated
+                                                  // from the expensive reader
+                                                  // tree. The bottom bar already
+                                                  // listens to this stream.
+                                                  _currentSpreadIndex = pageIndex;
+                                                  final progress = isDouble
+                                                      ? pagination
+                                                          .progressForSpread(
+                                                            pageIndex,
+                                                          )
+                                                      : pagination
+                                                          .progressForPage(
+                                                            pageIndex,
+                                                          );
+                                                  offset =
+                                                      progress *
+                                                      (maxOffset > 0
+                                                          ? maxOffset
+                                                          : 100);
+                                                  maxOffset = (maxOffset > 0
+                                                      ? maxOffset
+                                                      : 100);
+                                                  _readerController
+                                                      .setChapterOffset(
+                                                        offset,
+                                                        maxOffset,
+                                                        true,
+                                                      );
+                                                  _rebuildDetail.add(offset);
+                                                },
+                                                itemBuilder: (context, index) {
+                                                  if (isDouble) {
+                                                    final leftHtml = pagination
+                                                        .leftPageForSpread(
+                                                          index,
+                                                        );
+                                                    final rightHtml = pagination
+                                                        .rightPageForSpread(
+                                                          index,
+                                                        );
+
+                                                    return Row(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .stretch,
+                                                      children: [
+                                                        Expanded(
+                                                          child: ClipRect(
+                                                            child: SingleChildScrollView(
+                                                              physics:
+                                                                  const NeverScrollableScrollPhysics(),
+                                                              child: _buildNovelHtmlWidget(
+                                                                context: context,
+                                                                htmlData: leftHtml,
+                                                                fontFamily:
+                                                                    fontFamily,
+                                                                fontSize: fontSize,
+                                                                lineHeight:
+                                                                    lineHeight,
+                                                                padding: padding,
+                                                                textAlign:
+                                                                    textAlignEnum,
+                                                                removeExtraSpacing:
+                                                                    removeExtraSpacing,
+                                                                textColor:
+                                                                    parsedTextColor,
+                                                                backgroundColor:
+                                                                    parsedBackgroundColor,
+                                                                showTts: _showTts,
+                                                                tts: tts,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        VerticalDivider(
+                                                          width: 1,
+                                                          thickness: 0.5,
+                                                          color: Colors.grey
+                                                              .withValues(
+                                                                alpha: 0.2,
+                                                              ),
+                                                        ),
+                                                        Expanded(
+                                                          child: rightHtml != null
+                                                              ? ClipRect(
+                                                                  child: SingleChildScrollView(
+                                                                    physics:
+                                                                        const NeverScrollableScrollPhysics(),
+                                                                    child: _buildNovelHtmlWidget(
+                                                                      context:
+                                                                          context,
+                                                                      htmlData:
+                                                                          rightHtml,
+                                                                      fontFamily:
+                                                                          fontFamily,
+                                                                      fontSize:
+                                                                          fontSize,
+                                                                      lineHeight:
+                                                                          lineHeight,
+                                                                      padding:
+                                                                          padding,
+                                                                      textAlign:
+                                                                          textAlignEnum,
+                                                                      removeExtraSpacing:
+                                                                          removeExtraSpacing,
+                                                                      textColor:
+                                                                          parsedTextColor,
+                                                                      backgroundColor:
+                                                                          parsedBackgroundColor,
+                                                                      showTts:
+                                                                          _showTts,
+                                                                      tts: tts,
+                                                                    ),
+                                                                  ),
+                                                                )
+                                                              : Container(
+                                                                  color:
+                                                                      parsedBackgroundColor,
+                                                                ),
                                                         ),
                                                       ],
-                                                      onLinkTap:
-                                                          (
-                                                            url,
-                                                            attributes,
-                                                            element,
-                                                          ) {
-                                                            if (url != null) {
-                                                              context.push(
-                                                                "/mangawebview",
-                                                                extra: {
-                                                                  'url': url,
-                                                                  'title': url,
-                                                                },
-                                                              );
-                                                            }
-                                                          },
                                                     );
-                                                  },
+                                                  } else {
+                                                    final pageHtml = pagination
+                                                        .pageForIndex(index);
+                                                    return ClipRect(
+                                                      child: SingleChildScrollView(
+                                                        physics:
+                                                            const NeverScrollableScrollPhysics(),
+                                                        child: _buildNovelHtmlWidget(
+                                                          context: context,
+                                                          htmlData: pageHtml,
+                                                          fontFamily: fontFamily,
+                                                          fontSize: fontSize,
+                                                          lineHeight: lineHeight,
+                                                          padding: padding,
+                                                          textAlign: textAlignEnum,
+                                                          removeExtraSpacing:
+                                                              removeExtraSpacing,
+                                                          textColor: parsedTextColor,
+                                                          backgroundColor:
+                                                              parsedBackgroundColor,
+                                                          showTts: _showTts,
+                                                          tts: tts,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }
+                                                },
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      }
+
+                                      return Scrollbar(
+                                        controller: _scrollController,
+                                        interactive: true,
+                                        child: GestureDetector(
+                                          behavior: HitTestBehavior.translucent,
+                                          onTap: () {
+                                            _isViewFunction();
+                                          },
+                                          child: CustomScrollView(
+                                            controller: _scrollController,
+                                            physics:
+                                                const BouncingScrollPhysics(),
+                                            slivers: [
+                                              SliverToBoxAdapter(
+                                                child: _buildNovelHtmlWidget(
+                                                  context: context,
+                                                  htmlData: htmlData,
+                                                  fontFamily: fontFamily,
+                                                  fontSize: fontSize,
+                                                  lineHeight: lineHeight,
+                                                  padding: padding,
+                                                  textAlign: textAlignEnum,
+                                                  removeExtraSpacing:
+                                                      removeExtraSpacing,
+                                                  textColor: parsedTextColor,
+                                                  backgroundColor:
+                                                      parsedBackgroundColor,
+                                                  showTts: _showTts,
+                                                  tts: tts,
                                                 ),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                    ),
+                                        ),
+                                      );
+                                    },
                                   );
                                 },
                               );
@@ -731,11 +913,28 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                                   final customTextColor = ref.watch(
                                     novelReaderTextColorStateProvider,
                                   );
-                                  final scrollPercentage = maxOffset > 0
-                                      ? ((offset / maxOffset) * 100)
-                                            .clamp(0, 100)
-                                            .toInt()
-                                      : 0;
+                                  final String displayLabel;
+                                  if (!_readerMode.isContinuous &&
+                                      _cachedPagination != null &&
+                                      _cachedPagination!.pageCount > 0) {
+                                    displayLabel = effectivePageMode ==
+                                            PageMode.doublePage
+                                        ? _cachedPagination!
+                                            .pageLabelForSpread(
+                                              _currentSpreadIndex,
+                                            )
+                                        : _cachedPagination!
+                                            .pageLabelForIndex(
+                                              _currentSpreadIndex,
+                                            );
+                                  } else {
+                                    final scrollPercentage = maxOffset > 0
+                                        ? ((offset / maxOffset) * 100)
+                                              .clamp(0, 100)
+                                              .toInt()
+                                        : 0;
+                                    displayLabel = '$scrollPercentage %';
+                                  }
                                   return Row(
                                     children: [
                                       Expanded(
@@ -752,7 +951,7 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                                                 4.0,
                                               ),
                                               child: Text(
-                                                '$scrollPercentage %',
+                                                displayLabel,
                                                 style: TextStyle(
                                                   color: Color(
                                                     int.parse(
@@ -779,14 +978,13 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                     _gestureRightLeft(ref.watch(novelTapToScrollStateProvider)),
                     _gestureTopBottom(ref.watch(novelTapToScrollStateProvider)),
                     _appBar(),
-                    _bottomBar(backgroundColor),
+                    _bottomBar(backgroundColor, effectivePageMode),
                     ReaderAutoScrollButton(
-                      isContinuousMode: true,
+                      isContinuousMode: _readerMode.isContinuous,
                       isUiVisible: _isView,
                       autoScrollPage: _autoScrollPage,
                       autoScroll: _autoScroll,
                       onToggle: () {
-                        _autoPagescroll();
                         _autoScroll.value = !_autoScroll.value;
                       },
                     ),
@@ -866,18 +1064,37 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
   }
 
   void _onBtnTapped(double value) {
-    final currentOffset = _scrollController.offset;
-    final maxScroll = _scrollController.position.maxScrollExtent;
+    if (!_readerMode.isContinuous) {
+      if (_spreadController.hasClients) {
+        if (value > 0) {
+          _spreadController.nextPage(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+          );
+        } else {
+          _spreadController.previousPage(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+          );
+        }
+      }
+      return;
+    }
+    if (_scrollController.hasClients) {
+      final currentOffset = _scrollController.offset;
+      final maxScroll = _scrollController.position.maxScrollExtent;
 
-    final newOffset = currentOffset + value;
-    _scrollController.animateTo(
-      min(newOffset, maxScroll),
-      duration: Duration(milliseconds: 100),
-      curve: Curves.linear,
-    );
+      final newOffset = currentOffset + value;
+      _scrollController.animateTo(
+        min(newOffset, maxScroll),
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.linear,
+      );
+    }
   }
 
   Widget _gestureRightLeft(bool usePageTapZones) {
+    final enableTapPaging = usePageTapZones || !_readerMode.isContinuous;
     return Row(
       children: [
         /// left region
@@ -886,7 +1103,7 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTap: () {
-              usePageTapZones ? _onBtnTapped(-100) : _isViewFunction();
+              enableTapPaging ? _onBtnTapped(-100) : _isViewFunction();
             },
           ),
         ),
@@ -908,7 +1125,7 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTap: () {
-              usePageTapZones ? _onBtnTapped(100) : _isViewFunction();
+              enableTapPaging ? _onBtnTapped(100) : _isViewFunction();
             },
           ),
         ),
@@ -995,7 +1212,202 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
     );
   }
 
-  Widget _bottomBar(BackgroundColor backgroundColor) {
+  void _showFontSizeBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final currentFontSize = ref.watch(novelFontSizeStateProvider);
+            final primaryColor = Theme.of(context).primaryColor;
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 16,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.format_size_rounded,
+                            color: primaryColor,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            context.l10n.font_size,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '$currentFontSize px',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      IconButton.filledTonal(
+                        visualDensity: VisualDensity.compact,
+                        constraints: const BoxConstraints(
+                          minWidth: 34,
+                          minHeight: 34,
+                        ),
+                        onPressed: currentFontSize > 8
+                            ? () {
+                                final newSize = currentFontSize - 1;
+                                ref
+                                    .read(novelFontSizeStateProvider.notifier)
+                                    .set(newSize);
+                                setState(() => fontSize = newSize);
+                              }
+                            : null,
+                        icon: const Icon(Icons.remove_rounded, size: 18),
+                        tooltip: context.l10n.decrease,
+                      ),
+                      Expanded(
+                        child: SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 3,
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 6,
+                            ),
+                            overlayShape: const RoundSliderOverlayShape(
+                              overlayRadius: 12,
+                            ),
+                            activeTrackColor: primaryColor,
+                            inactiveTrackColor: primaryColor.withValues(
+                              alpha: 0.2,
+                            ),
+                            thumbColor: primaryColor,
+                            overlayColor: primaryColor.withValues(alpha: 0.2),
+                          ),
+                          child: Slider(
+                            value: currentFontSize.toDouble().clamp(8.0, 40.0),
+                            min: 8,
+                            max: 40,
+                            divisions: 32,
+                            onChanged: (val) {
+                              final newSize = val.toInt();
+                              ref
+                                  .read(novelFontSizeStateProvider.notifier)
+                                  .set(newSize);
+                              setState(() => fontSize = newSize);
+                            },
+                          ),
+                        ),
+                      ),
+                      IconButton.filledTonal(
+                        visualDensity: VisualDensity.compact,
+                        constraints: const BoxConstraints(
+                          minWidth: 34,
+                          minHeight: 34,
+                        ),
+                        onPressed: currentFontSize < 40
+                            ? () {
+                                final newSize = currentFontSize + 1;
+                                ref
+                                    .read(novelFontSizeStateProvider.notifier)
+                                    .set(newSize);
+                                setState(() => fontSize = newSize);
+                              }
+                            : null,
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        tooltip: context.l10n.increase,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [12, 14, 16, 18, 20, 24, 28].map((size) {
+                        final isSelected = currentFontSize == size;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: ChoiceChip(
+                            visualDensity: VisualDensity.compact,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            labelStyle: const TextStyle(fontSize: 11),
+                            label: Text('$size'),
+                            selected: isSelected,
+                            onSelected: (_) {
+                              ref
+                                  .read(novelFontSizeStateProvider.notifier)
+                                  .set(size);
+                              setState(() => fontSize = size);
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _bottomBar(
+    BackgroundColor backgroundColor,
+    PageMode effectivePageMode,
+  ) {
     if (!_isView && Platform.isIOS) {
       return const SizedBox.shrink();
     }
@@ -1008,342 +1420,444 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
         curve: Curves.ease,
         duration: const Duration(milliseconds: 300),
         width: context.width(1),
-        height: (_isView ? 140 : 0),
+        height: (_isView ? 116 : 0),
         // The Column's natural content height briefly exceeds this box
-        // mid-animation (it's animating between 0 and 140), which is a
+        // mid-animation (it's animating between 0 and 116), which is a
         // transient overflow, not a real layout bug - clip it during the
         // transition instead of restructuring content that fits fine once
-        // the animation settles. Container's own clipBehavior requires a
-        // decoration to be set, which this doesn't have, so ClipRect here
-        // instead.
         child: ClipRect(
-          child: Column(
-            children: [
-              if (_isView)
-                Row(
-                  children: [
+          child: OverflowBox(
+            alignment: Alignment.topCenter,
+            minHeight: 0,
+            maxHeight: 116,
+            child: SizedBox(
+              height: 116,
+              child: Column(
+                children: [
+                  if (_isView)
                     Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: CircleAvatar(
-                        radius: 21,
-                        backgroundColor: _backgroundColor(context),
-                        child: IconButton(
-                          onPressed: hasPrevChapter
-                              ? () {
-                                  pushReplacementMangaReaderView(
-                                    context: context,
-                                    chapter: _readerController.getPrevChapter(),
-                                  );
-                                }
-                              : null,
-                          icon: Icon(
-                            Icons.skip_previous_rounded,
-                            color: hasPrevChapter
-                                ? bodyLargeColor
-                                : bodyLargeColor!.withValues(alpha: 0.4),
-                          ),
-                        ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8.0,
+                        vertical: 2.0,
                       ),
-                    ),
-                    Flexible(
-                      child: Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: _backgroundColor(context),
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                        child: StreamBuilder(
-                          stream: _rebuildDetail.stream,
-                          builder: (context, asyncSnapshot) {
-                            return Consumer(
-                              builder: (context, ref, child) {
-                                final scrollPercentage = maxOffset > 0
-                                    ? ((offset / maxOffset) * 100)
-                                          .clamp(0, 100)
-                                          .toInt()
-                                    : 0;
-                                return Row(
-                                  children: [
-                                    SizedBox(width: 10),
-                                    Padding(
-                                      padding: const EdgeInsets.all(4),
-                                      child: Text(
-                                        scrollPercentage.toInt().toString(),
-                                        style: TextStyle(
-                                          color: bodyLargeColor,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    if (_isView)
-                                      Expanded(
-                                        flex: 14,
-                                        child: SliderTheme(
-                                          data: SliderTheme.of(context).copyWith(
-                                            trackHeight: 2.0,
-                                            thumbShape:
-                                                const RoundSliderThumbShape(
-                                                  enabledThumbRadius: 6.0,
-                                                ),
-                                            overlayShape:
-                                                const RoundSliderOverlayShape(
-                                                  overlayRadius: 12.0,
-                                                ),
-                                          ),
-                                          child: Slider(
-                                            onChanged: (value) {
-                                              _scrollController.jumpTo(
-                                                _scrollController
-                                                        .position
-                                                        .maxScrollExtent *
-                                                    value,
-                                              );
-                                            },
-                                            value: scrollPercentage / 100,
-                                            min: 0,
-                                            max: 1,
-                                          ),
-                                        ),
-                                      ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(4.0),
-                                      child: Text(
-                                        '100',
-                                        style: TextStyle(
-                                          color: bodyLargeColor,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 10),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: CircleAvatar(
-                        radius: 21,
-                        backgroundColor: _backgroundColor(context),
-                        child: IconButton(
-                          onPressed: hasNextChapter
-                              ? () {
-                                  pushReplacementMangaReaderView(
-                                    context: context,
-                                    chapter: _readerController.getNextChapter(),
-                                  );
-                                }
-                              : null,
-                          icon: Transform.scale(
-                            scaleX: 1,
-                            child: Icon(
-                              Icons.skip_next_rounded,
-                              color: hasNextChapter
-                                  ? bodyLargeColor
-                                  : bodyLargeColor!.withValues(alpha: 0.4),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: _backgroundColor(context),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              onPressed: hasPrevChapter
+                                  ? () {
+                                      pushReplacementMangaReaderView(
+                                        context: context,
+                                        chapter: _readerController
+                                            .getPrevChapter(),
+                                      );
+                                    }
+                                  : null,
+                              icon: Icon(
+                                Icons.skip_previous_rounded,
+                                size: 22,
+                                color: hasPrevChapter
+                                    ? bodyLargeColor
+                                    : bodyLargeColor!.withValues(alpha: 0.35),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              if (_isView)
-                Expanded(
-                  child: Container(
-                    color: _backgroundColor(context),
-                    child: Row(
-                      children: [
-                        Flexible(
-                          child: SizedBox(
-                            height: 50,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: bodyLargeColor!,
-                                      width: 0.2,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        context.l10n.text_size,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: bodyLargeColor,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        onPressed: () {
-                                          final newFontSize = max(
-                                            4,
-                                            fontSize - 1,
-                                          );
-                                          ref
-                                              .read(
-                                                novelFontSizeStateProvider
-                                                    .notifier,
-                                              )
-                                              .set(newFontSize);
-                                          setState(() {
-                                            fontSize = newFontSize;
-                                          });
-                                        },
-                                        icon: Icon(Icons.text_decrease),
-                                        iconSize: 20,
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(
-                                          minWidth: 40,
-                                          minHeight: 40,
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 5,
-                                        ),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primaryContainer
-                                                .withValues(alpha: 0.5),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Container(
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: _backgroundColor(context),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: StreamBuilder(
+                                stream: _rebuildDetail.stream,
+                                builder: (context, asyncSnapshot) {
+                                  return Consumer(
+                                    builder: (context, ref, child) {
+                                      if (!_readerMode.isContinuous) {
+                                        final pagination = _cachedPagination;
+                                        final isDouble = effectivePageMode ==
+                                            PageMode.doublePage;
+                                        final totalItems = isDouble
+                                            ? (pagination?.spreadCount ?? 1)
+                                            : (pagination?.pageCount ?? 1);
+                                        final currentIndex =
+                                            _currentSpreadIndex.clamp(
+                                              0,
+                                              max(0, totalItems - 1),
+                                            ).toInt();
+                                        final currentLabel = isDouble
+                                            ? (pagination?.spreadLabelForSpread(
+                                                    currentIndex,
+                                                  ) ??
+                                                  '${currentIndex + 1}')
+                                            : '${currentIndex + 1}';
+                                        final totalLabel =
+                                            '${pagination?.pageCount ?? totalItems}';
+                                        final sliderValue = totalItems > 1
+                                            ? (currentIndex / (totalItems - 1))
+                                                  .clamp(0.0, 1.0)
+                                            : 0.0;
+
+                                        return Row(
+                                          children: [
+                                            const SizedBox(width: 12),
+                                            Text(
+                                              currentLabel,
+                                              style: TextStyle(
+                                                color: bodyLargeColor,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: SliderTheme(
+                                                data: SliderTheme.of(context)
+                                                    .copyWith(
+                                                      trackHeight: 2.5,
+                                                      thumbShape:
+                                                          const RoundSliderThumbShape(
+                                                            enabledThumbRadius:
+                                                                6.0,
+                                                          ),
+                                                      overlayShape:
+                                                          const RoundSliderOverlayShape(
+                                                            overlayRadius: 12.0,
+                                                          ),
+                                                      activeTrackColor:
+                                                          Theme.of(context)
+                                                              .colorScheme
+                                                              .primary,
+                                                      thumbColor:
+                                                          Theme.of(context)
+                                                              .colorScheme
+                                                              .primary,
+                                                    ),
+                                                child: Slider(
+                                                  onChanged: (value) {
+                                                    if (totalItems > 1 &&
+                                                        _spreadController
+                                                            .hasClients) {
+                                                      final targetIndex =
+                                                          (value *
+                                                                  (totalItems -
+                                                                      1))
+                                                              .round();
+                                                      _spreadController
+                                                          .jumpToPage(
+                                                            targetIndex,
+                                                          );
+                                                    }
+                                                  },
+                                                  value: sliderValue,
+                                                  min: 0,
+                                                  max: 1,
+                                                ),
+                                              ),
+                                            ),
+                                            Text(
+                                              totalLabel,
+                                              style: TextStyle(
+                                                color: bodyLargeColor
+                                                    ?.withValues(alpha: 0.6),
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                          ],
+                                        );
+                                      }
+
+                                      final scrollPercentage = maxOffset > 0
+                                          ? ((offset / maxOffset) * 100)
+                                                .clamp(0, 100)
+                                                .toInt()
+                                          : 0;
+                                      return Row(
+                                        children: [
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            '$scrollPercentage%',
+                                            style: TextStyle(
+                                              color: bodyLargeColor,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                          child: Consumer(
-                                            builder: (context, ref, child) {
-                                              final currentFontSize = ref.watch(
-                                                novelFontSizeStateProvider,
-                                              );
-                                              return Text(
-                                                "$currentFontSize px",
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onPrimaryContainer,
-                                                ),
-                                              );
-                                            },
+                                          Expanded(
+                                            child: SliderTheme(
+                                              data: SliderTheme.of(context)
+                                                  .copyWith(
+                                                    trackHeight: 2.5,
+                                                    thumbShape:
+                                                        const RoundSliderThumbShape(
+                                                          enabledThumbRadius:
+                                                              6.0,
+                                                        ),
+                                                    overlayShape:
+                                                        const RoundSliderOverlayShape(
+                                                          overlayRadius: 12.0,
+                                                        ),
+                                                    activeTrackColor: Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary,
+                                                    thumbColor:
+                                                        Theme.of(context)
+                                                            .colorScheme
+                                                            .primary,
+                                                  ),
+                                              child: Slider(
+                                                onChanged: (value) {
+                                                  if (_scrollController
+                                                      .hasClients) {
+                                                    _scrollController.jumpTo(
+                                                      _scrollController
+                                                              .position
+                                                              .maxScrollExtent *
+                                                          value,
+                                                    );
+                                                  }
+                                                },
+                                                value: (scrollPercentage / 100)
+                                                    .clamp(0.0, 1.0),
+                                                min: 0,
+                                                max: 1,
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                      ),
-                                      IconButton(
-                                        onPressed: () {
-                                          final newFontSize = min(
-                                            40,
-                                            fontSize + 1,
-                                          );
-                                          ref
-                                              .read(
-                                                novelFontSizeStateProvider
-                                                    .notifier,
-                                              )
-                                              .set(newFontSize);
-                                          setState(() {
-                                            fontSize = newFontSize;
-                                          });
-                                        },
-                                        icon: const Icon(Icons.text_increase),
-                                        iconSize: 20,
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(
-                                          minWidth: 40,
-                                          minHeight: 40,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                if (_ttsSupported)
-                                  IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _showTts = !_showTts;
-                                      });
+                                          Text(
+                                            '100%',
+                                            style: TextStyle(
+                                              color: bodyLargeColor?.withValues(
+                                                alpha: 0.6,
+                                              ),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                        ],
+                                      );
                                     },
-                                    icon: Icon(
-                                      _showTts
-                                          ? Icons.record_voice_over
-                                          : Icons.record_voice_over_outlined,
-                                      color: _showTts
-                                          ? Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                          : null,
-                                    ),
-                                    tooltip: context.l10n.tts,
-                                  ),
-
-                                IconButton(
-                                  onPressed: () async {
-                                    bool autoScrollAreadyFalse =
-                                        _autoScroll.value == false;
-                                    if (!autoScrollAreadyFalse) {
-                                      _autoScroll.value = false;
-                                    }
-                                    await customDraggableTabBar(
-                                      tabs: [
-                                        Tab(text: context.l10n.reader),
-                                        Tab(text: context.l10n.general),
-                                        if (_ttsSupported)
-                                          Tab(text: context.l10n.tts),
-                                      ],
-                                      children: [
-                                        ReaderSettingsTab(),
-                                        GeneralSettingsTab(
-                                          autoScrollPage: _autoScrollPage,
-                                          autoScroll: _autoScroll,
-                                          readerController: _readerController,
-                                          pageOffset: _pageOffset,
-                                        ),
-                                        if (_ttsSupported)
-                                          const TtsSettingsTab(),
-                                      ],
-                                      context: context,
-                                      vsync: this,
-                                    );
-                                    if (!autoScrollAreadyFalse ||
-                                        _autoScroll.value) {
-                                      if (_autoScrollPage.value) {
-                                        _autoPagescroll();
-                                        _autoScroll.value = true;
-                                      }
-                                    }
-                                  },
-                                  icon: const Icon(Icons.settings),
-                                ),
-                              ],
+                                  );
+                                },
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: _backgroundColor(context),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              onPressed: hasNextChapter
+                                  ? () {
+                                      pushReplacementMangaReaderView(
+                                        context: context,
+                                        chapter: _readerController
+                                            .getNextChapter(),
+                                      );
+                                    }
+                                  : null,
+                              icon: Icon(
+                                Icons.skip_next_rounded,
+                                size: 22,
+                                color: hasNextChapter
+                                    ? bodyLargeColor
+                                    : bodyLargeColor!.withValues(alpha: 0.35),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-            ],
+                  if (_isView)
+                    Expanded(
+                      child: Container(
+                        color: _backgroundColor(context),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 40,
+                                minHeight: 40,
+                              ),
+                              onPressed: () =>
+                                  _showFontSizeBottomSheet(context),
+                              icon: const Icon(
+                                Icons.format_size_rounded,
+                                size: 22,
+                              ),
+                              tooltip: context.l10n.font_size,
+                            ),
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 40,
+                                minHeight: 40,
+                              ),
+                              onPressed: () {
+                                if (_readerMode.isContinuous) {
+                                  _readerController.setReaderMode(
+                                    ReaderMode.ltr,
+                                  );
+                                  _readerController.setPageMode(
+                                    PageMode.onePage,
+                                  );
+                                  ref
+                                      .read(doublePageAutoStateProvider.notifier)
+                                      .set(false);
+                                  setState(() {
+                                    _readerMode = ReaderMode.ltr;
+                                    _pageMode = PageMode.onePage;
+                                  });
+                                } else if (effectivePageMode ==
+                                    PageMode.onePage) {
+                                  _readerController.setPageMode(
+                                    PageMode.doublePage,
+                                  );
+                                  ref
+                                      .read(doublePageAutoStateProvider.notifier)
+                                      .set(false);
+                                  setState(() {
+                                    _pageMode = PageMode.doublePage;
+                                  });
+                                } else {
+                                  _readerController.setReaderMode(
+                                    ReaderMode.verticalContinuous,
+                                  );
+                                  setState(() {
+                                    _readerMode =
+                                        ReaderMode.verticalContinuous;
+                                  });
+                                }
+                              },
+                              icon: Icon(
+                                _readerMode.isContinuous
+                                    ? Icons.swap_vert_rounded
+                                    : (effectivePageMode == PageMode.doublePage
+                                          ? Icons.auto_stories
+                                          : Icons.article_outlined),
+                                size: 22,
+                                color: !_readerMode.isContinuous
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                              ),
+                              tooltip: _readerMode.isContinuous
+                                  ? context
+                                      .l10n
+                                      .reading_mode_vertical_continuous
+                                  : (effectivePageMode == PageMode.doublePage
+                                        ? context.l10n.double_page
+                                        : context.l10n.single_page),
+                            ),
+                            if (_ttsSupported)
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                  minWidth: 40,
+                                  minHeight: 40,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _showTts = !_showTts;
+                                  });
+                                },
+                                icon: Icon(
+                                  _showTts
+                                      ? Icons.record_voice_over_rounded
+                                      : Icons.record_voice_over_outlined,
+                                  size: 22,
+                                  color: _showTts
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                ),
+                                tooltip: context.l10n.tts,
+                              ),
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 40,
+                                minHeight: 40,
+                              ),
+                              onPressed: () async {
+                                bool autoScrollAlreadyFalse =
+                                    _autoScroll.value == false;
+                                if (!autoScrollAlreadyFalse) {
+                                  _autoScroll.value = false;
+                                }
+                                await customDraggableTabBar(
+                                  tabs: [
+                                    Tab(text: context.l10n.reader),
+                                    Tab(text: context.l10n.general),
+                                    if (_ttsSupported)
+                                      Tab(text: context.l10n.tts),
+                                  ],
+                                  children: [
+                                    ReaderSettingsTab(
+                                      readerController: _readerController,
+                                      currentReaderMode: _readerMode,
+                                      onReaderModeChanged: (newMode) {
+                                        setState(() {
+                                          _readerMode = newMode;
+                                        });
+                                      },
+                                      currentPageMode: effectivePageMode,
+                                      onPageModeChanged: (newMode) {
+                                        setState(() {
+                                          _pageMode = newMode;
+                                        });
+                                      },
+                                    ),
+                                    GeneralSettingsTab(
+                                      autoScrollPage: _autoScrollPage,
+                                      autoScroll: _autoScroll,
+                                      readerController: _readerController,
+                                      pageOffset: _pageOffset,
+                                    ),
+                                    if (_ttsSupported) const TtsSettingsTab(),
+                                  ],
+                                  context: context,
+                                  vsync: this,
+                                );
+                                if (!autoScrollAlreadyFalse ||
+                                    _autoScroll.value) {
+                                  if (_autoScrollPage.value &&
+                                      _isContinuousMode()) {
+                                    _autoScroll.value = true;
+                                  }
+                                }
+                              },
+                              icon: const Icon(Icons.tune_rounded),
+                              tooltip: context.l10n.settings,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -1364,6 +1878,154 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
       }
     }
+  }
+
+  Color _parseColor(String hex, {Color? fallback}) {
+    try {
+      String hexColor = hex.trim().replaceAll('#', '');
+      if (hexColor.length == 6) {
+        return Color(int.parse('FF$hexColor', radix: 16));
+      } else if (hexColor.length == 8) {
+        return Color(int.parse(hexColor, radix: 16));
+      }
+    } catch (_) {}
+    return fallback ?? Colors.grey;
+  }
+
+  TextAlign _getTextAlign(NovelTextAlign textAlign) {
+    switch (textAlign) {
+      case NovelTextAlign.left:
+        return TextAlign.left;
+      case NovelTextAlign.center:
+        return TextAlign.center;
+      case NovelTextAlign.right:
+        return TextAlign.right;
+      case NovelTextAlign.block:
+        return TextAlign.justify;
+    }
+  }
+
+  Widget _buildNovelHtmlWidget({
+    required BuildContext context,
+    required String htmlData,
+    required String? fontFamily,
+    required int fontSize,
+    required double lineHeight,
+    required int padding,
+    required TextAlign textAlign,
+    required bool removeExtraSpacing,
+    required Color textColor,
+    required Color backgroundColor,
+    required bool showTts,
+    required ({int paragraph, int wordStart, int wordEnd}) tts,
+  }) {
+    return Html(
+      data: htmlData,
+      style: {
+        "body": Style(
+          fontFamily: fontFamily,
+          fontSize: FontSize(fontSize.toDouble()),
+          color: textColor,
+          backgroundColor: backgroundColor,
+          margin: Margins.zero,
+          padding: HtmlPaddings.all(padding.toDouble()),
+          lineHeight: LineHeight(lineHeight),
+          textAlign: textAlign,
+        ),
+        "p": Style(
+          fontFamily: fontFamily,
+          margin: removeExtraSpacing
+              ? Margins.only(bottom: 4)
+              : Margins.only(bottom: 8),
+          fontSize: FontSize(fontSize.toDouble()),
+          lineHeight: LineHeight(lineHeight),
+          textAlign: textAlign,
+        ),
+        "div": Style(
+          fontFamily: fontFamily,
+          fontSize: FontSize(fontSize.toDouble()),
+          lineHeight: LineHeight(lineHeight),
+          textAlign: textAlign,
+        ),
+        "span": Style(
+          fontFamily: fontFamily,
+          fontSize: FontSize(fontSize.toDouble()),
+          lineHeight: LineHeight(lineHeight),
+        ),
+        "h1, h2, h3, h4, h5, h6": Style(
+          fontFamily: fontFamily,
+          color: textColor,
+          lineHeight: LineHeight(lineHeight),
+          textAlign: textAlign,
+        ),
+        "a": Style(
+          color: Colors.blue,
+          textDecoration: TextDecoration.underline,
+        ),
+        "img": Style(width: Width(100, Unit.percent), height: Height.auto()),
+        "table": Style(
+          border: Border.all(color: Colors.grey, width: 1),
+          margin: Margins.symmetric(vertical: 10),
+        ),
+        "td, th": Style(
+          border: Border.all(color: Colors.grey, width: 0.5),
+          padding: HtmlPaddings.all(8),
+        ),
+        "th": Style(
+          fontWeight: FontWeight.bold,
+          backgroundColor: Colors.grey.withValues(alpha: 0.2),
+        ),
+        "blockquote": Style(
+          border: Border(left: BorderSide(color: Colors.grey, width: 4)),
+          padding: HtmlPaddings.only(left: 15),
+          margin: Margins.symmetric(vertical: 10),
+          fontStyle: FontStyle.italic,
+        ),
+        "pre, code": Style(
+          backgroundColor: Colors.grey.withValues(alpha: 0.2),
+          padding: HtmlPaddings.all(8),
+          fontFamily: 'monospace',
+        ),
+        "hr": Style(margin: Margins.symmetric(vertical: 20)),
+        if (showTts && tts.paragraph >= 0)
+          "[data-tts-active]": Style(
+            backgroundColor: Theme.of(context).colorScheme.primary
+                .withValues(alpha: 0.10),
+            border: Border(
+              left: BorderSide(
+                color: Theme.of(context).colorScheme.primary,
+                width: 3,
+              ),
+            ),
+            padding: HtmlPaddings.only(left: 8),
+          ),
+        if (showTts && tts.paragraph >= 0)
+          "[data-tts-word]": Style(
+            backgroundColor: Theme.of(context).colorScheme.primary
+                .withValues(alpha: 0.35),
+            textDecoration: TextDecoration.underline,
+            textDecorationColor: Theme.of(context).colorScheme.primary,
+          ),
+      },
+      extensions: [
+        TagExtension(
+          tagsToExtend: {"img", "source"},
+          builder: (extensionContext) {
+            final element = extensionContext.node as dom.Element;
+            final customWidget = _buildCustomWidgets(element);
+            if (customWidget != null) {
+              return customWidget;
+            }
+            return const SizedBox.shrink();
+          },
+        ),
+      ],
+      onLinkTap: (url, attributes, element) {
+        if (url != null) {
+          context.push("/mangawebview", extra: {'url': url, 'title': url});
+        }
+      },
+    );
   }
 
   Widget? _buildCustomWidgets(dom.Element element) {

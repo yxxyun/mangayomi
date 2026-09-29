@@ -2,7 +2,6 @@ import 'package:mangayomi/models/changed.dart';
 import 'package:mangayomi/models/sync_preference.dart';
 import 'package:mangayomi/repositories/changed_part_repository.dart';
 import 'package:mangayomi/repositories/sync_preference_repository.dart';
-import 'package:mangayomi/services/sync_server.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'sync_providers.g.dart';
 
@@ -23,29 +22,31 @@ class Synching extends _$Synching {
         ..authToken = authToken,
     );
     ref.invalidateSelf();
-    ref.invalidate(syncServerProvider(syncId: syncId!));
   }
 
   void logout() {
     syncPreferenceRepository.save(state..authToken = null);
     ref.invalidateSelf();
-    ref.invalidate(syncServerProvider(syncId: syncId!));
   }
 
   void setSince(int timestamp) {
     syncPreferenceRepository.save(state..since = timestamp);
+    ref.invalidateSelf();
   }
 
   void setLastSync(int timestamp) {
     syncPreferenceRepository.save(state..lastSync = timestamp);
+    ref.invalidateSelf();
   }
 
   void setServer(String? server) {
     syncPreferenceRepository.save(state..server = server);
+    ref.invalidateSelf();
   }
 
   void setSyncOn(bool value) {
     syncPreferenceRepository.save(state..syncOn = value);
+    ref.invalidateSelf();
   }
 
   void setAutoSyncFrequency(int value) {

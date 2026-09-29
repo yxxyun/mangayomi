@@ -7,6 +7,7 @@ import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/repositories/chapter_repository.dart';
 import 'package:mangayomi/repositories/manga_repository.dart';
 import 'package:mangayomi/repositories/update_repository.dart';
+import 'package:mangayomi/services/chapter_cache.dart';
 import 'package:mangayomi/services/get_detail.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:mangayomi/utils/fetch_interval.dart';
@@ -234,6 +235,9 @@ Future<dynamic> updateMangaDetail(
 
           newChapters.add(newChapter);
         } else {
+          if (existing.url != url) {
+            ChapterCache().remove(existing);
+          }
           existing
             ..name = chap.name
             ..url = url

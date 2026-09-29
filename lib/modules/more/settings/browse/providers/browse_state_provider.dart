@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -56,6 +57,22 @@ class AutoStartExtensionServerOnLaunchState
   }
 }
 
+final developerModeStateProvider = NotifierProvider<DeveloperModeState, bool>(
+  DeveloperModeState.new,
+);
+
+class DeveloperModeState extends Notifier<bool> {
+  @override
+  bool build() {
+    return settingsRepository.currentOrNull?.developerMode ?? false;
+  }
+
+  void set(bool value) {
+    state = value;
+    settingsRepository.update((s) => s.developerMode = value);
+  }
+}
+
 @riverpod
 class OnlyIncludePinnedSourceState extends _$OnlyIncludePinnedSourceState {
   @override
@@ -83,6 +100,19 @@ class ShowNSFWState extends _$ShowNSFWState {
 }
 
 @riverpod
+class ShowNavDoubleTapTooltipState extends _$ShowNavDoubleTapTooltipState {
+  @override
+  bool build() {
+    return settingsRepository.current.showNavDoubleTapTooltip ?? true;
+  }
+
+  void set(bool value) {
+    state = value;
+    settingsRepository.update((s) => s.showNavDoubleTapTooltip = value);
+  }
+}
+
+@riverpod
 class ExtensionsRepoState extends _$ExtensionsRepoState {
   static List<Repo> _deduplicate(List<Repo> repos) {
     final seen = <String>{};
@@ -103,7 +133,8 @@ class ExtensionsRepoState extends _$ExtensionsRepoState {
   @override
   List<Repo> build(ItemType itemType) {
     final settings = settingsRepository.current;
-    final list = switch (itemType) {
+    final list =
+        switch (itemType) {
           ItemType.manga => settings.mangaExtensionsRepo,
           ItemType.anime => settings.animeExtensionsRepo,
           _ => settings.novelExtensionsRepo,
@@ -128,13 +159,13 @@ class ExtensionsRepoState extends _$ExtensionsRepoState {
       }
       return e;
     }).toList();
-    set(value);
+    unawaited(set(value));
   }
 
-  void set(List<Repo> value) {
+  Future<void> set(List<Repo> value) async {
     final deduplicated = _deduplicate(value);
     state = deduplicated;
-    settingsRepository.update((s) {
+    await settingsRepository.update((s) {
       switch (itemType) {
         case ItemType.manga:
           s.mangaExtensionsRepo = deduplicated;
@@ -146,15 +177,19 @@ class ExtensionsRepoState extends _$ExtensionsRepoState {
           s.novelExtensionsRepo = deduplicated;
       }
     });
+    unawaited(_refreshSources());
+  }
+
+  Future<void> _refreshSources() async {
     try {
-      final a = ref.refresh(
+      final refresh = ref.refresh(
         fetchItemSourcesListProvider(
           id: null,
-          reFresh: false,
+          reFresh: true,
           itemType: itemType,
         ).future,
       );
-      Future.wait([a]);
+      await refresh;
     } catch (_) {}
   }
 }
@@ -211,12 +246,11 @@ Future<Repo?> getRepoInfos(Ref ref, {required String jsonUrl}) async {
       if (result != null &&
           (result.sources.isNotEmpty || result.name.isNotEmpty)) {
         String repoName = result.name;
-        if (repoName.isEmpty || repoName.endsWith('.json')) {
-          final uri = Uri.parse(url);
-          final segments = uri.pathSegments
-              .where((s) => s.isNotEmpty && !s.endsWith('.json'))
-              .toList();
-          repoName = segments.lastOrNull ?? uri.host;
+        if (repoName.isEmpty ||
+            repoName.endsWith('.json') ||
+            repoName == '.dist' ||
+            repoName == 'dist') {
+          repoName = _inferRepoName(Uri.parse(url));
         }
         return Repo(
           name: repoName,
@@ -250,12 +284,10 @@ Future<Repo?> getRepoInfos(Ref ref, {required String jsonUrl}) async {
         final repo = Repo.fromJson(infos);
         if (repo.name == null ||
             repo.name!.isEmpty ||
-            repo.name!.endsWith('.json')) {
-          final uri = Uri.parse(url);
-          final segments = uri.pathSegments
-              .where((s) => s.isNotEmpty && !s.endsWith('.json'))
-              .toList();
-          repo.name = segments.lastOrNull ?? uri.host;
+            repo.name!.endsWith('.json') ||
+            repo.name == '.dist' ||
+            repo.name == 'dist') {
+          repo.name = _inferRepoName(Uri.parse(url));
         }
         return repo;
       }
@@ -265,10 +297,32 @@ Future<Repo?> getRepoInfos(Ref ref, {required String jsonUrl}) async {
   return null;
 }
 
+String _inferRepoName(Uri uri) {
+  if (uri.host == 'raw.githubusercontent.com' && uri.pathSegments.length >= 2) {
+    return uri.pathSegments[1];
+  }
+  final segments = uri.pathSegments
+      .where(
+        (s) =>
+            s.isNotEmpty &&
+            !s.endsWith('.json') &&
+            s != '.dist' &&
+            s != 'dist' &&
+            s != 'build' &&
+            s != '.build',
+      )
+      .toList();
+  return segments.lastOrNull ?? uri.host;
+}
+
 bool _checkValidUrl(Response res) {
   try {
     final decoded = jsonDecode(res.body);
     if (decoded is List) {
+      final first = decoded.firstOrNull;
+      if (first is Map && (first['name'] != null || first['site'] != null)) {
+        return true;
+      }
       final sourceList = decoded.map((e) => Source.fromJson(e));
       if (sourceList.firstOrNull?.name != null) {
         return true;

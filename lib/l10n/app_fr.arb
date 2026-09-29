@@ -340,6 +340,8 @@
   "use_libass": "Activer libass",
   "use_libass_info": "Utilisez le rendu des sous-titres basé sur libass pour le backend natif.",
   "libass_not_disable_message": "Désactivez `use libass` dans les paramètres du lecteur pour pouvoir personnaliser les sous-titres.",
+  "override_ass_subtitles": "Forcer le style sur les sous-titres ASS",
+  "override_ass_subtitles_info": "Appliquer le style personnalisé aux sous-titres ASS/SSA",
   "torrent_stream": "Flux Torrent",
   "add_torrent": "Ajouter un torrent",
   "enter_torrent_hint_text": "Entrez l'URL du fichier magnet ou torrent",
@@ -537,6 +539,7 @@
   "subtitle_delay_text": "Délai des sous-titres",
   "subtitle_delay": "Délai (ms)",
   "subtitle_speed": "Vitesse",
+  "tracks": "Pistes",
   "calendar": "Calendrier",
   "calendar_no_data": "Aucune donnée pour l'instant.",
   "calendar_info": "Le calendrier ne peut prédire le prochain téléversement de chapitre que sur la base des téléversements précédents. Certaines données peuvent ne pas être précises à 100% !",
@@ -570,6 +573,7 @@
   "app_locked": "Mangayomi est verrouillé",
   "auth_to_continue": "Authentifiez-vous pour continuer",
   "authenticating": "Authentification en cours...",
+  "lock": "Verrouiller",
   "unlock": "Déverrouiller",
   "security": "Sécurité",
   "auth_to_change_security_setting": "Authentifiez-vous pour modifier les paramètres de sécurité",
@@ -750,6 +754,8 @@
   "dual_page_rotate_to_fit_invert": "Inverser le sens de rotation",
   "double_page_single_first_page": "Première page seule",
   "double_page_single_first_page_subtitle": "Afficher la première page isolée en mode double page",
+  "double_page_auto": "Double page automatique",
+  "double_page_auto_subtitle": "Passer automatiquement en mode double page en mode paysage",
   "landscape_zoom": "Zoom paysage automatique",
   "zoom_start_position": "Position de départ du zoom",
   "zoom_start_left": "Gauche",
@@ -810,6 +816,8 @@
   "error_with_message": "Erreur : {error}",
   "no_pages_available": "Erreur : aucune page disponible",
   "create_extension": "Créer une extension",
+  "developer_mode": "Mode développeur",
+  "developer_mode_subtitle": "Afficher les options pour créer une extension et modifier le code",
   "choose_extension_language": "Choisir la langue de l'extension",
   "lang": "Langue",
   "base_url": "URL de base",
@@ -1313,6 +1321,84 @@
       }
     }
   },
+  "last_sync": "Dernière synchronisation à : ",
+  "sync_login_browser": "Se connecter avec le navigateur",
+  "sync_progress_percent": "Synchronisation… {percent}%",
+  "@sync_progress_percent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "sync_progress_indeterminate": "Synchronisation…",
+  "playback_speed": "Vitesse de lecture",
+  "shaders": "Shaders",
+  "video_fit": "Ajustement",
+  "memory_overlay": "Afficher l'utilisation de la mémoire",
+  "memory_overlay_subtitle": "Affichage en direct de ce que l'application conserve en mémoire. Pour mesurer sur l'appareil au lieu de deviner : observez pendant le défilement de la bibliothèque ou la lecture d'un chapitre.",
+  "error_reports_extension_failure": "Ceci provient d'une extension et non de Mangayomi. Les extensions sont développées et maintenues par les gestionnaires du dépôt depuis lequel vous avez installé cette source, la correction doit donc y être apportée. Le nom de la source et ce que vous ouvriez sont des détails utiles à leur fournir.",
+  "error_reports_already_reported": "Déjà signalé",
+  "error_reports_expected_failure": "Ceci est généralement dû à la source ou au réseau plutôt qu'à l'application : un lien expiré, un serveur indisponible ou une coupure de connexion. À ne signaler que si le problème persiste sur une source qui fonctionne par ailleurs.",
+  "global_search_no_sources": "Aucune source {itemType} n'est installée.",
+  "@global_search_no_sources": {
+    "placeholders": {
+      "itemType": {
+        "type": "String"
+      }
+    }
+  },
+  "global_search_no_sources_hint": "Ajoutez un dépôt dans Explorer, puis installez une extension correspondante.",
+  "global_search_only_pinned": "Vous avez {count, plural, =1{1 source} other{{count} sources}} pour ceci, mais seules les sources épinglées sont recherchées.",
+  "@global_search_only_pinned": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "global_search_only_pinned_hint": "Épinglez-en une, ou désactivez « Inclure uniquement les sources épinglées » dans les paramètres d'exploration.",
+  "global_search_all_nsfw": "Toutes les sources dont vous disposez pour ceci sont marquées NSFW et sont masquées.",
+  "global_search_all_nsfw_hint": "Activez les sources NSFW dans les paramètres d'exploration pour les rechercher.",
+  "related_titles": "Titres associés",
+  "related_none": "Aucun titre associé n'a été trouvé pour cette œuvre.",
+  "relation_adaptation": "Adaptation",
+  "relation_sequel": "Suite",
+  "relation_prequel": "Préquelle",
+  "relation_parent": "Histoire principale",
+  "relation_side_story": "Histoire parallèle",
+  "relation_spin_off": "Spin-off",
+  "relation_alternative": "Version alternative",
+  "auto_library_update": "Mises à jour automatiques de la bibliothèque",
+  "auto_library_update_subtitle": "Vérifier la présence de nouveaux chapitres pour chaque élément de votre bibliothèque au démarrage de l'application.",
+  "auto_library_update_never": "Jamais",
+  "auto_library_update_12_hours": "Toutes les 12 heures",
+  "auto_library_update_daily": "Quotidiennement",
+  "auto_library_update_2_days": "Tous les 2 jours",
+  "auto_library_update_weekly": "Hebdomadairement",
+  "auto_library_update_wifi_only": "Uniquement en Wi-Fi",
+  "auto_library_update_wifi_only_subtitle": "Ignorer la mise à jour planifiée lors de l'utilisation des données mobiles.",
+  "padding": "Espacement",
+  "page_mode": "Mode de page",
+  "single_page": "Page simple",
+  "double_page": "Double page",
+  "speed": "Vitesse",
+  "theme_dark": "Sombre",
+  "theme_light": "Clair",
+  "theme_black": "Noir",
+  "theme_sepia": "Sépia",
+  "decrease": "Diminuer",
+  "increase": "Augmenter",
+  "chapter_swipe_actions": "Actions de glissement de chapitre",
+  "chapter_swipe_start": "Glisser vers la droite",
+  "chapter_swipe_end": "Glisser vers la gauche",
+  "chapter_swipe_toggle_bookmark": "Basculer le signet",
+  "chapter_swipe_toggle_read": "Marquer lu/non lu",
+  "chapter_swipe_download": "Télécharger",
+  "chapter_swipe_disabled": "Désactivé",
+  "double_tap_search_hint": "Appuyez deux fois pour rechercher tous les {type}",
+  "show_nav_double_tap_tooltip": "Afficher l'astuce de recherche par double appui",
+  "show_nav_double_tap_tooltip_subtitle": "Afficher une info-bulle sur les onglets Manga/Anime/Roman expliquant qu'un double appui ouvre la recherche globale.",
+  "already_in_library": "\"{title}\" est déjà dans votre bibliothèque via {source}.",
+  "add_anyway": "Ajouter quand même",
   "cloud_drive_management": "Cloud Drive Management",
   "@cloud_drive_management": {
     "description": "Cloud drive management page title",

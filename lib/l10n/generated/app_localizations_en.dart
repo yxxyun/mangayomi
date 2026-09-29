@@ -789,6 +789,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get create_extension => 'Create Extension';
 
   @override
+  String get developer_mode => 'Developer mode';
+
+  @override
+  String get developer_mode_subtitle =>
+      'Show extension developer tools (create extension, edit code)';
+
+  @override
   String get choose_extension_language => 'Choose extension language';
 
   @override
@@ -1254,6 +1261,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String uninstall_extension(Object ext) {
     return 'Uninstall $ext extension?';
   }
+
+  @override
+  String double_tap_search_hint(Object type) {
+    return 'Double-tap to search all $type';
+  }
+
+  @override
+  String get show_nav_double_tap_tooltip => 'Show double-tap search hint';
+
+  @override
+  String get show_nav_double_tap_tooltip_subtitle =>
+      'Show a tooltip on the Manga/Anime/Novel nav destinations explaining that double-tapping opens Global Search.';
+
+  @override
+  String already_in_library(Object source, Object title) {
+    return '\"$title\" is already in your library via $source.';
+  }
+
+  @override
+  String get add_anyway => 'Add Anyway';
 
   @override
   String get langauage => 'Language';
@@ -1756,6 +1783,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Disable `use libass` in player settings to be able to customize the subtitles.';
 
   @override
+  String get override_ass_subtitles => 'Override ASS subtitles';
+
+  @override
+  String get override_ass_subtitles_info =>
+      'Apply custom styling to ASS/SSA subtitles';
+
+  @override
   String get torrent_stream => 'Torrent Stream';
 
   @override
@@ -2156,6 +2190,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get subtitle_speed => 'Speed';
 
   @override
+  String get tracks => 'Tracks';
+
+  @override
+  String get playback_speed => 'Playback speed';
+
+  @override
+  String get shaders => 'Shaders';
+
+  @override
+  String get video_fit => 'Fit';
+
+  @override
   String get calendar => 'Calendar';
 
   @override
@@ -2361,6 +2407,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authenticating => 'Authenticating...';
+
+  @override
+  String get lock => 'Lock';
 
   @override
   String get unlock => 'Unlock';
@@ -2698,6 +2747,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get double_page_single_first_page_subtitle =>
       'Display the first page alone in double page mode';
+
+  @override
+  String get double_page_auto => 'Automatic double page';
+
+  @override
+  String get double_page_auto_subtitle =>
+      'Switch to double page mode automatically in landscape';
 
   @override
   String get landscape_zoom => 'Automatic landscape zoom';
@@ -3594,4 +3650,58 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get auto_library_update_wifi_only_subtitle =>
       'Skip the scheduled update while on mobile data.';
+
+  @override
+  String get padding => 'Padding';
+
+  @override
+  String get page_mode => 'Page mode';
+
+  @override
+  String get single_page => 'Single page';
+
+  @override
+  String get double_page => 'Double page';
+
+  @override
+  String get speed => 'Speed';
+
+  @override
+  String get theme_dark => 'Dark';
+
+  @override
+  String get theme_light => 'Light';
+
+  @override
+  String get theme_black => 'Black';
+
+  @override
+  String get theme_sepia => 'Sepia';
+
+  @override
+  String get decrease => 'Decrease';
+
+  @override
+  String get increase => 'Increase';
+
+  @override
+  String get chapter_swipe_actions => 'Chapter swipe actions';
+
+  @override
+  String get chapter_swipe_start => 'Swipe right';
+
+  @override
+  String get chapter_swipe_end => 'Swipe left';
+
+  @override
+  String get chapter_swipe_toggle_bookmark => 'Toggle bookmark';
+
+  @override
+  String get chapter_swipe_toggle_read => 'Toggle read';
+
+  @override
+  String get chapter_swipe_download => 'Download';
+
+  @override
+  String get chapter_swipe_disabled => 'Disabled';
 }

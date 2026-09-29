@@ -771,6 +771,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get create_extension => '创建扩展';
 
   @override
+  String get developer_mode => '开发者模式';
+
+  @override
+  String get developer_mode_subtitle => '显示扩展开发者工具（创建扩展、编辑代码）';
+
+  @override
   String get choose_extension_language => '选择扩展语言';
 
   @override
@@ -1031,10 +1037,10 @@ class AppLocalizationsZh extends AppLocalizations {
       '通过自托管的 \n服务器在多个设备上同步你的进度。查看我们的 discord 服务器，了解更多信息！';
 
   @override
-  String get last_sync => 'Last sync at: ';
+  String get last_sync => '上次同步时间：';
 
   @override
-  String get sync_login_browser => 'Log in with browser';
+  String get sync_login_browser => '使用浏览器登录';
 
   @override
   String get sync_server => '同步服务器地址';
@@ -1053,11 +1059,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String sync_progress_percent(Object percent) {
-    return 'Syncing… $percent%';
+    return '正在同步… $percent%';
   }
 
   @override
-  String get sync_progress_indeterminate => 'Syncing…';
+  String get sync_progress_indeterminate => '正在同步…';
 
   @override
   String get sync_button_sync => '同步进度';
@@ -1230,6 +1236,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String uninstall_extension(Object ext) {
     return '卸载 $ext 扩展？';
   }
+
+  @override
+  String double_tap_search_hint(Object type) {
+    return '双击以搜索全部 $type';
+  }
+
+  @override
+  String get show_nav_double_tap_tooltip => '显示双击搜索提示';
+
+  @override
+  String get show_nav_double_tap_tooltip_subtitle =>
+      '在漫画/动画/小说导航栏上显示提示，说明双击可打开全局搜索。';
+
+  @override
+  String already_in_library(Object source, Object title) {
+    return '\"$title\" 已通过 $source 添加到您的书架中。';
+  }
+
+  @override
+  String get add_anyway => '仍然添加';
 
   @override
   String get langauage => '语言';
@@ -1713,6 +1739,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get libass_not_disable_message => '在播放器设置中禁用 `use libass` 以便自定义字幕。';
 
   @override
+  String get override_ass_subtitles => '覆盖 ASS 字幕样式';
+
+  @override
+  String get override_ass_subtitles_info => '将自定义样式应用到 ASS/SSA 字幕';
+
+  @override
   String get torrent_stream => '种子流';
 
   @override
@@ -1894,7 +1926,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get repo_added => '库已添加';
 
   @override
-  String get repo_already_exists => 'Repository already exists!';
+  String get repo_already_exists => '软件源仓库已存在！';
 
   @override
   String get add_repo => '添加库';
@@ -2097,6 +2129,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get subtitle_speed => '速度';
 
   @override
+  String get tracks => '轨道';
+
+  @override
+  String get playback_speed => '播放速度';
+
+  @override
+  String get shaders => '着色器';
+
+  @override
+  String get video_fit => '画面适配';
+
+  @override
   String get calendar => '日历';
 
   @override
@@ -2295,6 +2339,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get authenticating => '正在验证...';
+
+  @override
+  String get lock => 'Lock';
 
   @override
   String get unlock => '解锁';
@@ -2611,11 +2658,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dual_page_rotate_to_fit_invert => '反转旋转方向';
 
   @override
-  String get double_page_single_first_page => 'Single first page';
+  String get double_page_single_first_page => '首页单页显示';
 
   @override
-  String get double_page_single_first_page_subtitle =>
-      'Display the first page alone in double page mode';
+  String get double_page_single_first_page_subtitle => '在双页模式下单页显示第一页（封面）';
+
+  @override
+  String get double_page_auto => '自动双页';
+
+  @override
+  String get double_page_auto_subtitle => '横屏时自动切换到双页模式';
 
   @override
   String get landscape_zoom => '横屏自动缩放';
@@ -2947,11 +2999,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get memory_overlay => 'Show memory usage';
+  String get memory_overlay => '显示内存占用';
 
   @override
-  String get memory_overlay_subtitle =>
-      'A live readout of what the app is holding. For measuring on the device rather than guessing: watch it while scrolling the library or reading a chapter.';
+  String get memory_overlay_subtitle => '实时显示应用占用的内存。可在滚动书架或阅读章节时实时观察设备上的内存变化。';
 
   @override
   String get beta => 'Beta';
@@ -2988,14 +3039,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get error_reports_extension_failure =>
-      'This came from an extension, not from Mangayomi. Extensions are written and maintained by whoever runs the repository you installed this source from, so a fix has to go there. The source name and what you were opening are the useful details to give them.';
+      '此错误来自扩展插件，而非 Mangayomi 本身。扩展由插件仓库的维护者编写和维护，因此需要在插件仓库中修复。请向他们提供插件名称和当时正在打开的内容。';
 
   @override
-  String get error_reports_already_reported => 'Already reported';
+  String get error_reports_already_reported => '已报告';
 
   @override
   String get error_reports_expected_failure =>
-      'This one is usually the source or the network rather than the app: a link that expired, a server that was down, or a connection that dropped. Worth reporting only if it keeps happening on a source that works elsewhere.';
+      '这通常是来源网站或网络问题，而非应用本身的问题（如链接已失效、服务器宕机或网络连接中断）。仅当在其他地方正常工作的来源上持续出现此问题时才有必要报告。';
 
   @override
   String get share_unavailable_copied => '此平台不支持分享，已复制到剪贴板。';
@@ -3106,66 +3157,61 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String global_search_no_sources(String itemType) {
-    return 'No $itemType sources are installed.';
+    return '未安装任何 $itemType 来源。';
   }
 
   @override
-  String get global_search_no_sources_hint =>
-      'Add a repository under Browse, then install an extension for it.';
+  String get global_search_no_sources_hint => '请在“浏览”中添加仓库并安装相应的扩展插件。';
 
   @override
   String global_search_only_pinned(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count sources',
-      one: '1 source',
+      other: '$count 个来源',
     );
-    return 'You have $_temp0 for this, but only pinned ones are searched.';
+    return '您有 $_temp0，但仅会搜索已固定的来源。';
   }
 
   @override
-  String get global_search_only_pinned_hint =>
-      'Pin one, or turn off \"Only include pinned sources\" in Browse settings.';
+  String get global_search_only_pinned_hint => '请固定某个来源，或在浏览设置中关闭“仅包含固定的来源”。';
 
   @override
-  String get global_search_all_nsfw =>
-      'Every source you have for this is marked NSFW, and those are hidden.';
+  String get global_search_all_nsfw => '该分类下的所有来源均被标记为 NSFW 并已被隐藏。';
 
   @override
-  String get global_search_all_nsfw_hint =>
-      'Turn on NSFW sources in Browse settings to search them.';
+  String get global_search_all_nsfw_hint => '请在浏览设置中开启 NSFW 来源后再进行搜索。';
 
   @override
   String get missing_source_check_result_message =>
       '这些条目关联的图源未安装。点击可进行迁移或安装对应扩展。';
 
   @override
-  String get related_titles => 'Related';
+  String get related_titles => '相关作品';
 
   @override
-  String get related_none => 'Nothing related was found for this title.';
+  String get related_none => '未找到该作品的相关作品。';
 
   @override
-  String get relation_adaptation => 'Adaptation';
+  String get relation_adaptation => '改编';
 
   @override
-  String get relation_sequel => 'Sequel';
+  String get relation_sequel => '续作';
 
   @override
-  String get relation_prequel => 'Prequel';
+  String get relation_prequel => '前传';
 
   @override
-  String get relation_parent => 'Parent story';
+  String get relation_parent => '原作/主线';
 
   @override
-  String get relation_side_story => 'Side story';
+  String get relation_side_story => '外传';
 
   @override
-  String get relation_spin_off => 'Spin-off';
+  String get relation_spin_off => '衍生作';
 
   @override
-  String get relation_alternative => 'Alternative version';
+  String get relation_alternative => '平行/替代版本';
 
   @override
   String get get_apk_bridge => 'Get ApkBridge';
@@ -3453,31 +3499,83 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cloud_drive_qr_retry => 'Retry';
 
   @override
-  String get auto_library_update => 'Automatic library updates';
+  String get auto_library_update => '书架自动更新';
 
   @override
-  String get auto_library_update_subtitle =>
-      'Check every entry in your library for new chapters when the app starts.';
+  String get auto_library_update_subtitle => '在应用启动时检查书架中所有作品的最新章节。';
 
   @override
-  String get auto_library_update_never => 'Never';
+  String get auto_library_update_never => '从不';
 
   @override
-  String get auto_library_update_12_hours => 'Every 12 hours';
+  String get auto_library_update_12_hours => '每 12 小时';
 
   @override
-  String get auto_library_update_daily => 'Daily';
+  String get auto_library_update_daily => '每天';
 
   @override
-  String get auto_library_update_2_days => 'Every 2 days';
+  String get auto_library_update_2_days => '每 2 天';
 
   @override
-  String get auto_library_update_weekly => 'Weekly';
+  String get auto_library_update_weekly => '每周';
 
   @override
-  String get auto_library_update_wifi_only => 'Only on Wi-Fi';
+  String get auto_library_update_wifi_only => '仅限 Wi-Fi';
 
   @override
-  String get auto_library_update_wifi_only_subtitle =>
-      'Skip the scheduled update while on mobile data.';
+  String get auto_library_update_wifi_only_subtitle => '使用移动数据时跳过计划更新。';
+
+  @override
+  String get padding => '内边距';
+
+  @override
+  String get page_mode => '翻页模式';
+
+  @override
+  String get single_page => '单页';
+
+  @override
+  String get double_page => '双页';
+
+  @override
+  String get speed => '速度';
+
+  @override
+  String get theme_dark => '暗色';
+
+  @override
+  String get theme_light => '浅色';
+
+  @override
+  String get theme_black => '纯黑';
+
+  @override
+  String get theme_sepia => '复古';
+
+  @override
+  String get decrease => '减少';
+
+  @override
+  String get increase => '增加';
+
+  @override
+  String get chapter_swipe_actions => '章节滑动操作';
+
+  @override
+  String get chapter_swipe_start => '向右滑动';
+
+  @override
+  String get chapter_swipe_end => '向左滑动';
+
+  @override
+  String get chapter_swipe_toggle_bookmark => '切换书签';
+
+  @override
+  String get chapter_swipe_toggle_read => '切换已读状态';
+
+  @override
+  String get chapter_swipe_download => '下载';
+
+  @override
+  String get chapter_swipe_disabled => '已禁用';
 }

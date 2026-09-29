@@ -15,6 +15,7 @@ import 'app_localizations_hi.dart';
 import 'app_localizations_id.dart';
 import 'app_localizations_it.dart';
 import 'app_localizations_ja.dart';
+import 'app_localizations_ko.dart';
 import 'app_localizations_pt.dart';
 import 'app_localizations_ru.dart';
 import 'app_localizations_th.dart';
@@ -118,6 +119,7 @@ abstract class AppLocalizations {
     Locale('id'),
     Locale('it'),
     Locale('ja'),
+    Locale('ko'),
     Locale('pt'),
     Locale('pt', 'BR'),
     Locale('ru'),
@@ -1463,6 +1465,18 @@ abstract class AppLocalizations {
   /// **'Create Extension'**
   String get create_extension;
 
+  /// No description provided for @developer_mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer mode'**
+  String get developer_mode;
+
+  /// No description provided for @developer_mode_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show extension developer tools (create extension, edit code)'**
+  String get developer_mode_subtitle;
+
   /// No description provided for @choose_extension_language.
   ///
   /// In en, this message translates to:
@@ -2326,6 +2340,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Uninstall {ext} extension?'**
   String uninstall_extension(Object ext);
+
+  /// No description provided for @double_tap_search_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Double-tap to search all {type}'**
+  String double_tap_search_hint(Object type);
+
+  /// No description provided for @show_nav_double_tap_tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Show double-tap search hint'**
+  String get show_nav_double_tap_tooltip;
+
+  /// No description provided for @show_nav_double_tap_tooltip_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show a tooltip on the Manga/Anime/Novel nav destinations explaining that double-tapping opens Global Search.'**
+  String get show_nav_double_tap_tooltip_subtitle;
+
+  /// No description provided for @already_in_library.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" is already in your library via {source}.'**
+  String already_in_library(Object source, Object title);
+
+  /// No description provided for @add_anyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Anyway'**
+  String get add_anyway;
 
   /// No description provided for @langauage.
   ///
@@ -3269,6 +3313,18 @@ abstract class AppLocalizations {
   /// **'Disable `use libass` in player settings to be able to customize the subtitles.'**
   String get libass_not_disable_message;
 
+  /// No description provided for @override_ass_subtitles.
+  ///
+  /// In en, this message translates to:
+  /// **'Override ASS subtitles'**
+  String get override_ass_subtitles;
+
+  /// No description provided for @override_ass_subtitles_info.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply custom styling to ASS/SSA subtitles'**
+  String get override_ass_subtitles_info;
+
   /// No description provided for @torrent_stream.
   ///
   /// In en, this message translates to:
@@ -4001,6 +4057,30 @@ abstract class AppLocalizations {
   /// **'Speed'**
   String get subtitle_speed;
 
+  /// No description provided for @tracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracks'**
+  String get tracks;
+
+  /// No description provided for @playback_speed.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed'**
+  String get playback_speed;
+
+  /// No description provided for @shaders.
+  ///
+  /// In en, this message translates to:
+  /// **'Shaders'**
+  String get shaders;
+
+  /// No description provided for @video_fit.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit'**
+  String get video_fit;
+
   /// No description provided for @calendar.
   ///
   /// In en, this message translates to:
@@ -4336,6 +4416,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Authenticating...'**
   String get authenticating;
+
+  /// No description provided for @lock.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock'**
+  String get lock;
 
   /// No description provided for @unlock.
   ///
@@ -4948,6 +5034,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Display the first page alone in double page mode'**
   String get double_page_single_first_page_subtitle;
+
+  /// No description provided for @double_page_auto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic double page'**
+  String get double_page_auto;
+
+  /// No description provided for @double_page_auto_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to double page mode automatically in landscape'**
+  String get double_page_auto_subtitle;
 
   /// No description provided for @landscape_zoom.
   ///
@@ -6448,6 +6546,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Skip the scheduled update while on mobile data.'**
   String get auto_library_update_wifi_only_subtitle;
+
+  /// No description provided for @padding.
+  ///
+  /// In en, this message translates to:
+  /// **'Padding'**
+  String get padding;
+
+  /// No description provided for @page_mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Page mode'**
+  String get page_mode;
+
+  /// No description provided for @single_page.
+  ///
+  /// In en, this message translates to:
+  /// **'Single page'**
+  String get single_page;
+
+  /// No description provided for @double_page.
+  ///
+  /// In en, this message translates to:
+  /// **'Double page'**
+  String get double_page;
+
+  /// No description provided for @speed.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed'**
+  String get speed;
+
+  /// No description provided for @theme_dark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get theme_dark;
+
+  /// No description provided for @theme_light.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get theme_light;
+
+  /// No description provided for @theme_black.
+  ///
+  /// In en, this message translates to:
+  /// **'Black'**
+  String get theme_black;
+
+  /// No description provided for @theme_sepia.
+  ///
+  /// In en, this message translates to:
+  /// **'Sepia'**
+  String get theme_sepia;
+
+  /// No description provided for @decrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease'**
+  String get decrease;
+
+  /// No description provided for @increase.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase'**
+  String get increase;
+
+  /// No description provided for @chapter_swipe_actions.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapter swipe actions'**
+  String get chapter_swipe_actions;
+
+  /// No description provided for @chapter_swipe_start.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe right'**
+  String get chapter_swipe_start;
+
+  /// No description provided for @chapter_swipe_end.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe left'**
+  String get chapter_swipe_end;
+
+  /// No description provided for @chapter_swipe_toggle_bookmark.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle bookmark'**
+  String get chapter_swipe_toggle_bookmark;
+
+  /// No description provided for @chapter_swipe_toggle_read.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle read'**
+  String get chapter_swipe_toggle_read;
+
+  /// No description provided for @chapter_swipe_download.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get chapter_swipe_download;
+
+  /// No description provided for @chapter_swipe_disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get chapter_swipe_disabled;
 }
 
 class _AppLocalizationsDelegate
@@ -6471,6 +6677,7 @@ class _AppLocalizationsDelegate
     'id',
     'it',
     'ja',
+    'ko',
     'pt',
     'ru',
     'th',
@@ -6525,6 +6732,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsIt();
     case 'ja':
       return AppLocalizationsJa();
+    case 'ko':
+      return AppLocalizationsKo();
     case 'pt':
       return AppLocalizationsPt();
     case 'ru':

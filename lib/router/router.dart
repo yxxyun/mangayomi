@@ -63,6 +63,7 @@ import 'package:mangayomi/modules/more/settings/appearance/appearance_screen.dar
 import 'package:mangayomi/modules/more/settings/browse/browse_screen.dart';
 import 'package:mangayomi/modules/more/settings/browse/extension_server_screen.dart';
 import 'package:mangayomi/modules/more/settings/general/general_screen.dart';
+import 'package:mangayomi/modules/more/settings/reader/novel_reader_screen.dart';
 import 'package:mangayomi/modules/more/settings/reader/reader_screen.dart';
 import 'package:mangayomi/modules/more/settings/settings_screen.dart';
 import 'package:mangayomi/modules/more/settings/security/security_screen.dart';
@@ -258,6 +259,7 @@ class RouterNotifier extends ChangeNotifier {
     _genericRoute(name: "statistics", child: const StatisticsScreen()),
     _genericRoute(name: "general", child: const GeneralScreen()),
     _genericRoute(name: "readerMode", child: const ReaderScreen()),
+    _genericRoute(name: "novelReaderMode", child: const NovelReaderScreen()),
     _genericRoute(name: "browseS", child: const BrowseSScreen()),
     _genericRoute(
       name: "extensionServer",
@@ -311,10 +313,24 @@ class RouterNotifier extends ChangeNotifier {
       name: "migrate",
       builder: (manga) => MigrationScreen(manga: manga),
     ),
-    _genericRoute<Manga>(
+    _genericRoute<dynamic>(
       name: "massMigration",
-      builder: (manga) =>
-          MassMigrationSourceSelectionScreen(itemType: manga.itemType!, prioritizedManga: manga),
+      builder: (data) {
+        if (data is (ItemType, Manga?, List<Manga>?)) {
+          return MassMigrationSourceSelectionScreen(
+            itemType: data.$1,
+            prioritizedManga: data.$2,
+            selectedMangas: data.$3,
+          );
+        }
+        if (data is (ItemType, Manga?)) {
+          return MassMigrationSourceSelectionScreen(
+            itemType: data.$1,
+            prioritizedManga: data.$2,
+          );
+        }
+        return MassMigrationSourceSelectionScreen(itemType: data as ItemType);
+      },
     ),
     _genericRoute<(Manga, TrackSearch)>(
       name: "migrate/tracker",
