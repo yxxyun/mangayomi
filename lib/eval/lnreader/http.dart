@@ -80,6 +80,11 @@ async function fetchApi(url, init) {
   );
   return new Response(url, result);
 }
+
+async function fetchText(url, init, encoding) {
+  const res = await fetchApi(url, init);
+  return await res.text();
+}
 ''');
   }
 }
