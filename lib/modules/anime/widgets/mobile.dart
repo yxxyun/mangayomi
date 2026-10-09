@@ -1,15 +1,14 @@
 // ignore_for_file: depend_on_referenced_packages
 import 'dart:async';
-import 'dart:io';
-import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mangayomi/modules/anime/anime_player_view.dart';
+import 'package:mangayomi/modules/anime/widgets/seek_indicator_text.dart';
 import 'package:mangayomi/modules/anime/providers/anime_player_controller_provider.dart';
 import 'package:mangayomi/modules/anime/utils/temporary_playback_speed.dart';
 import 'package:mangayomi/modules/anime/widgets/custom_seekbar.dart';
 import 'package:mangayomi/modules/anime/widgets/indicator_builder.dart';
+import 'package:mangayomi/modules/anime/widgets/mobile_player_controls_layout.dart';
 import 'package:mangayomi/modules/anime/widgets/subtitle_view.dart';
 import 'package:mangayomi/modules/manga/reader/providers/push_router.dart';
 import 'package:mangayomi/modules/more/settings/player/providers/player_state_provider.dart';
@@ -20,6 +19,8 @@ import 'package:screen_brightness/screen_brightness.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:media_kit_video/media_kit_video_controls/src/controls/extensions/duration.dart';
+import 'package:mangayomi/modules/anime/widgets/temporary_playback_speed_selector.dart';
+import 'package:mangayomi/modules/anime/widgets/mobile_seek_indicator.dart';
 
 class MobileControllerWidget extends ConsumerStatefulWidget {
   final AnimeStreamController streamController;
@@ -87,7 +88,6 @@ class _MobileControllerWidgetState
   double? _temporaryPlaybackSpeed;
   double? _temporaryInitialSpeed;
   double? _temporarySpeedOriginY;
-  Offset? _temporarySpeedPosition;
 
   late bool buffering = widget.videoController.player.state.buffering;
   final controlsHoverDuration = const Duration(seconds: 3);
@@ -380,13 +380,12 @@ class _MobileControllerWidgetState
     if (widget.isLocked?.value == true || previousPlaybackSpeed != -1) return;
 
     previousPlaybackSpeed = widget.videoController.player.state.rate;
-    final initialSpeed = initialTemporaryPlaybackSpeed(previousPlaybackSpeed);
+    final initialSpeed = initialTemporaryPlaybackSpeed();
 
     setState(() {
       _temporaryPlaybackSpeed = initialSpeed;
       _temporaryInitialSpeed = initialSpeed;
       _temporarySpeedOriginY = details.localPosition.dy;
-      _temporarySpeedPosition = details.localPosition;
     });
     HapticFeedback.mediumImpact();
     unawaited(widget.videoController.player.setRate(initialSpeed));
@@ -402,15 +401,14 @@ class _MobileControllerWidgetState
       verticalDelta: details.localPosition.dy - originY,
     );
     final speedChanged = speed != _temporaryPlaybackSpeed;
+    if (!speedChanged) return;
+
     setState(() {
       _temporaryPlaybackSpeed = speed;
-      _temporarySpeedPosition = details.localPosition;
     });
 
-    if (speedChanged) {
-      HapticFeedback.selectionClick();
-      unawaited(widget.videoController.player.setRate(speed));
-    }
+    HapticFeedback.selectionClick();
+    unawaited(widget.videoController.player.setRate(speed));
   }
 
   void _restorePlaybackSpeed({bool updateUi = true}) {
@@ -424,7 +422,6 @@ class _MobileControllerWidgetState
       _temporaryPlaybackSpeed = null;
       _temporaryInitialSpeed = null;
       _temporarySpeedOriginY = null;
-      _temporarySpeedPosition = null;
     }
 
     if (updateUi && mounted) {
@@ -532,6 +529,13 @@ class _MobileControllerWidgetState
                                 ),
                               ),
                             ],
+                            Positioned.fill(
+                              child: Listener(
+                                behavior: HitTestBehavior.translucent,
+                                onPointerCancel: (_) => _restorePlaybackSpeed(),
+                                child: const SizedBox.expand(),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -556,6 +560,14 @@ class _MobileControllerWidgetState
                             onDoubleTapSeekBackward();
                           }
                         },
+                        // This detector is above the full-screen background
+                        // detector in the Stack. It must own the long press as
+                        // well as vertical drag so a completed hold wins the
+                        // gesture arena before volume or brightness can start.
+                        onLongPressStart: _startTemporaryPlaybackSpeed,
+                        onLongPressMoveUpdate: _updateTemporaryPlaybackSpeed,
+                        onLongPressEnd: (_) => _restorePlaybackSpeed(),
+                        onLongPressCancel: _restorePlaybackSpeed,
                         onHorizontalDragUpdate: (details) {
                           if (widget.isLocked?.value == true) return;
                           onHorizontalDragUpdate(details);
@@ -588,50 +600,34 @@ class _MobileControllerWidgetState
                             setVolume(result);
                           }
                         },
-                        child: Container(color: const Color(0x00000000)),
+                        child: Listener(
+                          // A platform interruption can cancel the pointer
+                          // after Flutter has accepted the long press.
+                          behavior: HitTestBehavior.translucent,
+                          onPointerCancel: (_) => _restorePlaybackSpeed(),
+                          child: Container(color: const Color(0x00000000)),
+                        ),
                       ),
                     ),
                     if (mount)
                       if (widget.isLocked?.value == true)
-                        Positioned(
-                          top:
-                              (isFullscreen(context)
-                                  ? MediaQuery.of(context).padding.top
-                                  : 0) +
-                              16,
-                          left:
-                              (isFullscreen(context)
-                                  ? MediaQuery.of(context).padding.left
-                                  : 0) +
-                              16,
-                          child: IconButton.filledTonal(
-                            style: IconButton.styleFrom(
-                              backgroundColor: Colors.black.withValues(
-                                alpha: 0.55,
-                              ),
-                              foregroundColor: Colors.white,
-                            ),
+                        Positioned.fill(
+                          child: MobilePlayerUnlockControl(
                             tooltip: context.l10n.unlock,
                             onPressed: () {
                               HapticFeedback.lightImpact();
                               widget.isLocked?.value = false;
                               _restartHideTimer();
                             },
-                            icon: const Icon(Icons.lock_outline, size: 24),
                           ),
                         )
                       else
                         Padding(
-                          padding:
-                              (
-                              // Add padding in fullscreen!
-                              isFullscreen(context)
-                              ? MediaQuery.of(context).padding
-                              : Platform.isIOS
-                              ? EdgeInsets.only(
-                                  bottom: MediaQuery.of(context).padding.bottom,
-                                )
-                              : EdgeInsets.zero),
+                          padding: EdgeInsets.only(
+                            left: MediaQuery.viewPaddingOf(context).left,
+                            right: MediaQuery.viewPaddingOf(context).right,
+                            bottom: MediaQuery.viewPaddingOf(context).bottom,
+                          ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.start,
@@ -735,12 +731,10 @@ class _MobileControllerWidgetState
                       ),
                     ],
                   ),
-              if (_temporaryPlaybackSpeed != null &&
-                  _temporarySpeedPosition != null)
+              if (_temporaryPlaybackSpeed != null)
                 Positioned.fill(
                   child: IgnorePointer(
-                    child: _TemporaryPlaybackSpeedSelector(
-                      position: _temporarySpeedPosition!,
+                    child: TemporaryPlaybackSpeedSelector(
                       speed: _temporaryPlaybackSpeed!,
                     ),
                   ),
@@ -801,6 +795,8 @@ class _MobileControllerWidgetState
                     child: MediaIndicatorBuilder(
                       value: _volumeValue,
                       isVolumeIndicator: true,
+                      adaptiveMobilePlacement: true,
+                      showAtZero: true,
                     ),
                   ),
                 ),
@@ -816,6 +812,8 @@ class _MobileControllerWidgetState
                     child: MediaIndicatorBuilder(
                       value: _brightnessValue,
                       isVolumeIndicator: false,
+                      adaptiveMobilePlacement: true,
+                      showAtZero: true,
                     ),
                   ),
                 ),
@@ -855,7 +853,8 @@ class _MobileControllerWidgetState
                                     });
                                   }
                                 },
-                                child: _BackwardSeekIndicator(
+                                child: MobileSeekIndicator(
+                                  forward: false,
                                   onChanged: (value) {
                                     setState(() {
                                       _seekBarDeltaValueNotifier =
@@ -911,7 +910,8 @@ class _MobileControllerWidgetState
                                     });
                                   }
                                 },
-                                child: _ForwardSeekIndicator(
+                                child: MobileSeekIndicator(
+                                  forward: true,
                                   onChanged: (value) {
                                     setState(() {
                                       _seekBarDeltaValueNotifier =
@@ -956,323 +956,6 @@ class _MobileControllerWidgetState
           ),
         ),
       ],
-    );
-  }
-}
-
-class _TemporaryPlaybackSpeedSelector extends StatelessWidget {
-  const _TemporaryPlaybackSpeedSelector({
-    required this.position,
-    required this.speed,
-  });
-
-  final Offset position;
-  final double speed;
-
-  static const double _width = 88;
-  static const double _edgePadding = 8;
-  static const double _fingerGap = 24;
-  static const double _maximumItemExtent = 34;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final selectedIndex = temporaryPlaybackSpeeds.indexOf(speed);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final availableHeight = math.max(
-          0.0,
-          constraints.maxHeight - (_edgePadding * 2),
-        );
-        final itemExtent = math.min(
-          _maximumItemExtent,
-          availableHeight / temporaryPlaybackSpeeds.length,
-        );
-        final selectorHeight = itemExtent * temporaryPlaybackSpeeds.length;
-        final maxLeft = math.max(
-          _edgePadding,
-          constraints.maxWidth - _width - _edgePadding,
-        );
-        final preferredLeft =
-            position.dx + _fingerGap + _width <=
-                constraints.maxWidth - _edgePadding
-            ? position.dx + _fingerGap
-            : position.dx - _width - _fingerGap;
-        final left = preferredLeft.clamp(_edgePadding, maxLeft).toDouble();
-        final preferredTop =
-            position.dy - (selectedIndex * itemExtent) - (itemExtent / 2);
-        final maxTop = math.max(
-          _edgePadding,
-          constraints.maxHeight - selectorHeight - _edgePadding,
-        );
-        final top = preferredTop.clamp(_edgePadding, maxTop).toDouble();
-
-        return Stack(
-          children: [
-            Positioned(
-              left: left,
-              top: top,
-              width: _width,
-              child: Semantics(
-                label:
-                    '${context.l10n.playback_speed}: ${temporaryPlaybackSpeedLabel(speed)}',
-                liveRegion: true,
-                child: Material(
-                  color: colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.94,
-                  ),
-                  elevation: 8,
-                  shadowColor: Colors.black.withValues(alpha: 0.45),
-                  borderRadius: BorderRadius.circular(18),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final level in temporaryPlaybackSpeeds)
-                        AnimatedContainer(
-                          key: ValueKey('temporary-speed-$level'),
-                          duration: const Duration(milliseconds: 100),
-                          height: itemExtent,
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: level == speed
-                                ? colorScheme.primary
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Text(
-                            temporaryPlaybackSpeedLabel(level),
-                            style: (textTheme.labelLarge ?? const TextStyle())
-                                .copyWith(
-                                  color: level == speed
-                                      ? colorScheme.onPrimary
-                                      : colorScheme.onSurfaceVariant,
-                                  fontWeight: level == speed
-                                      ? FontWeight.w800
-                                      : FontWeight.w500,
-                                  fontFeatures: const [
-                                    FontFeature.tabularFigures(),
-                                  ],
-                                ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _BackwardSeekIndicator extends StatefulWidget {
-  final void Function(Duration) onChanged;
-  final void Function(Duration) onSubmitted;
-  final int skipDuration;
-  const _BackwardSeekIndicator({
-    required this.onChanged,
-    required this.onSubmitted,
-    required this.skipDuration,
-  });
-
-  @override
-  State<_BackwardSeekIndicator> createState() => _BackwardSeekIndicatorState();
-}
-
-class _BackwardSeekIndicatorState extends State<_BackwardSeekIndicator> {
-  late Duration value = Duration(seconds: widget.skipDuration);
-
-  Timer? timer;
-
-  @override
-  void setState(VoidCallback fn) {
-    if (mounted) {
-      super.setState(fn);
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    timer = Timer(const Duration(milliseconds: 400), () {
-      widget.onSubmitted.call(value);
-    });
-  }
-
-  void increment() {
-    timer?.cancel();
-    timer = Timer(const Duration(milliseconds: 400), () {
-      widget.onSubmitted.call(value);
-    });
-    widget.onChanged.call(value);
-    setState(() {
-      value += Duration(seconds: widget.skipDuration);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0x66000000), Color(0x00000000)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-      ),
-      child: InkWell(
-        splashColor: colorScheme.primary.withValues(alpha: 0.16),
-        highlightColor: Colors.transparent,
-        onTap: increment,
-        child: Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(
-                alpha: 0.85,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.35),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.25),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.replay_10, size: 26.0, color: Colors.white),
-                const SizedBox(height: 4.0),
-                Text(
-                  '${value.inSeconds}s',
-                  style: (textTheme.labelMedium ?? const TextStyle()).copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ForwardSeekIndicator extends StatefulWidget {
-  final void Function(Duration) onChanged;
-  final void Function(Duration) onSubmitted;
-  final int skipDuration;
-  const _ForwardSeekIndicator({
-    required this.onChanged,
-    required this.onSubmitted,
-    required this.skipDuration,
-  });
-
-  @override
-  State<_ForwardSeekIndicator> createState() => _ForwardSeekIndicatorState();
-}
-
-class _ForwardSeekIndicatorState extends State<_ForwardSeekIndicator> {
-  late Duration value = Duration(seconds: widget.skipDuration);
-
-  Timer? timer;
-
-  @override
-  void setState(VoidCallback fn) {
-    if (mounted) {
-      super.setState(fn);
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    timer = Timer(const Duration(milliseconds: 400), () {
-      widget.onSubmitted.call(value);
-    });
-  }
-
-  void increment() {
-    timer?.cancel();
-    timer = Timer(const Duration(milliseconds: 400), () {
-      widget.onSubmitted.call(value);
-    });
-    widget.onChanged.call(value);
-    setState(() {
-      value += Duration(seconds: widget.skipDuration);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0x00000000), Color(0x66000000)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-      ),
-      child: InkWell(
-        splashColor: colorScheme.primary.withValues(alpha: 0.16),
-        highlightColor: Colors.transparent,
-        onTap: increment,
-        child: Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(
-                alpha: 0.85,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.35),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.25),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.forward_10, size: 26.0, color: Colors.white),
-                const SizedBox(height: 4.0),
-                Text(
-                  '${value.inSeconds}s',
-                  style: (textTheme.labelMedium ?? const TextStyle()).copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

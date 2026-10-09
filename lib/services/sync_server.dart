@@ -14,6 +14,7 @@ import 'package:mangayomi/eval/model/m_bridge.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/blend_level_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/flex_scheme_color_state_provider.dart';
+import 'package:mangayomi/modules/more/settings/appearance/providers/floating_navigation_bar_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/pure_black_dark_mode_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/theme_mode_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
@@ -219,11 +220,24 @@ class SyncServer extends _$SyncServer {
   // until every entity has fully caught up, then saves the new `since`.
   // ------------------------------------------------------------------
 
-  Future<bool> _incrementalSync(Synching notifier) async {
+  Future<bool> _incrementalSync(Synching notifier) {
     final prefs = ref.read(synchingProvider(syncId: syncId));
-    final since = prefs.since ?? 0;
-    final changed = ChangedRows.collect(prefs, notifier);
-    final chunks = changed.chunked(_maxRowsPerEntity);
+    return _syncLoop(
+      notifier,
+      since: prefs.since ?? 0,
+      changed: ChangedRows.collect(prefs, notifier),
+    );
+  }
+
+  /// Sends [changed] in chunks while paging through what the server has
+  /// since [since], then saves the new `since`. With no [changed], it only
+  /// pulls.
+  Future<bool> _syncLoop(
+    Synching notifier, {
+    required int since,
+    ChangedRows? changed,
+  }) async {
+    final chunks = changed?.chunked(_maxRowsPerEntity) ?? const [];
     final progress = ref.read(syncProgressProvider(syncId: syncId).notifier);
     progress.addTotal(chunks.length);
 
@@ -257,7 +271,7 @@ class SyncServer extends _$SyncServer {
         if (syncedAt != null) {
           notifier.setSince(syncedAt);
           notifier.setLastSync(DateTime.now().millisecondsSinceEpoch);
-          await changed.clearUploaded(notifier);
+          await changed?.clearUploaded(notifier);
         }
         return true;
       }
@@ -300,50 +314,14 @@ class SyncServer extends _$SyncServer {
   // traded for not being a one-click way to destroy real data by accident.
   // ------------------------------------------------------------------
 
-  Future<bool> _forceUpload(Synching notifier) async {
+  Future<bool> _forceUpload(Synching notifier) {
     final prefs = ref.read(synchingProvider(syncId: syncId));
-    final since = prefs.since ?? 0;
     final now = DateTime.now().millisecondsSinceEpoch;
-    final changed = ChangedRows.collectAll(forcedUpdatedAt: now);
-    final chunks = changed.chunked(_maxRowsPerEntity);
-    final progress = ref.read(syncProgressProvider(syncId: syncId).notifier);
-    progress.addTotal(chunks.length);
-
-    Map<String, String?>? cursors;
-    String? sessionToken;
-    var chunkIndex = 0;
-
-    while (true) {
-      if (!ref.mounted) return false;
-      final hasChunk = chunkIndex < chunks.length;
-      final body = <String, dynamic>{
-        'since': since,
-        'sessionToken': ?sessionToken,
-        'cursors': ?cursors,
-        if (hasChunk) ...chunks[chunkIndex],
-      };
-      if (hasChunk) chunkIndex += 1;
-
-      final response = await _postSync(body);
-      if (response == null) return false;
-      if (hasChunk) progress.addDone(1);
-      _trackDownloadProgress(progress, response);
-
-      await _applyPulledEntities(response);
-      sessionToken = response['sessionToken'] as String?;
-      cursors = _apiClient.decodeCursors(response['cursors']);
-      final hasMore = response['hasMore'] == true;
-
-      if (chunkIndex >= chunks.length && !hasMore) {
-        final syncedAt = response['syncedAt'] as int?;
-        if (syncedAt != null) {
-          notifier.setSince(syncedAt);
-          notifier.setLastSync(DateTime.now().millisecondsSinceEpoch);
-          await changed.clearUploaded(notifier);
-        }
-        return true;
-      }
-    }
+    return _syncLoop(
+      notifier,
+      since: prefs.since ?? 0,
+      changed: ChangedRows.collectAll(forcedUpdatedAt: now),
+    );
   }
 
   // ------------------------------------------------------------------
@@ -355,38 +333,8 @@ class SyncServer extends _$SyncServer {
   // over just leaving them alone.
   // ------------------------------------------------------------------
 
-  Future<bool> _fullDownload(Synching notifier) async {
-    const since = 0;
-    Map<String, String?>? cursors;
-    String? sessionToken;
-    final progress = ref.read(syncProgressProvider(syncId: syncId).notifier);
-
-    while (true) {
-      if (!ref.mounted) return false;
-      final body = <String, dynamic>{
-        'since': since,
-        'sessionToken': ?sessionToken,
-        'cursors': ?cursors,
-      };
-      final response = await _postSync(body);
-      if (response == null) return false;
-      _trackDownloadProgress(progress, response);
-
-      await _applyPulledEntities(response);
-      sessionToken = response['sessionToken'] as String?;
-      cursors = _apiClient.decodeCursors(response['cursors']);
-      final hasMore = response['hasMore'] == true;
-
-      if (!hasMore) {
-        final syncedAt = response['syncedAt'] as int?;
-        if (syncedAt != null) {
-          notifier.setSince(syncedAt);
-          notifier.setLastSync(DateTime.now().millisecondsSinceEpoch);
-        }
-        return true;
-      }
-    }
-  }
+  Future<bool> _fullDownload(Synching notifier) =>
+      _syncLoop(notifier, since: 0);
 
   // ------------------------------------------------------------------
   // Wire transport
@@ -424,6 +372,7 @@ class SyncServer extends _$SyncServer {
     ref.invalidate(blendLevelStateProvider);
     ref.invalidate(flexSchemeColorStateProvider);
     ref.invalidate(pureBlackDarkModeStateProvider);
+    ref.invalidate(floatingNavigationBarStateProvider);
     ref.invalidate(l10nLocaleStateProvider);
     ref.invalidate(extensionsRepoStateProvider(ItemType.manga));
     ref.invalidate(extensionsRepoStateProvider(ItemType.anime));

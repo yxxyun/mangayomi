@@ -25,6 +25,9 @@ import 'package:mangayomi/services/sync_server.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/router/router.dart';
 import 'package:mangayomi/services/fetch_item_sources.dart';
+import 'package:mangayomi/modules/manga/reader/providers/push_router.dart';
+import 'package:mangayomi/repositories/chapter_repository.dart';
+import 'package:mangayomi/repositories/history_repository.dart';
 import 'package:mangayomi/models/manga.dart';
 
 /// Shell widget for the 4-tab navigation.
@@ -321,3 +324,64 @@ class _IncognitoModeBar extends StatelessWidget {
     );
   }
 }
+
+// ---- helpers ported from upstream/main main_screen.dart (2026-10-09 merge) ----
+// Upstream widget files (mode_bars.dart / tablet_layout.dart) reference these;
+// the fork's 4-tab main_screen keeps its own body, so the shared helpers are
+// appended here to satisfy those imports.
+
+/// The ItemType a nav destination maps to, or null for destinations with no
+/// single content type to scope a global search to (Updates, History,
+/// Browse, More, ...). Shared by the desktop rail and mobile bottom bar's
+/// double-tap-for-global-search handling.
+ItemType? itemTypeForNavDest(String dest) => switch (dest) {
+  "/MangaLibrary" => ItemType.manga,
+  "/AnimeLibrary" => ItemType.anime,
+  "/NovelLibrary" => ItemType.novel,
+  _ => null,
+};
+
+/// How close together two taps on the same nav destination need to land to
+/// count as a double-tap/double-click, rather than two separate single taps.
+const _navDoubleTapWindow = Duration(milliseconds: 450);
+
+/// Resumes the most recently read/watched entry from history (optionally filtered by [itemType]),
+/// or shows a snackbar if none found.
+Future<void> resumeLatestHistory(
+  BuildContext context, [
+  ItemType? itemType,
+]) async {
+  // When an itemType is specified (e.g. from the active tab), strictly query that itemType.
+  final history = itemType != null
+      ? historyRepository.getLatestHistory(itemType)
+      : historyRepository.getLatestHistory();
+  if (history != null && history.chapterId != null) {
+    final chapter = chapterRepository.findByIdSync(history.chapterId!);
+    if (chapter != null && chapter.manga.value != null) {
+      await pushMangaReaderView(context: context, chapter: chapter);
+      return;
+    }
+  }
+  if (context.mounted) {
+    botToast(context.l10n.no_next_chapter, second: 2);
+  }
+}
+
+/// Whether tapping [current] counts as a double-tap on [last], given when
+/// [last] landed. Shared by the desktop rail and mobile bottom bar, which
+/// each track their own last-tap state (an index vs. a route string) but
+/// apply the same timing check to it.
+bool isNavDoubleTap<T>(
+  T current,
+  T? last,
+  DateTime? lastTapTime,
+  DateTime now,
+) {
+  return current == last &&
+      lastTapTime != null &&
+      now.difference(lastTapTime) < _navDoubleTapWindow;
+}
+
+// Resolved once — GoogleFonts lookups in build run font resolution on every
+// rebuild of these always-mounted bars.
+final String? barFontFamily = GoogleFonts.aBeeZee().fontFamily;

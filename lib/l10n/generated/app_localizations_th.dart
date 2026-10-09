@@ -1171,6 +1171,13 @@ class AppLocalizationsTh extends AppLocalizations {
       'จัดเรียงและปรับแต่งการนำทางแต่ละรายการตามความต้องการของคุณ';
 
   @override
+  String get floating_navigation_bar => 'Floating navigation bar';
+
+  @override
+  String get floating_navigation_bar_description =>
+      'Use a floating capsule instead of the standard attached navigation bar.';
+
+  @override
   String get full_screen_player => 'ใช้โหมดเต็มหน้าจอ';
 
   @override
@@ -1183,7 +1190,7 @@ class AppLocalizationsTh extends AppLocalizations {
   }
 
   @override
-  String n_episodes(Object n) {
+  String n_episodes(int n) {
     return '$n ตอน';
   }
 
@@ -1987,6 +1994,13 @@ class AppLocalizationsTh extends AppLocalizations {
   String get add_repo => 'เพิ่มที่เก็บข้อมูล?';
 
   @override
+  String get add_repo_sources_to_add => 'Extension lists that will be added:';
+
+  @override
+  String get add_repo_warning =>
+      'Extensions from these repositories run inside the app. Only add repositories you trust.';
+
+  @override
   String get genre_search_library => 'ค้นหาประเภทในห้องสมุด';
 
   @override
@@ -2128,6 +2142,10 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get custom_buttons_startup => 'โค้ด lua (เมื่อเริ่มต้น)';
+
+  @override
+  String get custom_buttons_add_warning =>
+      'This button runs the Lua code below in the video player, which can access your files and run programs. Only add it if you trust where this link came from.';
 
   @override
   String n_days(Object n) {
@@ -2411,7 +2429,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get authenticating => 'กำลังยืนยันตัวตน...';
 
   @override
-  String get lock => 'Lock';
+  String get lock => 'ล็อก';
 
   @override
   String get unlock => 'ปลดล็อก';
@@ -3693,4 +3711,94 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get chapter_swipe_disabled => 'ปิดใช้งาน';
+
+  @override
+  String get update_errors => 'Update errors';
+
+  @override
+  String get no_update_errors => 'No update errors';
+
+  @override
+  String get clear_all => 'Clear all';
+
+  @override
+  String get dismiss => 'Dismiss';
+
+  @override
+  String get previous_episode => 'Previous episode';
+
+  @override
+  String get clear_logs => 'Clear logs';
+
+  @override
+  String get bold => 'Bold';
+
+  @override
+  String get italic => 'Italic';
+
+  @override
+  String get color_yellow => 'Yellow';
+
+  @override
+  String get color_cyan => 'Cyan';
+
+  @override
+  String get color_green => 'Green';
+
+  @override
+  String get color_orange => 'Orange';
+
+  @override
+  String get continue_watching => 'Continue Watching';
+
+  @override
+  String get search_your_anime => 'Search your anime';
+
+  @override
+  String get category => 'Category';
+
+  @override
+  String get hidden_categories => 'Hidden categories';
+
+  @override
+  String get new_category => 'New category';
+
+  @override
+  String get local => 'Local';
+
+  @override
+  String get tv_home_rows => 'Rows';
+
+  @override
+  String get genre_rows => 'Genre rows';
+
+  @override
+  String get share_backup_file => 'Share Mangayomi backup file';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get migrate_source => 'Migrate source';
+
+  @override
+  String get cloudflare_bypass_proxy => 'Cloudflare bypass proxy';
+
+  @override
+  String get custom_doh_url => 'Custom DoH URL';
+
+  @override
+  String get custom_doh_url_helper => 'Must be an https DoH (JSON) endpoint';
+
+  @override
+  String get anime_only_tv_layout => 'Anime-only TV layout';
+
+  @override
+  String get anime_only_beta => 'Anime only (beta)';
+
+  @override
+  String get tv_home_beta => 'TV home (beta)';
+
+  @override
+  String get tv_player_beta => 'TV player (beta)';
 }

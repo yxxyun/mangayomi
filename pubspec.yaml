@@ -72,6 +72,9 @@ dependencies:
       url: https://github.com/kodjodevf/flutter_qjs.git
       ref: main
   http: ^1.6.0
+  # fork-side: cloud_drive cookie_manager still uses Hive boxes; upstream
+  # dropped hive_flutter (tracker cache moved to Isar) but fork needs it.
+  hive_flutter: ^1.1.0
   re_editor: ^0.10.0
   re_highlight: ^0.0.3
   json_view: ^0.4.2
@@ -99,8 +102,6 @@ dependencies:
   device_info_plus: ^13.2.0
   marquee: ^2.2.3
   d4rt: ^0.2.4
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
   flutter_discord_rpc_fork:
     git:
       url: https://github.com/kodjodevf/flutter-discord-rpc.git

@@ -13,6 +13,7 @@ import 'package:mangayomi/modules/more/settings/player/providers/player_state_pr
 import 'package:mangayomi/providers/storage_provider.dart';
 import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/services/downloaded_chapter.dart';
+import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/services/torrent_server.dart';
 import 'package:mangayomi/services/wogg/wogg_service.dart';
@@ -199,19 +200,25 @@ Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
       return (torrentList, false, infoHashes, mpvDirectory);
     }
 
-    List<Video> list = await getIsolateService.get<List<Video>>(
-      url: episode.url!,
-      source: source,
-      serviceType: 'getVideoList',
-      proxyServer: proxyServer,
-    );
-    List<Video> videos = [];
-
-    for (var video in list) {
-      if (!videos.any((element) => element.quality == video.quality)) {
-        videos.add(video);
+    // Some sources probe several hosts and keep the ones that succeed. Wait
+    // for that aggregate result before asking the user to solve one failed
+    // host's Cloudflare challenge.
+    final cloudflareAlerts = CloudflareAlertScope();
+    final videos = await cloudflareAlerts.run(() async {
+      final list = await getIsolateService.get<List<Video>>(
+        url: episode.url!,
+        source: source,
+        serviceType: 'getVideoList',
+        proxyServer: proxyServer,
+      );
+      final videos = <Video>[];
+      for (final video in list) {
+        if (!videos.any((element) => element.quality == video.quality)) {
+          videos.add(video);
+        }
       }
-    }
+      return videos;
+    }, hasUsableResult: (videos) => videos.isNotEmpty);
 
     result = (videos, false, infoHashes, mpvDirectory);
 
