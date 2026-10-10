@@ -77,6 +77,7 @@ class _ExtensionScreenState extends ConsumerState<ExtensionScreen> {
 
     final l10n = l10nLocalizations(context);
     if (l10n == null) return const SizedBox.shrink();
+    final tvHorizontalInset = tvHorizontalSafeInset(context);
 
     return RefreshIndicator(
       onRefresh: _refreshSources,
@@ -84,8 +85,8 @@ class _ExtensionScreenState extends ConsumerState<ExtensionScreen> {
         // Match the sources tab's inset so the two Browse tabs line up on TV.
         padding: EdgeInsets.only(
           top: 10,
-          left: isTv ? 8 : 0,
-          right: isTv ? 8 : 0,
+          left: tvHorizontalInset,
+          right: tvHorizontalInset,
         ),
         child: streamExtensions.when(
           data: (data) {

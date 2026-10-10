@@ -13,6 +13,8 @@ import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.da
 import 'package:mangayomi/modules/more/widgets/dialog_actions.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/utils/constant.dart';
+import 'package:mangayomi/utils/error_toast.dart';
+import 'package:mangayomi/utils/log/logger.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 
 /// Whether there's a sync server configured to ask about (regardless of
@@ -50,8 +52,7 @@ Future<bool> performRestore(BuildContext context, WidgetRef ref) async {
         backupType == BackupType.neko;
 
     if (backupType == BackupType.mangayomi) {
-      await _performMangayomiRestore(context, ref, path);
-      return true;
+      return await _performMangayomiRestore(context, ref, path);
     }
 
     if (!isMihonFamily) {
@@ -151,8 +152,14 @@ Future<bool> performRestore(BuildContext context, WidgetRef ref) async {
             description: resultDescription,
           ),
         );
-      } catch (_) {
+      } catch (e, s) {
         safetyBackupPath = null;
+        recordError(
+          e,
+          stack: s,
+          source: "safety_backup",
+          level: LogLevel.warning,
+        );
       }
 
       // false, not a bare return: performRestore reports whether anything was
@@ -177,8 +184,8 @@ Future<bool> performRestore(BuildContext context, WidgetRef ref) async {
 
     _showImportResultToast(context, ref, resultDescription, safetyBackupPath);
     return true;
-  } catch (e) {
-    botToast("Error restoring backup: $e");
+  } catch (e, s) {
+    toastError(e, stack: s, source: 'restore');
     if (safetyBackupPath != null && context.mounted) {
       offerLibraryRollback(context, ref, safetyBackupPath);
     }
@@ -189,7 +196,7 @@ Future<bool> performRestore(BuildContext context, WidgetRef ref) async {
 /// Native mangayomi-format restore, with the same merge/replace choice and
 /// category/source conflict resolution the Mihon-family path already has -
 /// the dialogs below are shared with it, not duplicated.
-Future<void> _performMangayomiRestore(
+Future<bool> _performMangayomiRestore(
   BuildContext context,
   WidgetRef ref,
   String path,
@@ -199,45 +206,60 @@ Future<void> _performMangayomiRestore(
     final Map<String, dynamic> backup;
     try {
       backup = await decodeMangayomiBackup(path, context);
-    } catch (e) {
+    } catch (e, s) {
+      recordError(
+        e,
+        stack: s,
+        source: 'restore_decode',
+        level: LogLevel.warning,
+      );
       if (context.mounted) botToast("$e");
-      return;
+      return false;
     }
-    if (!context.mounted) return;
+    if (!context.mounted) return false;
     final l10n = context.l10n;
     final preview = previewMangayomiBackup(backup);
 
     final keepExisting = await _chooseImportMode(context);
-    if (keepExisting == null || !context.mounted) return;
+    if (keepExisting == null || !context.mounted) return false;
 
     var categoryDecisions = const <String, bool>{};
     var sourceDecisions = const <String, int>{};
 
     if (keepExisting && preview.conflictingCategories.isNotEmpty) {
-      if (!context.mounted) return;
+      if (!context.mounted) return false;
       final decisions = await _resolveCategoryConflicts(
         context,
         preview.conflictingCategories,
       );
-      if (decisions == null || !context.mounted) return;
+      if (decisions == null || !context.mounted) return false;
       categoryDecisions = decisions;
     }
 
     if (preview.unmatchedSourceNames.isNotEmpty) {
-      if (!context.mounted) return;
+      if (!context.mounted) return false;
       final decisions = await _resolveSourceConflicts(
         context,
         preview.unmatchedSourceNames,
       );
-      if (decisions == null || !context.mounted) return;
+      if (decisions == null || !context.mounted) return false;
       sourceDecisions = decisions;
     }
 
-    if (!context.mounted) return;
+    if (!context.mounted) return false;
     final proceed = keepExisting
         ? await _confirmImportSummary(context, preview)
         : await _confirmReplaceSummary(context, preview);
-    if (proceed != true || !context.mounted) return;
+    if (proceed != true || !context.mounted) return false;
+
+    // Same question the other backup formats ask: a restore that the sync
+    // server is never told about leaves the server on the old library.
+    bool? syncAfterRestore;
+    final (hasServer, syncOn) = _syncState(ref);
+    if (hasServer) {
+      syncAfterRestore = await confirmSyncAfterRestore(context, syncOn: syncOn);
+      if (!context.mounted) return false;
+    }
 
     final resultDescription = keepExisting
         ? l10n.import_result_message(
@@ -249,7 +271,7 @@ Future<void> _performMangayomiRestore(
             preview.newSeriesCount + preview.updatedSeriesCount,
           );
 
-    if (!context.mounted) return;
+    if (!context.mounted) return false;
     showBusyDialog(context, l10n.restoring_backup);
     try {
       try {
@@ -261,11 +283,17 @@ Future<void> _performMangayomiRestore(
             description: resultDescription,
           ),
         );
-      } catch (_) {
+      } catch (e, s) {
         safetyBackupPath = null;
+        recordError(
+          e,
+          stack: s,
+          source: "safety_backup",
+          level: LogLevel.warning,
+        );
       }
 
-      if (!context.mounted) return;
+      if (!context.mounted) return false;
       await ref.watch(
         doRestoreProvider(
           path: path,
@@ -274,20 +302,23 @@ Future<void> _performMangayomiRestore(
           categoryDecisions: categoryDecisions,
           sourceDecisions: sourceDecisions,
           decodedMangayomiBackup: backup,
+          syncAfterRestore: syncAfterRestore,
         ).future,
       );
     } finally {
       if (context.mounted) hideBusyDialog(context);
     }
-    if (!context.mounted) return;
+    if (!context.mounted) return false;
     ref.invalidate(lastLibrarySnapshotProvider);
 
     _showImportResultToast(context, ref, resultDescription, safetyBackupPath);
-  } catch (e) {
-    botToast("Error restoring backup: $e");
+    return true;
+  } catch (e, s) {
+    toastError(e, stack: s, source: 'restore');
     if (safetyBackupPath != null && context.mounted) {
       offerLibraryRollback(context, ref, safetyBackupPath);
     }
+    return false;
   }
 }
 

@@ -13,6 +13,7 @@ import 'package:mangayomi/models/custom_button.dart';
 import 'package:mangayomi/models/download.dart';
 import 'package:mangayomi/models/update.dart';
 import 'package:mangayomi/models/history.dart';
+import 'package:mangayomi/utils/error_toast.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
@@ -47,11 +48,15 @@ import 'package:mangayomi/repositories/track_repository.dart';
 import 'package:mangayomi/repositories/update_repository.dart';
 import 'package:mangayomi/services/sync_server.dart';
 import 'package:mangayomi/utils/constant.dart';
-import 'package:mangayomi/utils/error_toast.dart';
 import 'package:protobuf/protobuf.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'restore.g.dart';
 
+/// Restores the backup at [path], replacing or merging into the library.
+///
+/// Throws when the restore fails, and leaves reporting it to the caller: the
+/// restore flows announce the outcome themselves, so an error swallowed here
+/// used to be followed by their success message.
 @riverpod
 Future<void> doRestore(
   Ref ref, {
@@ -158,8 +163,6 @@ Future<void> doRestore(
     } else {
       showBotToast("Backup Type not supported!");
     }
-  } catch (e, s) {
-    toastError(e, stack: s, source: 'restore');
   } finally {
     if (!uploadStarted) {
       ref.read(restoreSyncGuardProvider.notifier).finish();
@@ -192,7 +195,8 @@ Future<void> _uploadToSyncServerIfConnected(
     if (success) {
       botToast(l10n.restore_sync_upload_success);
     }
-  } catch (e) {
+  } catch (e, s) {
+    recordError(e, stack: s, source: 'restore_sync_upload');
     botToast(
       "Backup restored, but couldn't push it to your sync server: $e. "
       "The server still has the old data until the next successful sync.",
