@@ -3,9 +3,10 @@ import 'dart:convert';
 
 import 'package:mangayomi/eval/http_response_extensions.dart';
 import 'package:mangayomi/eval/lib.dart';
-import 'package:mangayomi/modules/more/settings/general/providers/general_state_provider.dart';
+import 'package:mangayomi/providers/general_state_provider.dart';
 import 'package:mangayomi/models/source.dart';
-import 'package:mangayomi/services/built_in_sources.dart';
+import 'package:mangayomi/services/source_code_errors.dart';
+import 'package:mangayomi/services/built_in_extension_service.dart';
 import 'package:mangayomi/utils/utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -37,28 +38,35 @@ Map<String, String> headers(
 
   if (mSource == null) return {};
 
-  // Built-in sources: return basic headers.
-  if (BuiltInSources.isBuiltIn(mSource)) {
-    return {
-      'Referer': mSource.baseUrl ?? '',
-      'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    };
+  // Built-in sources have no sourceCode: the facade answers with the
+  // static headers their services send.
+  final builtIn = builtInServiceFor(mSource);
+  if (builtIn != null) {
+    final h = builtIn.getHeaders();
+    builtIn.dispose();
+    return h;
   }
 
   final cacheKey =
       '${mSource.id}|${mSource.version}|${mSource.sourceCode?.hashCode}|$androidProxyServer';
   final base = _sourceHeadersCache.putIfAbsent(cacheKey, () {
     final headers = <String, String>{};
-    final fromSource = mSource.headers;
-    if (fromSource != null && fromSource.isNotEmpty) {
-      headers.addAll((jsonDecode(fromSource) as Map).toMapStringString!);
-    }
-    final service = getExtensionService(mSource, androidProxyServer);
+    // A source whose code will not run (empty, broken, half installed) has
+    // no headers of its own, but its covers still load: before, the error
+    // reached every cover of it, and the calendar failed to build.
     try {
-      headers.addAll(service.getHeaders());
-    } finally {
-      service.dispose();
+      final fromSource = mSource.headers;
+      if (fromSource != null && fromSource.isNotEmpty) {
+        headers.addAll((jsonDecode(fromSource) as Map).toMapStringString!);
+      }
+      final service = getExtensionService(mSource, androidProxyServer);
+      try {
+        headers.addAll(service.getHeaders());
+      } finally {
+        service.dispose();
+      }
+    } catch (e, stack) {
+      SourceCodeErrors.report(mSource, 'Headers', e, stack);
     }
     return headers;
   });

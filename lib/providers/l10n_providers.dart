@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/repositories/settings_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -16,6 +16,27 @@ class L10nLocaleState extends _$L10nLocaleState {
   L10nLocale _getLocale() {
     return settingsRepository.current.locale ??
         L10nLocale(languageCode: "en", countryCode: "");
+  }
+
+  /// On a new install, whose language was never chosen, takes the device's
+  /// language when the app speaks it. A new install otherwise opened in
+  /// English whatever the device was set to.
+  void adoptDeviceLocaleIfUnset() {
+    if (settingsRepository.current.locale != null) return;
+    final device = WidgetsBinding.instance.platformDispatcher.locale;
+    const supported = AppLocalizations.supportedLocales;
+    final match =
+        supported
+            .where(
+              (l) =>
+                  l.languageCode == device.languageCode &&
+                  (l.countryCode ?? '') == (device.countryCode ?? ''),
+            )
+            .firstOrNull ??
+        supported
+            .where((l) => l.languageCode == device.languageCode)
+            .firstOrNull;
+    if (match != null) setLocale(match);
   }
 
   void setLocale(Locale locale) async {

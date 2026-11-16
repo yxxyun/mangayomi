@@ -1,21 +1,20 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:mangayomi/modules/manga/reader/u_chap_data_preload.dart';
-import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
-import 'package:mangayomi/services/built_in_sources.dart';
+import 'package:mangayomi/services/reader/u_chap_data_preload.dart';
+import 'package:mangayomi/providers/browse_state_provider.dart';
+import 'package:mangayomi/services/built_in_extension_service.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/services/chapter_cache.dart';
-import 'package:mangayomi/services/jmcomic/jmcomic_service.dart';
 import 'package:mangayomi/utils/downloaded_page_file.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/page.dart';
-import 'package:mangayomi/modules/library/providers/file_scanner.dart';
-import 'package:mangayomi/modules/manga/archive_reader/providers/archive_reader_providers.dart';
+import 'package:mangayomi/services/local_folders.dart';
+import 'package:mangayomi/services/archive_reader/providers/archive_reader_providers.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
 import 'package:mangayomi/services/downloaded_chapter.dart';
 import 'package:mangayomi/utils/utils.dart';
-import 'package:mangayomi/modules/more/providers/incognito_mode_state_provider.dart';
+import 'package:mangayomi/providers/incognito_mode_state_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'get_chapter_pages.g.dart';
 
@@ -89,16 +88,14 @@ Future<GetChapterPagesModel> getChapterPages(
         // Only ask the source when there is nothing on disk to read.
         final manga = chapter.manga.value!;
         final src = getSource(manga.lang!, manga.source!, manga.sourceId);
-        // Built-in manga sources: bypass isolate service to avoid Isar deadlock.
-        if (src != null && BuiltInSources.isBuiltIn(src)) {
-          final bi = BuiltInSources.getForSource(src)!;
-          if (bi.nameId == 'jmcomic') {
-            final jmcomicService = JmcomicService(baseUrl: bi.baseUrl);
-            try {
-              pageUrls = await jmcomicService.getPageList(chapter.url!);
-            } finally {
-              jmcomicService.dispose();
-            }
+        // Built-in manga sources: no isolate can run them (no sourceCode),
+        // and dispatching here keeps the reader off the worker pool.
+        final builtIn = builtInServiceFor(src);
+        if (builtIn != null) {
+          try {
+            pageUrls = await builtIn.getPageList(chapter.url!);
+          } finally {
+            builtIn.dispose();
           }
         }
         if (pageUrls.isEmpty && src != null) {

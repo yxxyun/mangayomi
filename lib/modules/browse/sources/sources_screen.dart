@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:shiori/shiori.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/modules/widgets/custom_sliver_grouped_list_view.dart';
 import 'package:mangayomi/models/manga.dart';
@@ -8,7 +9,7 @@ import 'package:mangayomi/repositories/source_repository.dart';
 import 'package:mangayomi/modules/browse/sources/widgets/source_list_tile.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/modules/widgets/error_state.dart';
-import 'package:mangayomi/modules/widgets/extension_server_warning_banner.dart';
+import 'package:mangayomi/modules/browse/widgets/extension_server_warning_banner.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/utils/language.dart';
@@ -89,7 +90,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
 
     return Padding(
       padding: EdgeInsets.only(
-        top: 10,
+        top: ShioriSpace.s12,
         left: tvHorizontalInset,
         right: tvHorizontalInset,
       ),
@@ -104,47 +105,41 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const ExtensionServerWarningBanner(),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(context.l10n.no_sources_installed),
+                ShioriEmptyState(
+                  icon: Symbols.extension_rounded,
+                  title: context.l10n.no_sources_installed,
+                  compact: true,
+                  actionLabel: context.l10n.show_extensions,
+                  onAction: () {
+                    final extensionIndex = widget.tabs.indexWhere(
+                      (t) =>
+                          t.type == widget.itemType &&
+                          t.kind == BrowseTabKind.extensions,
+                    );
+                    if (extensionIndex != -1) {
+                      widget.tabIndex(extensionIndex);
+                    }
+                  },
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      final extensionIndex = widget.tabs.indexWhere(
-                        (t) =>
-                            t.type == widget.itemType &&
-                            t.kind == BrowseTabKind.extensions,
-                      );
-                      if (extensionIndex != -1) {
-                        widget.tabIndex(extensionIndex);
-                      }
-                    },
-                    icon: const Icon(Icons.extension_rounded),
-                    label: Text(context.l10n.show_extensions),
-                  ),
-                ),
-                // Show built-in sources even when no extensions installed.
-                for (final bi in BuiltInSources.all.where((s) => s.itemType == widget.itemType))
-                  SourceListTile(
-                    source: bi.toSource(),
-                    itemType: widget.itemType,
-                  ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: Row(
+                // The empty state only replaces the grouped list when no
+                // extension is installed; built-in sources still list below it.
+                if (BuiltInSources.all.any((s) => s.itemType == widget.itemType))
+                  Column(
                     children: [
-                      Text(
-                        l10n.other,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
+                      ShioriSectionHeader(
+                        title: l10n.built_in_sources,
+                        overline: true,
                       ),
+                      for (final bi in BuiltInSources.all.where(
+                        (s) => s.itemType == widget.itemType,
+                      ))
+                        SourceListTile(
+                          source: bi.toSource(),
+                          itemType: widget.itemType,
+                        ),
                     ],
                   ),
-                ),
+                ShioriSectionHeader(title: l10n.other, overline: true),
                 SourceListTile(
                   source: Source(
                     name: "local",
@@ -168,7 +163,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
             interactive: true,
             controller: controller,
             thickness: 12,
-            radius: const Radius.circular(10),
+            radius: const Radius.circular(ShioriShape.card),
             child: CustomScrollView(
               controller: controller,
               slivers: [
@@ -181,21 +176,13 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
                   SliverToBoxAdapter(
                     child: Column(
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 12),
-                          child: Row(
-                            children: [
-                              Text(
-                                '内置源',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
+                        ShioriSectionHeader(
+                          title: l10n.built_in_sources,
+                          overline: true,
                         ),
-                        for (final bi in BuiltInSources.all.where((s) => s.itemType == widget.itemType))
+                        for (final bi in BuiltInSources.all.where(
+                          (s) => s.itemType == widget.itemType,
+                        ))
                           SourceListTile(
                             source: bi.toSource(),
                             itemType: widget.itemType,
@@ -206,20 +193,11 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
                 CustomSliverGroupedListView<Source, String>(
                   elements: lastUsedEntries,
                   groupBy: (element) => "",
-                  groupSeparatorBuilder: (String groupByValue) => Padding(
-                    padding: const EdgeInsets.only(left: 12),
-                    child: Row(
-                      children: [
-                        Text(
-                          l10n.last_used,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  groupSeparatorBuilder: (String groupByValue) =>
+                      ShioriSectionHeader(
+                        title: l10n.last_used,
+                        overline: true,
+                      ),
                   itemBuilder: (context, Source element) {
                     return _row(element, shareNodes: false);
                   },
@@ -231,20 +209,8 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
                 CustomSliverGroupedListView<Source, String>(
                   elements: isPinnedEntries,
                   groupBy: (element) => "",
-                  groupSeparatorBuilder: (String groupByValue) => Padding(
-                    padding: const EdgeInsets.only(left: 12),
-                    child: Row(
-                      children: [
-                        Text(
-                          l10n.pinned,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  groupSeparatorBuilder: (String groupByValue) =>
+                      ShioriSectionHeader(title: l10n.pinned, overline: true),
                   itemBuilder: (context, Source element) {
                     return _row(element);
                   },
@@ -256,21 +222,9 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
                 CustomSliverGroupedListView<Source, String>(
                   elements: allEntriesWithoutIspinned,
                   groupBy: (element) =>
-                      completeLanguageName(element.lang!.toLowerCase()),
-                  groupSeparatorBuilder: (String groupByValue) => Padding(
-                    padding: const EdgeInsets.only(left: 12),
-                    child: Row(
-                      children: [
-                        Text(
-                          groupByValue,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      languageName(context, element.lang!.toLowerCase()),
+                  groupSeparatorBuilder: (String groupByValue) =>
+                      ShioriSectionHeader(title: groupByValue, overline: true),
                   itemBuilder: (context, Source element) {
                     return _row(element);
                   },
@@ -282,20 +236,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
                 SliverToBoxAdapter(
                   child: Column(
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 12),
-                        child: Row(
-                          children: [
-                            Text(
-                              l10n.other,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      ShioriSectionHeader(title: l10n.other, overline: true),
                       SourceListTile(
                         source: Source(
                           name: "local",
@@ -322,7 +263,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
           onRetry: () =>
               ref.invalidate(getSourcesStreamProvider(widget.itemType)),
         ),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const ShioriLoading(),
       ),
     );
   }

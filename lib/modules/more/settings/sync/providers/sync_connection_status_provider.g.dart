@@ -59,7 +59,7 @@ final class SyncConnectionStateProvider
 }
 
 String _$syncConnectionStateHash() =>
-    r'b4ad27b30466087f303df1a8bb111a4000dd765f';
+    r'66489e68a886a17e64c42ec52e991866da71bc4e';
 
 final class SyncConnectionStateFamily extends $Family
     with
@@ -93,7 +93,7 @@ abstract class _$SyncConnectionState extends $Notifier<SyncConnectionStatus> {
   SyncConnectionStatus build({required int syncId});
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<SyncConnectionStatus, SyncConnectionStatus>;
     final element =
         ref.element
@@ -103,6 +103,6 @@ abstract class _$SyncConnectionState extends $Notifier<SyncConnectionStatus> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, () => build(syncId: _$args));
+    return element.handleCreate(ref, () => build(syncId: _$args));
   }
 }

@@ -1,23 +1,28 @@
 import 'package:mangayomi/eval/lib.dart';
 import 'package:mangayomi/models/source.dart';
-import 'package:mangayomi/services/built_in_sources.dart';
-import 'package:mangayomi/services/jmcomic/jmcomic_service.dart';
-import 'package:mangayomi/services/wogg/wogg_service.dart';
-import 'package:mangayomi/services/yydsys/yydsys_service.dart';
+import 'package:mangayomi/services/source_code_errors.dart';
+import 'package:mangayomi/services/built_in_extension_service.dart';
 
+/// The source's search filters, or none when its code will not run (empty,
+/// broken, half installed): the screens that ask, a source's home among
+/// them, then open and say why it gives nothing, rather than failing to
+/// build.
 List<dynamic> getFilterList({required Source source}) {
-  // Built-in sources: return category filters.
-  if (BuiltInSources.isBuiltIn(source)) {
-    final bi = BuiltInSources.getForSource(source);
-    if (bi?.nameId == 'wogg') {
-      return WoggService.getFilterList();
-    } else if (bi?.nameId == 'jmcomic') {
-      return JmcomicService.getFilterList();
-    } else if (bi?.nameId == 'yydsys') {
-      return YydsysService.getFilterList();
-    }
+  final builtIn = builtInServiceFor(source);
+  if (builtIn != null) {
+    final f = builtIn.getFilterList().filters;
+    builtIn.dispose();
+    return f;
+  }
+  try {
+    final filters = getCachedExtensionService(
+      source,
+      "",
+    ).getFilterList().filters;
+    SourceCodeErrors.clear(source.id);
+    return filters;
+  } catch (e, stack) {
+    SourceCodeErrors.report(source, 'Filters', e, stack);
     return [];
   }
-
-  return getCachedExtensionService(source, "").getFilterList().filters;
 }

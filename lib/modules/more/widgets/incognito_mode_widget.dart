@@ -1,7 +1,7 @@
-import 'package:cupertino_ui/cupertino_ui.dart';
-import 'package:flutter/material.dart';
+import 'package:shiori/shiori.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mangayomi/main.dart';
+import 'package:mangayomi/services/discord_rpc.dart';
 import 'package:mangayomi/modules/more/providers/incognito_mode_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/general/providers/general_state_provider.dart';
 import 'package:mangayomi/modules/more/widgets/list_tile_widget.dart';
@@ -27,7 +27,7 @@ class IncognitoModeWidget extends ConsumerWidget {
           if (hideDiscordRpcInIncognito) discordRpc?.disconnect();
         }
       },
-      icon: CupertinoIcons.eyeglasses,
+      icon: Symbols.eyeglasses_rounded,
       subtitle: l10n!.incognito_mode_description,
       title: l10n.incognito_mode,
       trailing: Switch(

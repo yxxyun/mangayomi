@@ -1,13 +1,14 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:mangayomi/modules/manga/reader/utils/reader_motion.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/utils/downloaded_page_file.dart';
 import 'package:mangayomi/modules/manga/reader/u_chap_data_preload.dart';
 import 'package:mangayomi/modules/manga/reader/widgets/color_filter_widget.dart';
 import 'package:mangayomi/modules/manga/reader/providers/reader_controller_provider.dart';
-import 'package:mangayomi/modules/more/settings/reader/providers/reader_state_provider.dart';
+import 'package:mangayomi/providers/reader_state_provider.dart';
 import 'package:mangayomi/modules/manga/reader/subsampling_scale_image_view/subsampling_scale_image_view.dart'
     as ssiv;
 import 'package:mangayomi/utils/extensions/others.dart';
@@ -225,22 +226,16 @@ class _ImageViewPagedState extends ConsumerState<ImageViewPaged> {
         controller.animateScaleAndCenter(
           targetScale,
           targetPoint,
+          // shiori: the double-tap zoom, tuned to feel physical rather than to the motion scale
           duration: const Duration(milliseconds: 800),
         );
       }
     });
   }
 
-  Duration _doubleTapAnimationDuration() {
-    final doubleTapAnimationValue = ref.read(
-      doubleTapAnimationSpeedStateProvider,
-    );
-    return switch (doubleTapAnimationValue) {
-      0 => const Duration(milliseconds: 10),
-      1 => const Duration(milliseconds: 800),
-      _ => const Duration(milliseconds: 200),
-    };
-  }
+  Duration _doubleTapAnimationDuration() => ReaderMotion.doubleTapZoom(
+    ref.read(doubleTapAnimationSpeedStateProvider),
+  );
 
   @override
   Widget build(BuildContext context) {

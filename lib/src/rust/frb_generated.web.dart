@@ -3,7 +3,6 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
-
 // Static analysis wrongly picks the IO variant, thus ignore this
 // ignore_for_file: argument_type_not_assignable
 
@@ -14,848 +13,2128 @@ import 'api/rar.dart';
 import 'api/rhttp/client.dart';
 import 'api/rhttp/error.dart';
 import 'api/rhttp/http.dart';
+import 'api/sync_host.dart';
+
 import 'dart:async';
 import 'dart:convert';
+
 import 'frb_generated.dart';
 import 'lib.dart';
+
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_web.dart';
 
+abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
+  RustLibApiImplPlatform({
+    required super.handler,
+    required super.wire,
+    required super.generalizedFrbRustBinding,
+    required super.portManager,
+  });
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_AidokuSourcePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_CancellationTokenPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_DnsSettingsPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_RequestClientPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_SyncHostPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_SyncPeerClientPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient;
+
+  @protected
+  AnyhowException dco_decode_AnyhowException(dynamic raw);
+
+  @protected
+  RequestClient
+  dco_decode_AutoExplicit_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    dynamic raw,
+  );
+
+  @protected
+  AidokuSource
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+    dynamic raw,
+  );
+
+  @protected
+  CancellationToken
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+    dynamic raw,
+  );
+
+  @protected
+  DnsSettings
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    dynamic raw,
+  );
+
+  @protected
+  RequestClient
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    dynamic raw,
+  );
+
+  @protected
+  SyncHost
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+    dynamic raw,
+  );
+
+  @protected
+  SyncPeerClient
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+    dynamic raw,
+  );
+
+  @protected
+  AidokuSource
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+    dynamic raw,
+  );
+
+  @protected
+  CancellationToken
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+    dynamic raw,
+  );
+
+  @protected
+  RequestClient
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    dynamic raw,
+  );
+
+  @protected
+  SyncHost
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+    dynamic raw,
+  );
+
+  @protected
+  SyncPeerClient
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+    dynamic raw,
+  );
+
+  @protected
+  Duration dco_decode_Chrono_Duration(dynamic raw);
+
+  @protected
+  FutureOr<void> Function(CancellationToken)
+  dco_decode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken_Output_unit_AnyhowException(
+    dynamic raw,
+  );
+
+  @protected
+  FutureOr<List<String>> Function(String)
+  dco_decode_DartFn_Inputs_String_Output_list_String_AnyhowException(
+    dynamic raw,
+  );
+
+  @protected
+  FutureOr<void> Function(String)
+  dco_decode_DartFn_Inputs_String_Output_unit_AnyhowException(dynamic raw);
+
+  @protected
+  FutureOr<AidokuJsResponse> Function(AidokuJsRequest)
+  dco_decode_DartFn_Inputs_aidoku_js_request_Output_aidoku_js_response_AnyhowException(
+    dynamic raw,
+  );
+
+  @protected
+  FutureOr<AidokuNetResponse> Function(AidokuNetRequest)
+  dco_decode_DartFn_Inputs_aidoku_net_request_Output_aidoku_net_response_AnyhowException(
+    dynamic raw,
+  );
+
+  @protected
+  FutureOr<void> Function(HttpResponse)
+  dco_decode_DartFn_Inputs_http_response_Output_unit_AnyhowException(
+    dynamic raw,
+  );
+
+  @protected
+  FutureOr<void> Function(RhttpError)
+  dco_decode_DartFn_Inputs_rhttp_error_Output_unit_AnyhowException(dynamic raw);
+
+  @protected
+  Object dco_decode_DartOpaque(dynamic raw);
+
+  @protected
+  Map<String, String> dco_decode_Map_String_String_None(dynamic raw);
+
+  @protected
+  Map<String, List<String>> dco_decode_Map_String_list_String_None(dynamic raw);
+
+  @protected
+  AidokuSource
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+    dynamic raw,
+  );
+
+  @protected
+  CancellationToken
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+    dynamic raw,
+  );
+
+  @protected
+  DnsSettings
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    dynamic raw,
+  );
+
+  @protected
+  RequestClient
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    dynamic raw,
+  );
 
+  @protected
+  SyncHost
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+    dynamic raw,
+  );
 
+  @protected
+  SyncPeerClient
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+    dynamic raw,
+  );
 
-                abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
-                  RustLibApiImplPlatform({
-                    required super.handler,
-                    required super.wire,
-                    required super.generalizedFrbRustBinding,
-                    required super.portManager,
-                  });
+  @protected
+  RustStreamSink<Uint8List> dco_decode_StreamSink_list_prim_u_8_strict_Sse(
+    dynamic raw,
+  );
 
-                  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_AidokuSourcePtr => wire.rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource;
+  @protected
+  RustStreamSink<SyncHostRequest> dco_decode_StreamSink_sync_host_request_Sse(
+    dynamic raw,
+  );
 
-CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_CancellationTokenPtr => wire.rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken;
+  @protected
+  String dco_decode_String(dynamic raw);
 
-CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_DnsSettingsPtr => wire.rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings;
+  @protected
+  SocketAddrDigester dco_decode_TraitDef_SocketAddrDigester(dynamic raw);
 
-CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_RequestClientPtr => wire.rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient;
+  @protected
+  AidokuChapter dco_decode_aidoku_chapter(dynamic raw);
 
+  @protected
+  AidokuDeepLink dco_decode_aidoku_deep_link(dynamic raw);
 
+  @protected
+  AidokuFilter dco_decode_aidoku_filter(dynamic raw);
 
-                  @protected AnyhowException dco_decode_AnyhowException(dynamic raw);
+  @protected
+  AidokuFilterValue dco_decode_aidoku_filter_value(dynamic raw);
 
-@protected RequestClient dco_decode_AutoExplicit_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(dynamic raw);
+  @protected
+  AidokuImageRequest dco_decode_aidoku_image_request(dynamic raw);
 
-@protected AidokuSource dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(dynamic raw);
+  @protected
+  AidokuJsAction dco_decode_aidoku_js_action(dynamic raw);
 
-@protected CancellationToken dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(dynamic raw);
+  @protected
+  AidokuJsRequest dco_decode_aidoku_js_request(dynamic raw);
 
-@protected DnsSettings dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(dynamic raw);
+  @protected
+  AidokuJsResponse dco_decode_aidoku_js_response(dynamic raw);
 
-@protected RequestClient dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(dynamic raw);
+  @protected
+  AidokuListing dco_decode_aidoku_listing(dynamic raw);
 
-@protected AidokuSource dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(dynamic raw);
+  @protected
+  AidokuManga dco_decode_aidoku_manga(dynamic raw);
 
-@protected CancellationToken dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(dynamic raw);
+  @protected
+  AidokuMangaPage dco_decode_aidoku_manga_page(dynamic raw);
 
-@protected RequestClient dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(dynamic raw);
+  @protected
+  AidokuNetRequest dco_decode_aidoku_net_request(dynamic raw);
 
-@protected Duration dco_decode_Chrono_Duration(dynamic raw);
+  @protected
+  AidokuNetResponse dco_decode_aidoku_net_response(dynamic raw);
 
-@protected FutureOr<void> Function(CancellationToken) dco_decode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken_Output_unit_AnyhowException(dynamic raw);
+  @protected
+  AidokuPage dco_decode_aidoku_page(dynamic raw);
 
-@protected FutureOr<List<String>> Function(String) dco_decode_DartFn_Inputs_String_Output_list_String_AnyhowException(dynamic raw);
+  @protected
+  AidokuSourceFeatures dco_decode_aidoku_source_features(dynamic raw);
 
-@protected FutureOr<void> Function(String) dco_decode_DartFn_Inputs_String_Output_unit_AnyhowException(dynamic raw);
+  @protected
+  bool dco_decode_bool(dynamic raw);
 
-@protected FutureOr<AidokuJsResponse> Function(AidokuJsRequest) dco_decode_DartFn_Inputs_aidoku_js_request_Output_aidoku_js_response_AnyhowException(dynamic raw);
+  @protected
+  DnsSettings
+  dco_decode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    dynamic raw,
+  );
 
-@protected FutureOr<AidokuNetResponse> Function(AidokuNetRequest) dco_decode_DartFn_Inputs_aidoku_net_request_Output_aidoku_net_response_AnyhowException(dynamic raw);
+  @protected
+  Duration dco_decode_box_autoadd_Chrono_Duration(dynamic raw);
 
-@protected FutureOr<void> Function(HttpResponse) dco_decode_DartFn_Inputs_http_response_Output_unit_AnyhowException(dynamic raw);
+  @protected
+  AidokuChapter dco_decode_box_autoadd_aidoku_chapter(dynamic raw);
 
-@protected FutureOr<void> Function(RhttpError) dco_decode_DartFn_Inputs_rhttp_error_Output_unit_AnyhowException(dynamic raw);
+  @protected
+  AidokuDeepLink dco_decode_box_autoadd_aidoku_deep_link(dynamic raw);
 
-@protected Object dco_decode_DartOpaque(dynamic raw);
+  @protected
+  AidokuImageRequest dco_decode_box_autoadd_aidoku_image_request(dynamic raw);
 
-@protected Map<String, String> dco_decode_Map_String_String_None(dynamic raw);
+  @protected
+  AidokuListing dco_decode_box_autoadd_aidoku_listing(dynamic raw);
 
-@protected Map<String, List<String>> dco_decode_Map_String_list_String_None(dynamic raw);
+  @protected
+  AidokuManga dco_decode_box_autoadd_aidoku_manga(dynamic raw);
 
-@protected AidokuSource dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(dynamic raw);
+  @protected
+  ClientCertificate dco_decode_box_autoadd_client_certificate(dynamic raw);
 
-@protected CancellationToken dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(dynamic raw);
+  @protected
+  ClientSettings dco_decode_box_autoadd_client_settings(dynamic raw);
 
-@protected DnsSettings dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(dynamic raw);
+  @protected
+  double dco_decode_box_autoadd_f_32(dynamic raw);
 
-@protected RequestClient dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(dynamic raw);
+  @protected
+  HttpHeaders dco_decode_box_autoadd_http_headers(dynamic raw);
 
-@protected RustStreamSink<Uint8List> dco_decode_StreamSink_list_prim_u_8_strict_Sse(dynamic raw);
+  @protected
+  HttpResponseBody dco_decode_box_autoadd_http_response_body(dynamic raw);
 
-@protected String dco_decode_String(dynamic raw);
+  @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
 
-@protected SocketAddrDigester dco_decode_TraitDef_SocketAddrDigester(dynamic raw);
+  @protected
+  ProxySettings dco_decode_box_autoadd_proxy_settings(dynamic raw);
 
-@protected AidokuChapter dco_decode_aidoku_chapter(dynamic raw);
+  @protected
+  RedirectSettings dco_decode_box_autoadd_redirect_settings(dynamic raw);
 
-@protected AidokuDeepLink dco_decode_aidoku_deep_link(dynamic raw);
+  @protected
+  StaticDnsSettings dco_decode_box_autoadd_static_dns_settings(dynamic raw);
 
-@protected AidokuFilter dco_decode_aidoku_filter(dynamic raw);
+  @protected
+  SyncHostConfig dco_decode_box_autoadd_sync_host_config(dynamic raw);
 
-@protected AidokuFilterValue dco_decode_aidoku_filter_value(dynamic raw);
+  @protected
+  SyncHostResponse dco_decode_box_autoadd_sync_host_response(dynamic raw);
 
-@protected AidokuImageRequest dco_decode_aidoku_image_request(dynamic raw);
+  @protected
+  SyncIdentity dco_decode_box_autoadd_sync_identity(dynamic raw);
 
-@protected AidokuJsAction dco_decode_aidoku_js_action(dynamic raw);
+  @protected
+  TimeoutSettings dco_decode_box_autoadd_timeout_settings(dynamic raw);
 
-@protected AidokuJsRequest dco_decode_aidoku_js_request(dynamic raw);
+  @protected
+  TlsSettings dco_decode_box_autoadd_tls_settings(dynamic raw);
 
-@protected AidokuJsResponse dco_decode_aidoku_js_response(dynamic raw);
+  @protected
+  TlsVersion dco_decode_box_autoadd_tls_version(dynamic raw);
 
-@protected AidokuListing dco_decode_aidoku_listing(dynamic raw);
+  @protected
+  ClientCertificate dco_decode_client_certificate(dynamic raw);
 
-@protected AidokuManga dco_decode_aidoku_manga(dynamic raw);
+  @protected
+  ClientSettings dco_decode_client_settings(dynamic raw);
 
-@protected AidokuMangaPage dco_decode_aidoku_manga_page(dynamic raw);
+  @protected
+  CustomProxy dco_decode_custom_proxy(dynamic raw);
 
-@protected AidokuNetRequest dco_decode_aidoku_net_request(dynamic raw);
+  @protected
+  EpubChapter dco_decode_epub_chapter(dynamic raw);
 
-@protected AidokuNetResponse dco_decode_aidoku_net_response(dynamic raw);
+  @protected
+  EpubNovel dco_decode_epub_novel(dynamic raw);
 
-@protected AidokuPage dco_decode_aidoku_page(dynamic raw);
+  @protected
+  EpubResource dco_decode_epub_resource(dynamic raw);
 
-@protected AidokuSourceFeatures dco_decode_aidoku_source_features(dynamic raw);
+  @protected
+  double dco_decode_f_32(dynamic raw);
 
-@protected bool dco_decode_bool(dynamic raw);
+  @protected
+  HttpHeaders dco_decode_http_headers(dynamic raw);
 
-@protected DnsSettings dco_decode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(dynamic raw);
+  @protected
+  HttpMethod dco_decode_http_method(dynamic raw);
 
-@protected Duration dco_decode_box_autoadd_Chrono_Duration(dynamic raw);
+  @protected
+  HttpResponse dco_decode_http_response(dynamic raw);
 
-@protected AidokuChapter dco_decode_box_autoadd_aidoku_chapter(dynamic raw);
+  @protected
+  HttpResponseBody dco_decode_http_response_body(dynamic raw);
 
-@protected AidokuDeepLink dco_decode_box_autoadd_aidoku_deep_link(dynamic raw);
+  @protected
+  HttpVersion dco_decode_http_version(dynamic raw);
 
-@protected AidokuImageRequest dco_decode_box_autoadd_aidoku_image_request(dynamic raw);
+  @protected
+  int dco_decode_i_32(dynamic raw);
 
-@protected AidokuListing dco_decode_box_autoadd_aidoku_listing(dynamic raw);
+  @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw);
 
-@protected AidokuManga dco_decode_box_autoadd_aidoku_manga(dynamic raw);
+  @protected
+  PlatformInt64 dco_decode_isize(dynamic raw);
 
-@protected ClientCertificate dco_decode_box_autoadd_client_certificate(dynamic raw);
+  @protected
+  List<String> dco_decode_list_String(dynamic raw);
 
-@protected ClientSettings dco_decode_box_autoadd_client_settings(dynamic raw);
+  @protected
+  List<AidokuChapter> dco_decode_list_aidoku_chapter(dynamic raw);
 
-@protected double dco_decode_box_autoadd_f_32(dynamic raw);
+  @protected
+  List<AidokuFilter> dco_decode_list_aidoku_filter(dynamic raw);
 
-@protected HttpHeaders dco_decode_box_autoadd_http_headers(dynamic raw);
+  @protected
+  List<AidokuFilterValue> dco_decode_list_aidoku_filter_value(dynamic raw);
 
-@protected HttpResponseBody dco_decode_box_autoadd_http_response_body(dynamic raw);
+  @protected
+  List<AidokuListing> dco_decode_list_aidoku_listing(dynamic raw);
 
-@protected PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
+  @protected
+  List<AidokuManga> dco_decode_list_aidoku_manga(dynamic raw);
 
-@protected ProxySettings dco_decode_box_autoadd_proxy_settings(dynamic raw);
+  @protected
+  List<AidokuPage> dco_decode_list_aidoku_page(dynamic raw);
 
-@protected RedirectSettings dco_decode_box_autoadd_redirect_settings(dynamic raw);
+  @protected
+  List<CustomProxy> dco_decode_list_custom_proxy(dynamic raw);
 
-@protected StaticDnsSettings dco_decode_box_autoadd_static_dns_settings(dynamic raw);
+  @protected
+  List<EpubChapter> dco_decode_list_epub_chapter(dynamic raw);
 
-@protected TimeoutSettings dco_decode_box_autoadd_timeout_settings(dynamic raw);
+  @protected
+  List<EpubResource> dco_decode_list_epub_resource(dynamic raw);
 
-@protected TlsSettings dco_decode_box_autoadd_tls_settings(dynamic raw);
+  @protected
+  List<Uint8List> dco_decode_list_list_prim_u_8_strict(dynamic raw);
 
-@protected TlsVersion dco_decode_box_autoadd_tls_version(dynamic raw);
+  @protected
+  List<LocalRarImage> dco_decode_list_local_rar_image(dynamic raw);
 
-@protected ClientCertificate dco_decode_client_certificate(dynamic raw);
+  @protected
+  List<int> dco_decode_list_prim_u_8_loose(dynamic raw);
 
-@protected ClientSettings dco_decode_client_settings(dynamic raw);
+  @protected
+  Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
-@protected CustomProxy dco_decode_custom_proxy(dynamic raw);
+  @protected
+  List<(String, List<String>)> dco_decode_list_record_string_list_string(
+    dynamic raw,
+  );
 
-@protected EpubChapter dco_decode_epub_chapter(dynamic raw);
+  @protected
+  List<(String, String)> dco_decode_list_record_string_string(dynamic raw);
 
-@protected EpubNovel dco_decode_epub_novel(dynamic raw);
+  @protected
+  LocalRarArchive dco_decode_local_rar_archive(dynamic raw);
 
-@protected EpubResource dco_decode_epub_resource(dynamic raw);
+  @protected
+  LocalRarImage dco_decode_local_rar_image(dynamic raw);
 
-@protected double dco_decode_f_32(dynamic raw);
+  @protected
+  LocalRarMetadata dco_decode_local_rar_metadata(dynamic raw);
 
-@protected HttpHeaders dco_decode_http_headers(dynamic raw);
+  @protected
+  RequestClient?
+  dco_decode_opt_AutoExplicit_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    dynamic raw,
+  );
 
-@protected HttpMethod dco_decode_http_method(dynamic raw);
+  @protected
+  String? dco_decode_opt_String(dynamic raw);
 
-@protected HttpResponse dco_decode_http_response(dynamic raw);
+  @protected
+  DnsSettings?
+  dco_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    dynamic raw,
+  );
 
-@protected HttpResponseBody dco_decode_http_response_body(dynamic raw);
+  @protected
+  Duration? dco_decode_opt_box_autoadd_Chrono_Duration(dynamic raw);
 
-@protected HttpVersion dco_decode_http_version(dynamic raw);
+  @protected
+  AidokuDeepLink? dco_decode_opt_box_autoadd_aidoku_deep_link(dynamic raw);
 
-@protected int dco_decode_i_32(dynamic raw);
+  @protected
+  AidokuImageRequest? dco_decode_opt_box_autoadd_aidoku_image_request(
+    dynamic raw,
+  );
 
-@protected PlatformInt64 dco_decode_i_64(dynamic raw);
+  @protected
+  AidokuListing? dco_decode_opt_box_autoadd_aidoku_listing(dynamic raw);
 
-@protected PlatformInt64 dco_decode_isize(dynamic raw);
+  @protected
+  ClientCertificate? dco_decode_opt_box_autoadd_client_certificate(dynamic raw);
 
-@protected List<String> dco_decode_list_String(dynamic raw);
+  @protected
+  ClientSettings? dco_decode_opt_box_autoadd_client_settings(dynamic raw);
 
-@protected List<AidokuChapter> dco_decode_list_aidoku_chapter(dynamic raw);
+  @protected
+  double? dco_decode_opt_box_autoadd_f_32(dynamic raw);
 
-@protected List<AidokuFilter> dco_decode_list_aidoku_filter(dynamic raw);
+  @protected
+  HttpHeaders? dco_decode_opt_box_autoadd_http_headers(dynamic raw);
 
-@protected List<AidokuFilterValue> dco_decode_list_aidoku_filter_value(dynamic raw);
+  @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
 
-@protected List<AidokuListing> dco_decode_list_aidoku_listing(dynamic raw);
+  @protected
+  ProxySettings? dco_decode_opt_box_autoadd_proxy_settings(dynamic raw);
 
-@protected List<AidokuManga> dco_decode_list_aidoku_manga(dynamic raw);
+  @protected
+  RedirectSettings? dco_decode_opt_box_autoadd_redirect_settings(dynamic raw);
 
-@protected List<AidokuPage> dco_decode_list_aidoku_page(dynamic raw);
+  @protected
+  TimeoutSettings? dco_decode_opt_box_autoadd_timeout_settings(dynamic raw);
 
-@protected List<CustomProxy> dco_decode_list_custom_proxy(dynamic raw);
+  @protected
+  TlsSettings? dco_decode_opt_box_autoadd_tls_settings(dynamic raw);
 
-@protected List<EpubChapter> dco_decode_list_epub_chapter(dynamic raw);
+  @protected
+  TlsVersion? dco_decode_opt_box_autoadd_tls_version(dynamic raw);
 
-@protected List<EpubResource> dco_decode_list_epub_resource(dynamic raw);
+  @protected
+  List<String>? dco_decode_opt_list_String(dynamic raw);
 
-@protected List<Uint8List> dco_decode_list_list_prim_u_8_strict(dynamic raw);
+  @protected
+  List<AidokuChapter>? dco_decode_opt_list_aidoku_chapter(dynamic raw);
 
-@protected List<LocalRarImage> dco_decode_list_local_rar_image(dynamic raw);
+  @protected
+  Uint8List? dco_decode_opt_list_prim_u_8_strict(dynamic raw);
 
-@protected List<int> dco_decode_list_prim_u_8_loose(dynamic raw);
+  @protected
+  List<(String, String)>? dco_decode_opt_list_record_string_string(dynamic raw);
 
-@protected Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+  @protected
+  ProxyCondition dco_decode_proxy_condition(dynamic raw);
 
-@protected List<(String,List<String>)> dco_decode_list_record_string_list_string(dynamic raw);
+  @protected
+  ProxySettings dco_decode_proxy_settings(dynamic raw);
 
-@protected List<(String,String)> dco_decode_list_record_string_string(dynamic raw);
+  @protected
+  (String, List<String>) dco_decode_record_string_list_string(dynamic raw);
 
-@protected LocalRarArchive dco_decode_local_rar_archive(dynamic raw);
+  @protected
+  (String, String) dco_decode_record_string_string(dynamic raw);
 
-@protected LocalRarImage dco_decode_local_rar_image(dynamic raw);
+  @protected
+  RedirectSettings dco_decode_redirect_settings(dynamic raw);
 
-@protected LocalRarMetadata dco_decode_local_rar_metadata(dynamic raw);
+  @protected
+  RhttpError dco_decode_rhttp_error(dynamic raw);
 
-@protected RequestClient? dco_decode_opt_AutoExplicit_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(dynamic raw);
+  @protected
+  StaticDnsSettings dco_decode_static_dns_settings(dynamic raw);
 
-@protected String? dco_decode_opt_String(dynamic raw);
+  @protected
+  SyncHostConfig dco_decode_sync_host_config(dynamic raw);
 
-@protected DnsSettings? dco_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(dynamic raw);
+  @protected
+  SyncHostRequest dco_decode_sync_host_request(dynamic raw);
 
-@protected Duration? dco_decode_opt_box_autoadd_Chrono_Duration(dynamic raw);
+  @protected
+  SyncHostRequestKind dco_decode_sync_host_request_kind(dynamic raw);
 
-@protected AidokuDeepLink? dco_decode_opt_box_autoadd_aidoku_deep_link(dynamic raw);
+  @protected
+  SyncHostResponse dco_decode_sync_host_response(dynamic raw);
 
-@protected AidokuImageRequest? dco_decode_opt_box_autoadd_aidoku_image_request(dynamic raw);
+  @protected
+  SyncIdentity dco_decode_sync_identity(dynamic raw);
 
-@protected AidokuListing? dco_decode_opt_box_autoadd_aidoku_listing(dynamic raw);
+  @protected
+  SyncPeerResponse dco_decode_sync_peer_response(dynamic raw);
 
-@protected ClientCertificate? dco_decode_opt_box_autoadd_client_certificate(dynamic raw);
+  @protected
+  TimeoutSettings dco_decode_timeout_settings(dynamic raw);
 
-@protected ClientSettings? dco_decode_opt_box_autoadd_client_settings(dynamic raw);
+  @protected
+  TlsSettings dco_decode_tls_settings(dynamic raw);
 
-@protected double? dco_decode_opt_box_autoadd_f_32(dynamic raw);
+  @protected
+  TlsVersion dco_decode_tls_version(dynamic raw);
 
-@protected HttpHeaders? dco_decode_opt_box_autoadd_http_headers(dynamic raw);
+  @protected
+  int dco_decode_u_16(dynamic raw);
 
-@protected PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+  @protected
+  int dco_decode_u_32(dynamic raw);
 
-@protected ProxySettings? dco_decode_opt_box_autoadd_proxy_settings(dynamic raw);
+  @protected
+  BigInt dco_decode_u_64(dynamic raw);
 
-@protected RedirectSettings? dco_decode_opt_box_autoadd_redirect_settings(dynamic raw);
+  @protected
+  int dco_decode_u_8(dynamic raw);
 
-@protected TimeoutSettings? dco_decode_opt_box_autoadd_timeout_settings(dynamic raw);
+  @protected
+  void dco_decode_unit(dynamic raw);
 
-@protected TlsSettings? dco_decode_opt_box_autoadd_tls_settings(dynamic raw);
+  @protected
+  BigInt dco_decode_usize(dynamic raw);
 
-@protected TlsVersion? dco_decode_opt_box_autoadd_tls_version(dynamic raw);
+  @protected
+  AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
-@protected List<String>? dco_decode_opt_list_String(dynamic raw);
+  @protected
+  RequestClient
+  sse_decode_AutoExplicit_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    SseDeserializer deserializer,
+  );
 
-@protected List<AidokuChapter>? dco_decode_opt_list_aidoku_chapter(dynamic raw);
+  @protected
+  AidokuSource
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+    SseDeserializer deserializer,
+  );
 
-@protected Uint8List? dco_decode_opt_list_prim_u_8_strict(dynamic raw);
+  @protected
+  CancellationToken
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+    SseDeserializer deserializer,
+  );
 
-@protected List<(String,String)>? dco_decode_opt_list_record_string_string(dynamic raw);
+  @protected
+  DnsSettings
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    SseDeserializer deserializer,
+  );
 
-@protected ProxyCondition dco_decode_proxy_condition(dynamic raw);
+  @protected
+  RequestClient
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    SseDeserializer deserializer,
+  );
 
-@protected ProxySettings dco_decode_proxy_settings(dynamic raw);
+  @protected
+  SyncHost
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+    SseDeserializer deserializer,
+  );
 
-@protected (String,List<String>) dco_decode_record_string_list_string(dynamic raw);
+  @protected
+  SyncPeerClient
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+    SseDeserializer deserializer,
+  );
 
-@protected (String,String) dco_decode_record_string_string(dynamic raw);
+  @protected
+  AidokuSource
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+    SseDeserializer deserializer,
+  );
 
-@protected RedirectSettings dco_decode_redirect_settings(dynamic raw);
+  @protected
+  CancellationToken
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+    SseDeserializer deserializer,
+  );
 
-@protected RhttpError dco_decode_rhttp_error(dynamic raw);
+  @protected
+  RequestClient
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    SseDeserializer deserializer,
+  );
 
-@protected StaticDnsSettings dco_decode_static_dns_settings(dynamic raw);
+  @protected
+  SyncHost
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+    SseDeserializer deserializer,
+  );
 
-@protected TimeoutSettings dco_decode_timeout_settings(dynamic raw);
+  @protected
+  SyncPeerClient
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+    SseDeserializer deserializer,
+  );
 
-@protected TlsSettings dco_decode_tls_settings(dynamic raw);
+  @protected
+  Duration sse_decode_Chrono_Duration(SseDeserializer deserializer);
 
-@protected TlsVersion dco_decode_tls_version(dynamic raw);
+  @protected
+  Object sse_decode_DartOpaque(SseDeserializer deserializer);
 
-@protected int dco_decode_u_16(dynamic raw);
+  @protected
+  Map<String, String> sse_decode_Map_String_String_None(
+    SseDeserializer deserializer,
+  );
 
-@protected BigInt dco_decode_u_64(dynamic raw);
+  @protected
+  Map<String, List<String>> sse_decode_Map_String_list_String_None(
+    SseDeserializer deserializer,
+  );
 
-@protected int dco_decode_u_8(dynamic raw);
+  @protected
+  AidokuSource
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+    SseDeserializer deserializer,
+  );
 
-@protected void dco_decode_unit(dynamic raw);
+  @protected
+  CancellationToken
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+    SseDeserializer deserializer,
+  );
 
-@protected BigInt dco_decode_usize(dynamic raw);
+  @protected
+  DnsSettings
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    SseDeserializer deserializer,
+  );
 
-@protected AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
+  @protected
+  RequestClient
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    SseDeserializer deserializer,
+  );
 
-@protected RequestClient sse_decode_AutoExplicit_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(SseDeserializer deserializer);
+  @protected
+  SyncHost
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuSource sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(SseDeserializer deserializer);
+  @protected
+  SyncPeerClient
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+    SseDeserializer deserializer,
+  );
 
-@protected CancellationToken sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(SseDeserializer deserializer);
+  @protected
+  RustStreamSink<Uint8List> sse_decode_StreamSink_list_prim_u_8_strict_Sse(
+    SseDeserializer deserializer,
+  );
 
-@protected DnsSettings sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(SseDeserializer deserializer);
+  @protected
+  RustStreamSink<SyncHostRequest> sse_decode_StreamSink_sync_host_request_Sse(
+    SseDeserializer deserializer,
+  );
 
-@protected RequestClient sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(SseDeserializer deserializer);
+  @protected
+  String sse_decode_String(SseDeserializer deserializer);
 
-@protected AidokuSource sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(SseDeserializer deserializer);
+  @protected
+  AidokuChapter sse_decode_aidoku_chapter(SseDeserializer deserializer);
 
-@protected CancellationToken sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(SseDeserializer deserializer);
+  @protected
+  AidokuDeepLink sse_decode_aidoku_deep_link(SseDeserializer deserializer);
 
-@protected RequestClient sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(SseDeserializer deserializer);
+  @protected
+  AidokuFilter sse_decode_aidoku_filter(SseDeserializer deserializer);
 
-@protected Duration sse_decode_Chrono_Duration(SseDeserializer deserializer);
+  @protected
+  AidokuFilterValue sse_decode_aidoku_filter_value(
+    SseDeserializer deserializer,
+  );
 
-@protected Object sse_decode_DartOpaque(SseDeserializer deserializer);
+  @protected
+  AidokuImageRequest sse_decode_aidoku_image_request(
+    SseDeserializer deserializer,
+  );
 
-@protected Map<String, String> sse_decode_Map_String_String_None(SseDeserializer deserializer);
+  @protected
+  AidokuJsAction sse_decode_aidoku_js_action(SseDeserializer deserializer);
 
-@protected Map<String, List<String>> sse_decode_Map_String_list_String_None(SseDeserializer deserializer);
+  @protected
+  AidokuJsRequest sse_decode_aidoku_js_request(SseDeserializer deserializer);
 
-@protected AidokuSource sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(SseDeserializer deserializer);
+  @protected
+  AidokuJsResponse sse_decode_aidoku_js_response(SseDeserializer deserializer);
 
-@protected CancellationToken sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(SseDeserializer deserializer);
+  @protected
+  AidokuListing sse_decode_aidoku_listing(SseDeserializer deserializer);
 
-@protected DnsSettings sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(SseDeserializer deserializer);
+  @protected
+  AidokuManga sse_decode_aidoku_manga(SseDeserializer deserializer);
 
-@protected RequestClient sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(SseDeserializer deserializer);
+  @protected
+  AidokuMangaPage sse_decode_aidoku_manga_page(SseDeserializer deserializer);
 
-@protected RustStreamSink<Uint8List> sse_decode_StreamSink_list_prim_u_8_strict_Sse(SseDeserializer deserializer);
+  @protected
+  AidokuNetRequest sse_decode_aidoku_net_request(SseDeserializer deserializer);
 
-@protected String sse_decode_String(SseDeserializer deserializer);
+  @protected
+  AidokuNetResponse sse_decode_aidoku_net_response(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuChapter sse_decode_aidoku_chapter(SseDeserializer deserializer);
+  @protected
+  AidokuPage sse_decode_aidoku_page(SseDeserializer deserializer);
 
-@protected AidokuDeepLink sse_decode_aidoku_deep_link(SseDeserializer deserializer);
+  @protected
+  AidokuSourceFeatures sse_decode_aidoku_source_features(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuFilter sse_decode_aidoku_filter(SseDeserializer deserializer);
+  @protected
+  bool sse_decode_bool(SseDeserializer deserializer);
 
-@protected AidokuFilterValue sse_decode_aidoku_filter_value(SseDeserializer deserializer);
+  @protected
+  DnsSettings
+  sse_decode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuImageRequest sse_decode_aidoku_image_request(SseDeserializer deserializer);
+  @protected
+  Duration sse_decode_box_autoadd_Chrono_Duration(SseDeserializer deserializer);
 
-@protected AidokuJsAction sse_decode_aidoku_js_action(SseDeserializer deserializer);
+  @protected
+  AidokuChapter sse_decode_box_autoadd_aidoku_chapter(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuJsRequest sse_decode_aidoku_js_request(SseDeserializer deserializer);
+  @protected
+  AidokuDeepLink sse_decode_box_autoadd_aidoku_deep_link(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuJsResponse sse_decode_aidoku_js_response(SseDeserializer deserializer);
+  @protected
+  AidokuImageRequest sse_decode_box_autoadd_aidoku_image_request(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuListing sse_decode_aidoku_listing(SseDeserializer deserializer);
+  @protected
+  AidokuListing sse_decode_box_autoadd_aidoku_listing(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuManga sse_decode_aidoku_manga(SseDeserializer deserializer);
+  @protected
+  AidokuManga sse_decode_box_autoadd_aidoku_manga(SseDeserializer deserializer);
 
-@protected AidokuMangaPage sse_decode_aidoku_manga_page(SseDeserializer deserializer);
+  @protected
+  ClientCertificate sse_decode_box_autoadd_client_certificate(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuNetRequest sse_decode_aidoku_net_request(SseDeserializer deserializer);
+  @protected
+  ClientSettings sse_decode_box_autoadd_client_settings(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuNetResponse sse_decode_aidoku_net_response(SseDeserializer deserializer);
+  @protected
+  double sse_decode_box_autoadd_f_32(SseDeserializer deserializer);
 
-@protected AidokuPage sse_decode_aidoku_page(SseDeserializer deserializer);
+  @protected
+  HttpHeaders sse_decode_box_autoadd_http_headers(SseDeserializer deserializer);
 
-@protected AidokuSourceFeatures sse_decode_aidoku_source_features(SseDeserializer deserializer);
+  @protected
+  HttpResponseBody sse_decode_box_autoadd_http_response_body(
+    SseDeserializer deserializer,
+  );
 
-@protected bool sse_decode_bool(SseDeserializer deserializer);
+  @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
 
-@protected DnsSettings sse_decode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(SseDeserializer deserializer);
+  @protected
+  ProxySettings sse_decode_box_autoadd_proxy_settings(
+    SseDeserializer deserializer,
+  );
 
-@protected Duration sse_decode_box_autoadd_Chrono_Duration(SseDeserializer deserializer);
+  @protected
+  RedirectSettings sse_decode_box_autoadd_redirect_settings(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuChapter sse_decode_box_autoadd_aidoku_chapter(SseDeserializer deserializer);
+  @protected
+  StaticDnsSettings sse_decode_box_autoadd_static_dns_settings(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuDeepLink sse_decode_box_autoadd_aidoku_deep_link(SseDeserializer deserializer);
+  @protected
+  SyncHostConfig sse_decode_box_autoadd_sync_host_config(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuImageRequest sse_decode_box_autoadd_aidoku_image_request(SseDeserializer deserializer);
+  @protected
+  SyncHostResponse sse_decode_box_autoadd_sync_host_response(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuListing sse_decode_box_autoadd_aidoku_listing(SseDeserializer deserializer);
+  @protected
+  SyncIdentity sse_decode_box_autoadd_sync_identity(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuManga sse_decode_box_autoadd_aidoku_manga(SseDeserializer deserializer);
+  @protected
+  TimeoutSettings sse_decode_box_autoadd_timeout_settings(
+    SseDeserializer deserializer,
+  );
 
-@protected ClientCertificate sse_decode_box_autoadd_client_certificate(SseDeserializer deserializer);
+  @protected
+  TlsSettings sse_decode_box_autoadd_tls_settings(SseDeserializer deserializer);
 
-@protected ClientSettings sse_decode_box_autoadd_client_settings(SseDeserializer deserializer);
+  @protected
+  TlsVersion sse_decode_box_autoadd_tls_version(SseDeserializer deserializer);
 
-@protected double sse_decode_box_autoadd_f_32(SseDeserializer deserializer);
+  @protected
+  ClientCertificate sse_decode_client_certificate(SseDeserializer deserializer);
 
-@protected HttpHeaders sse_decode_box_autoadd_http_headers(SseDeserializer deserializer);
+  @protected
+  ClientSettings sse_decode_client_settings(SseDeserializer deserializer);
 
-@protected HttpResponseBody sse_decode_box_autoadd_http_response_body(SseDeserializer deserializer);
+  @protected
+  CustomProxy sse_decode_custom_proxy(SseDeserializer deserializer);
 
-@protected PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+  @protected
+  EpubChapter sse_decode_epub_chapter(SseDeserializer deserializer);
 
-@protected ProxySettings sse_decode_box_autoadd_proxy_settings(SseDeserializer deserializer);
+  @protected
+  EpubNovel sse_decode_epub_novel(SseDeserializer deserializer);
 
-@protected RedirectSettings sse_decode_box_autoadd_redirect_settings(SseDeserializer deserializer);
+  @protected
+  EpubResource sse_decode_epub_resource(SseDeserializer deserializer);
 
-@protected StaticDnsSettings sse_decode_box_autoadd_static_dns_settings(SseDeserializer deserializer);
+  @protected
+  double sse_decode_f_32(SseDeserializer deserializer);
 
-@protected TimeoutSettings sse_decode_box_autoadd_timeout_settings(SseDeserializer deserializer);
+  @protected
+  HttpHeaders sse_decode_http_headers(SseDeserializer deserializer);
 
-@protected TlsSettings sse_decode_box_autoadd_tls_settings(SseDeserializer deserializer);
+  @protected
+  HttpMethod sse_decode_http_method(SseDeserializer deserializer);
 
-@protected TlsVersion sse_decode_box_autoadd_tls_version(SseDeserializer deserializer);
+  @protected
+  HttpResponse sse_decode_http_response(SseDeserializer deserializer);
 
-@protected ClientCertificate sse_decode_client_certificate(SseDeserializer deserializer);
+  @protected
+  HttpResponseBody sse_decode_http_response_body(SseDeserializer deserializer);
 
-@protected ClientSettings sse_decode_client_settings(SseDeserializer deserializer);
+  @protected
+  HttpVersion sse_decode_http_version(SseDeserializer deserializer);
 
-@protected CustomProxy sse_decode_custom_proxy(SseDeserializer deserializer);
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer);
 
-@protected EpubChapter sse_decode_epub_chapter(SseDeserializer deserializer);
+  @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
-@protected EpubNovel sse_decode_epub_novel(SseDeserializer deserializer);
+  @protected
+  PlatformInt64 sse_decode_isize(SseDeserializer deserializer);
 
-@protected EpubResource sse_decode_epub_resource(SseDeserializer deserializer);
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
 
-@protected double sse_decode_f_32(SseDeserializer deserializer);
+  @protected
+  List<AidokuChapter> sse_decode_list_aidoku_chapter(
+    SseDeserializer deserializer,
+  );
 
-@protected HttpHeaders sse_decode_http_headers(SseDeserializer deserializer);
+  @protected
+  List<AidokuFilter> sse_decode_list_aidoku_filter(
+    SseDeserializer deserializer,
+  );
 
-@protected HttpMethod sse_decode_http_method(SseDeserializer deserializer);
+  @protected
+  List<AidokuFilterValue> sse_decode_list_aidoku_filter_value(
+    SseDeserializer deserializer,
+  );
 
-@protected HttpResponse sse_decode_http_response(SseDeserializer deserializer);
+  @protected
+  List<AidokuListing> sse_decode_list_aidoku_listing(
+    SseDeserializer deserializer,
+  );
 
-@protected HttpResponseBody sse_decode_http_response_body(SseDeserializer deserializer);
+  @protected
+  List<AidokuManga> sse_decode_list_aidoku_manga(SseDeserializer deserializer);
 
-@protected HttpVersion sse_decode_http_version(SseDeserializer deserializer);
+  @protected
+  List<AidokuPage> sse_decode_list_aidoku_page(SseDeserializer deserializer);
 
-@protected int sse_decode_i_32(SseDeserializer deserializer);
+  @protected
+  List<CustomProxy> sse_decode_list_custom_proxy(SseDeserializer deserializer);
 
-@protected PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+  @protected
+  List<EpubChapter> sse_decode_list_epub_chapter(SseDeserializer deserializer);
 
-@protected PlatformInt64 sse_decode_isize(SseDeserializer deserializer);
+  @protected
+  List<EpubResource> sse_decode_list_epub_resource(
+    SseDeserializer deserializer,
+  );
 
-@protected List<String> sse_decode_list_String(SseDeserializer deserializer);
+  @protected
+  List<Uint8List> sse_decode_list_list_prim_u_8_strict(
+    SseDeserializer deserializer,
+  );
 
-@protected List<AidokuChapter> sse_decode_list_aidoku_chapter(SseDeserializer deserializer);
+  @protected
+  List<LocalRarImage> sse_decode_list_local_rar_image(
+    SseDeserializer deserializer,
+  );
 
-@protected List<AidokuFilter> sse_decode_list_aidoku_filter(SseDeserializer deserializer);
+  @protected
+  List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer);
 
-@protected List<AidokuFilterValue> sse_decode_list_aidoku_filter_value(SseDeserializer deserializer);
+  @protected
+  Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
-@protected List<AidokuListing> sse_decode_list_aidoku_listing(SseDeserializer deserializer);
+  @protected
+  List<(String, List<String>)> sse_decode_list_record_string_list_string(
+    SseDeserializer deserializer,
+  );
 
-@protected List<AidokuManga> sse_decode_list_aidoku_manga(SseDeserializer deserializer);
+  @protected
+  List<(String, String)> sse_decode_list_record_string_string(
+    SseDeserializer deserializer,
+  );
 
-@protected List<AidokuPage> sse_decode_list_aidoku_page(SseDeserializer deserializer);
+  @protected
+  LocalRarArchive sse_decode_local_rar_archive(SseDeserializer deserializer);
 
-@protected List<CustomProxy> sse_decode_list_custom_proxy(SseDeserializer deserializer);
+  @protected
+  LocalRarImage sse_decode_local_rar_image(SseDeserializer deserializer);
 
-@protected List<EpubChapter> sse_decode_list_epub_chapter(SseDeserializer deserializer);
+  @protected
+  LocalRarMetadata sse_decode_local_rar_metadata(SseDeserializer deserializer);
 
-@protected List<EpubResource> sse_decode_list_epub_resource(SseDeserializer deserializer);
+  @protected
+  RequestClient?
+  sse_decode_opt_AutoExplicit_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    SseDeserializer deserializer,
+  );
 
-@protected List<Uint8List> sse_decode_list_list_prim_u_8_strict(SseDeserializer deserializer);
+  @protected
+  String? sse_decode_opt_String(SseDeserializer deserializer);
 
-@protected List<LocalRarImage> sse_decode_list_local_rar_image(SseDeserializer deserializer);
+  @protected
+  DnsSettings?
+  sse_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    SseDeserializer deserializer,
+  );
 
-@protected List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer);
+  @protected
+  Duration? sse_decode_opt_box_autoadd_Chrono_Duration(
+    SseDeserializer deserializer,
+  );
 
-@protected Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+  @protected
+  AidokuDeepLink? sse_decode_opt_box_autoadd_aidoku_deep_link(
+    SseDeserializer deserializer,
+  );
 
-@protected List<(String,List<String>)> sse_decode_list_record_string_list_string(SseDeserializer deserializer);
+  @protected
+  AidokuImageRequest? sse_decode_opt_box_autoadd_aidoku_image_request(
+    SseDeserializer deserializer,
+  );
 
-@protected List<(String,String)> sse_decode_list_record_string_string(SseDeserializer deserializer);
+  @protected
+  AidokuListing? sse_decode_opt_box_autoadd_aidoku_listing(
+    SseDeserializer deserializer,
+  );
 
-@protected LocalRarArchive sse_decode_local_rar_archive(SseDeserializer deserializer);
+  @protected
+  ClientCertificate? sse_decode_opt_box_autoadd_client_certificate(
+    SseDeserializer deserializer,
+  );
 
-@protected LocalRarImage sse_decode_local_rar_image(SseDeserializer deserializer);
+  @protected
+  ClientSettings? sse_decode_opt_box_autoadd_client_settings(
+    SseDeserializer deserializer,
+  );
 
-@protected LocalRarMetadata sse_decode_local_rar_metadata(SseDeserializer deserializer);
+  @protected
+  double? sse_decode_opt_box_autoadd_f_32(SseDeserializer deserializer);
 
-@protected RequestClient? sse_decode_opt_AutoExplicit_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(SseDeserializer deserializer);
+  @protected
+  HttpHeaders? sse_decode_opt_box_autoadd_http_headers(
+    SseDeserializer deserializer,
+  );
 
-@protected String? sse_decode_opt_String(SseDeserializer deserializer);
+  @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
 
-@protected DnsSettings? sse_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(SseDeserializer deserializer);
+  @protected
+  ProxySettings? sse_decode_opt_box_autoadd_proxy_settings(
+    SseDeserializer deserializer,
+  );
 
-@protected Duration? sse_decode_opt_box_autoadd_Chrono_Duration(SseDeserializer deserializer);
+  @protected
+  RedirectSettings? sse_decode_opt_box_autoadd_redirect_settings(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuDeepLink? sse_decode_opt_box_autoadd_aidoku_deep_link(SseDeserializer deserializer);
+  @protected
+  TimeoutSettings? sse_decode_opt_box_autoadd_timeout_settings(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuImageRequest? sse_decode_opt_box_autoadd_aidoku_image_request(SseDeserializer deserializer);
+  @protected
+  TlsSettings? sse_decode_opt_box_autoadd_tls_settings(
+    SseDeserializer deserializer,
+  );
 
-@protected AidokuListing? sse_decode_opt_box_autoadd_aidoku_listing(SseDeserializer deserializer);
+  @protected
+  TlsVersion? sse_decode_opt_box_autoadd_tls_version(
+    SseDeserializer deserializer,
+  );
 
-@protected ClientCertificate? sse_decode_opt_box_autoadd_client_certificate(SseDeserializer deserializer);
+  @protected
+  List<String>? sse_decode_opt_list_String(SseDeserializer deserializer);
 
-@protected ClientSettings? sse_decode_opt_box_autoadd_client_settings(SseDeserializer deserializer);
+  @protected
+  List<AidokuChapter>? sse_decode_opt_list_aidoku_chapter(
+    SseDeserializer deserializer,
+  );
 
-@protected double? sse_decode_opt_box_autoadd_f_32(SseDeserializer deserializer);
+  @protected
+  Uint8List? sse_decode_opt_list_prim_u_8_strict(SseDeserializer deserializer);
 
-@protected HttpHeaders? sse_decode_opt_box_autoadd_http_headers(SseDeserializer deserializer);
+  @protected
+  List<(String, String)>? sse_decode_opt_list_record_string_string(
+    SseDeserializer deserializer,
+  );
 
-@protected PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+  @protected
+  ProxyCondition sse_decode_proxy_condition(SseDeserializer deserializer);
 
-@protected ProxySettings? sse_decode_opt_box_autoadd_proxy_settings(SseDeserializer deserializer);
+  @protected
+  ProxySettings sse_decode_proxy_settings(SseDeserializer deserializer);
 
-@protected RedirectSettings? sse_decode_opt_box_autoadd_redirect_settings(SseDeserializer deserializer);
+  @protected
+  (String, List<String>) sse_decode_record_string_list_string(
+    SseDeserializer deserializer,
+  );
 
-@protected TimeoutSettings? sse_decode_opt_box_autoadd_timeout_settings(SseDeserializer deserializer);
+  @protected
+  (String, String) sse_decode_record_string_string(
+    SseDeserializer deserializer,
+  );
 
-@protected TlsSettings? sse_decode_opt_box_autoadd_tls_settings(SseDeserializer deserializer);
+  @protected
+  RedirectSettings sse_decode_redirect_settings(SseDeserializer deserializer);
 
-@protected TlsVersion? sse_decode_opt_box_autoadd_tls_version(SseDeserializer deserializer);
+  @protected
+  RhttpError sse_decode_rhttp_error(SseDeserializer deserializer);
 
-@protected List<String>? sse_decode_opt_list_String(SseDeserializer deserializer);
+  @protected
+  StaticDnsSettings sse_decode_static_dns_settings(
+    SseDeserializer deserializer,
+  );
 
-@protected List<AidokuChapter>? sse_decode_opt_list_aidoku_chapter(SseDeserializer deserializer);
+  @protected
+  SyncHostConfig sse_decode_sync_host_config(SseDeserializer deserializer);
 
-@protected Uint8List? sse_decode_opt_list_prim_u_8_strict(SseDeserializer deserializer);
+  @protected
+  SyncHostRequest sse_decode_sync_host_request(SseDeserializer deserializer);
 
-@protected List<(String,String)>? sse_decode_opt_list_record_string_string(SseDeserializer deserializer);
+  @protected
+  SyncHostRequestKind sse_decode_sync_host_request_kind(
+    SseDeserializer deserializer,
+  );
 
-@protected ProxyCondition sse_decode_proxy_condition(SseDeserializer deserializer);
+  @protected
+  SyncHostResponse sse_decode_sync_host_response(SseDeserializer deserializer);
 
-@protected ProxySettings sse_decode_proxy_settings(SseDeserializer deserializer);
+  @protected
+  SyncIdentity sse_decode_sync_identity(SseDeserializer deserializer);
 
-@protected (String,List<String>) sse_decode_record_string_list_string(SseDeserializer deserializer);
+  @protected
+  SyncPeerResponse sse_decode_sync_peer_response(SseDeserializer deserializer);
 
-@protected (String,String) sse_decode_record_string_string(SseDeserializer deserializer);
+  @protected
+  TimeoutSettings sse_decode_timeout_settings(SseDeserializer deserializer);
 
-@protected RedirectSettings sse_decode_redirect_settings(SseDeserializer deserializer);
+  @protected
+  TlsSettings sse_decode_tls_settings(SseDeserializer deserializer);
 
-@protected RhttpError sse_decode_rhttp_error(SseDeserializer deserializer);
+  @protected
+  TlsVersion sse_decode_tls_version(SseDeserializer deserializer);
 
-@protected StaticDnsSettings sse_decode_static_dns_settings(SseDeserializer deserializer);
+  @protected
+  int sse_decode_u_16(SseDeserializer deserializer);
 
-@protected TimeoutSettings sse_decode_timeout_settings(SseDeserializer deserializer);
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer);
 
-@protected TlsSettings sse_decode_tls_settings(SseDeserializer deserializer);
+  @protected
+  BigInt sse_decode_u_64(SseDeserializer deserializer);
 
-@protected TlsVersion sse_decode_tls_version(SseDeserializer deserializer);
+  @protected
+  int sse_decode_u_8(SseDeserializer deserializer);
 
-@protected int sse_decode_u_16(SseDeserializer deserializer);
+  @protected
+  void sse_decode_unit(SseDeserializer deserializer);
 
-@protected BigInt sse_decode_u_64(SseDeserializer deserializer);
+  @protected
+  BigInt sse_decode_usize(SseDeserializer deserializer);
 
-@protected int sse_decode_u_8(SseDeserializer deserializer);
+  @protected
+  void sse_encode_AnyhowException(
+    AnyhowException self,
+    SseSerializer serializer,
+  );
 
-@protected void sse_decode_unit(SseDeserializer deserializer);
+  @protected
+  void
+  sse_encode_AutoExplicit_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    RequestClient self,
+    SseSerializer serializer,
+  );
 
-@protected BigInt sse_decode_usize(SseDeserializer deserializer);
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+    AidokuSource self,
+    SseSerializer serializer,
+  );
 
-@protected void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+    CancellationToken self,
+    SseSerializer serializer,
+  );
 
-@protected void sse_encode_AutoExplicit_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(RequestClient self, SseSerializer serializer);
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    DnsSettings self,
+    SseSerializer serializer,
+  );
 
-@protected void sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(AidokuSource self, SseSerializer serializer);
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    RequestClient self,
+    SseSerializer serializer,
+  );
 
-@protected void sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(CancellationToken self, SseSerializer serializer);
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+    SyncHost self,
+    SseSerializer serializer,
+  );
 
-@protected void sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(DnsSettings self, SseSerializer serializer);
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+    SyncPeerClient self,
+    SseSerializer serializer,
+  );
 
-@protected void sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(RequestClient self, SseSerializer serializer);
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+    AidokuSource self,
+    SseSerializer serializer,
+  );
 
-@protected void sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(AidokuSource self, SseSerializer serializer);
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+    CancellationToken self,
+    SseSerializer serializer,
+  );
 
-@protected void sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(CancellationToken self, SseSerializer serializer);
-
-@protected void sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(RequestClient self, SseSerializer serializer);
-
-@protected void sse_encode_Chrono_Duration(Duration self, SseSerializer serializer);
-
-@protected void sse_encode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken_Output_unit_AnyhowException(FutureOr<void> Function(CancellationToken) self, SseSerializer serializer);
-
-@protected void sse_encode_DartFn_Inputs_String_Output_list_String_AnyhowException(FutureOr<List<String>> Function(String) self, SseSerializer serializer);
-
-@protected void sse_encode_DartFn_Inputs_String_Output_unit_AnyhowException(FutureOr<void> Function(String) self, SseSerializer serializer);
-
-@protected void sse_encode_DartFn_Inputs_aidoku_js_request_Output_aidoku_js_response_AnyhowException(FutureOr<AidokuJsResponse> Function(AidokuJsRequest) self, SseSerializer serializer);
-
-@protected void sse_encode_DartFn_Inputs_aidoku_net_request_Output_aidoku_net_response_AnyhowException(FutureOr<AidokuNetResponse> Function(AidokuNetRequest) self, SseSerializer serializer);
-
-@protected void sse_encode_DartFn_Inputs_http_response_Output_unit_AnyhowException(FutureOr<void> Function(HttpResponse) self, SseSerializer serializer);
-
-@protected void sse_encode_DartFn_Inputs_rhttp_error_Output_unit_AnyhowException(FutureOr<void> Function(RhttpError) self, SseSerializer serializer);
-
-@protected void sse_encode_DartOpaque(Object self, SseSerializer serializer);
-
-@protected void sse_encode_Map_String_String_None(Map<String, String> self, SseSerializer serializer);
-
-@protected void sse_encode_Map_String_list_String_None(Map<String, List<String>> self, SseSerializer serializer);
-
-@protected void sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(AidokuSource self, SseSerializer serializer);
-
-@protected void sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(CancellationToken self, SseSerializer serializer);
-
-@protected void sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(DnsSettings self, SseSerializer serializer);
-
-@protected void sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(RequestClient self, SseSerializer serializer);
-
-@protected void sse_encode_StreamSink_list_prim_u_8_strict_Sse(RustStreamSink<Uint8List> self, SseSerializer serializer);
-
-@protected void sse_encode_String(String self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_chapter(AidokuChapter self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_deep_link(AidokuDeepLink self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_filter(AidokuFilter self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_filter_value(AidokuFilterValue self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_image_request(AidokuImageRequest self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_js_action(AidokuJsAction self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_js_request(AidokuJsRequest self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_js_response(AidokuJsResponse self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_listing(AidokuListing self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_manga(AidokuManga self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_manga_page(AidokuMangaPage self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_net_request(AidokuNetRequest self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_net_response(AidokuNetResponse self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_page(AidokuPage self, SseSerializer serializer);
-
-@protected void sse_encode_aidoku_source_features(AidokuSourceFeatures self, SseSerializer serializer);
-
-@protected void sse_encode_bool(bool self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(DnsSettings self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_Chrono_Duration(Duration self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_aidoku_chapter(AidokuChapter self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_aidoku_deep_link(AidokuDeepLink self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_aidoku_image_request(AidokuImageRequest self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_aidoku_listing(AidokuListing self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_aidoku_manga(AidokuManga self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_client_certificate(ClientCertificate self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_client_settings(ClientSettings self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_f_32(double self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_http_headers(HttpHeaders self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_http_response_body(HttpResponseBody self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_i_64(PlatformInt64 self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_proxy_settings(ProxySettings self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_redirect_settings(RedirectSettings self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_static_dns_settings(StaticDnsSettings self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_timeout_settings(TimeoutSettings self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_tls_settings(TlsSettings self, SseSerializer serializer);
-
-@protected void sse_encode_box_autoadd_tls_version(TlsVersion self, SseSerializer serializer);
-
-@protected void sse_encode_client_certificate(ClientCertificate self, SseSerializer serializer);
-
-@protected void sse_encode_client_settings(ClientSettings self, SseSerializer serializer);
-
-@protected void sse_encode_custom_proxy(CustomProxy self, SseSerializer serializer);
-
-@protected void sse_encode_epub_chapter(EpubChapter self, SseSerializer serializer);
-
-@protected void sse_encode_epub_novel(EpubNovel self, SseSerializer serializer);
-
-@protected void sse_encode_epub_resource(EpubResource self, SseSerializer serializer);
-
-@protected void sse_encode_f_32(double self, SseSerializer serializer);
-
-@protected void sse_encode_http_headers(HttpHeaders self, SseSerializer serializer);
-
-@protected void sse_encode_http_method(HttpMethod self, SseSerializer serializer);
-
-@protected void sse_encode_http_response(HttpResponse self, SseSerializer serializer);
-
-@protected void sse_encode_http_response_body(HttpResponseBody self, SseSerializer serializer);
-
-@protected void sse_encode_http_version(HttpVersion self, SseSerializer serializer);
-
-@protected void sse_encode_i_32(int self, SseSerializer serializer);
-
-@protected void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
-
-@protected void sse_encode_isize(PlatformInt64 self, SseSerializer serializer);
-
-@protected void sse_encode_list_String(List<String> self, SseSerializer serializer);
-
-@protected void sse_encode_list_aidoku_chapter(List<AidokuChapter> self, SseSerializer serializer);
-
-@protected void sse_encode_list_aidoku_filter(List<AidokuFilter> self, SseSerializer serializer);
-
-@protected void sse_encode_list_aidoku_filter_value(List<AidokuFilterValue> self, SseSerializer serializer);
-
-@protected void sse_encode_list_aidoku_listing(List<AidokuListing> self, SseSerializer serializer);
-
-@protected void sse_encode_list_aidoku_manga(List<AidokuManga> self, SseSerializer serializer);
-
-@protected void sse_encode_list_aidoku_page(List<AidokuPage> self, SseSerializer serializer);
-
-@protected void sse_encode_list_custom_proxy(List<CustomProxy> self, SseSerializer serializer);
-
-@protected void sse_encode_list_epub_chapter(List<EpubChapter> self, SseSerializer serializer);
-
-@protected void sse_encode_list_epub_resource(List<EpubResource> self, SseSerializer serializer);
-
-@protected void sse_encode_list_list_prim_u_8_strict(List<Uint8List> self, SseSerializer serializer);
-
-@protected void sse_encode_list_local_rar_image(List<LocalRarImage> self, SseSerializer serializer);
-
-@protected void sse_encode_list_prim_u_8_loose(List<int> self, SseSerializer serializer);
-
-@protected void sse_encode_list_prim_u_8_strict(Uint8List self, SseSerializer serializer);
-
-@protected void sse_encode_list_record_string_list_string(List<(String,List<String>)> self, SseSerializer serializer);
-
-@protected void sse_encode_list_record_string_string(List<(String,String)> self, SseSerializer serializer);
-
-@protected void sse_encode_local_rar_archive(LocalRarArchive self, SseSerializer serializer);
-
-@protected void sse_encode_local_rar_image(LocalRarImage self, SseSerializer serializer);
-
-@protected void sse_encode_local_rar_metadata(LocalRarMetadata self, SseSerializer serializer);
-
-@protected void sse_encode_opt_AutoExplicit_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(RequestClient? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_String(String? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(DnsSettings? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_Chrono_Duration(Duration? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_aidoku_deep_link(AidokuDeepLink? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_aidoku_image_request(AidokuImageRequest? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_aidoku_listing(AidokuListing? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_client_certificate(ClientCertificate? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_client_settings(ClientSettings? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_f_32(double? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_http_headers(HttpHeaders? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_i_64(PlatformInt64? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_proxy_settings(ProxySettings? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_redirect_settings(RedirectSettings? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_timeout_settings(TimeoutSettings? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_tls_settings(TlsSettings? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_box_autoadd_tls_version(TlsVersion? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_list_String(List<String>? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_list_aidoku_chapter(List<AidokuChapter>? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_list_prim_u_8_strict(Uint8List? self, SseSerializer serializer);
-
-@protected void sse_encode_opt_list_record_string_string(List<(String,String)>? self, SseSerializer serializer);
-
-@protected void sse_encode_proxy_condition(ProxyCondition self, SseSerializer serializer);
-
-@protected void sse_encode_proxy_settings(ProxySettings self, SseSerializer serializer);
-
-@protected void sse_encode_record_string_list_string((String,List<String>) self, SseSerializer serializer);
-
-@protected void sse_encode_record_string_string((String,String) self, SseSerializer serializer);
-
-@protected void sse_encode_redirect_settings(RedirectSettings self, SseSerializer serializer);
-
-@protected void sse_encode_rhttp_error(RhttpError self, SseSerializer serializer);
-
-@protected void sse_encode_static_dns_settings(StaticDnsSettings self, SseSerializer serializer);
-
-@protected void sse_encode_timeout_settings(TimeoutSettings self, SseSerializer serializer);
-
-@protected void sse_encode_tls_settings(TlsSettings self, SseSerializer serializer);
-
-@protected void sse_encode_tls_version(TlsVersion self, SseSerializer serializer);
-
-@protected void sse_encode_u_16(int self, SseSerializer serializer);
-
-@protected void sse_encode_u_64(BigInt self, SseSerializer serializer);
-
-@protected void sse_encode_u_8(int self, SseSerializer serializer);
-
-@protected void sse_encode_unit(void self, SseSerializer serializer);
-
-@protected void sse_encode_usize(BigInt self, SseSerializer serializer);
-                }
-                
-
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    RequestClient self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+    SyncHost self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+    SyncPeerClient self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_Chrono_Duration(Duration self, SseSerializer serializer);
+
+  @protected
+  void
+  sse_encode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken_Output_unit_AnyhowException(
+    FutureOr<void> Function(CancellationToken) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_DartFn_Inputs_String_Output_list_String_AnyhowException(
+    FutureOr<List<String>> Function(String) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_DartFn_Inputs_String_Output_unit_AnyhowException(
+    FutureOr<void> Function(String) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_DartFn_Inputs_aidoku_js_request_Output_aidoku_js_response_AnyhowException(
+    FutureOr<AidokuJsResponse> Function(AidokuJsRequest) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_DartFn_Inputs_aidoku_net_request_Output_aidoku_net_response_AnyhowException(
+    FutureOr<AidokuNetResponse> Function(AidokuNetRequest) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_DartFn_Inputs_http_response_Output_unit_AnyhowException(
+    FutureOr<void> Function(HttpResponse) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_DartFn_Inputs_rhttp_error_Output_unit_AnyhowException(
+    FutureOr<void> Function(RhttpError) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_DartOpaque(Object self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_Map_String_String_None(
+    Map<String, String> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_Map_String_list_String_None(
+    Map<String, List<String>> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+    AidokuSource self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+    CancellationToken self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    DnsSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    RequestClient self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+    SyncHost self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+    SyncPeerClient self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_StreamSink_list_prim_u_8_strict_Sse(
+    RustStreamSink<Uint8List> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_StreamSink_sync_host_request_Sse(
+    RustStreamSink<SyncHostRequest> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_String(String self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_aidoku_chapter(AidokuChapter self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_aidoku_deep_link(
+    AidokuDeepLink self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_aidoku_filter(AidokuFilter self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_aidoku_filter_value(
+    AidokuFilterValue self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_aidoku_image_request(
+    AidokuImageRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_aidoku_js_action(
+    AidokuJsAction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_aidoku_js_request(
+    AidokuJsRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_aidoku_js_response(
+    AidokuJsResponse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_aidoku_listing(AidokuListing self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_aidoku_manga(AidokuManga self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_aidoku_manga_page(
+    AidokuMangaPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_aidoku_net_request(
+    AidokuNetRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_aidoku_net_response(
+    AidokuNetResponse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_aidoku_page(AidokuPage self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_aidoku_source_features(
+    AidokuSourceFeatures self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void
+  sse_encode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    DnsSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_Chrono_Duration(
+    Duration self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_aidoku_chapter(
+    AidokuChapter self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_aidoku_deep_link(
+    AidokuDeepLink self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_aidoku_image_request(
+    AidokuImageRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_aidoku_listing(
+    AidokuListing self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_aidoku_manga(
+    AidokuManga self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_client_certificate(
+    ClientCertificate self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_client_settings(
+    ClientSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_f_32(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_http_headers(
+    HttpHeaders self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_http_response_body(
+    HttpResponseBody self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_proxy_settings(
+    ProxySettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_redirect_settings(
+    RedirectSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_static_dns_settings(
+    StaticDnsSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_sync_host_config(
+    SyncHostConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_sync_host_response(
+    SyncHostResponse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_sync_identity(
+    SyncIdentity self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_timeout_settings(
+    TimeoutSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_tls_settings(
+    TlsSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_tls_version(
+    TlsVersion self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_client_certificate(
+    ClientCertificate self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_client_settings(
+    ClientSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_custom_proxy(CustomProxy self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_epub_chapter(EpubChapter self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_epub_novel(EpubNovel self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_epub_resource(EpubResource self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_f_32(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_http_headers(HttpHeaders self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_http_method(HttpMethod self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_http_response(HttpResponse self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_http_response_body(
+    HttpResponseBody self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_http_version(HttpVersion self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_isize(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_aidoku_chapter(
+    List<AidokuChapter> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_aidoku_filter(
+    List<AidokuFilter> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_aidoku_filter_value(
+    List<AidokuFilterValue> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_aidoku_listing(
+    List<AidokuListing> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_aidoku_manga(
+    List<AidokuManga> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_aidoku_page(
+    List<AidokuPage> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_custom_proxy(
+    List<CustomProxy> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_epub_chapter(
+    List<EpubChapter> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_epub_resource(
+    List<EpubResource> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_list_prim_u_8_strict(
+    List<Uint8List> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_local_rar_image(
+    List<LocalRarImage> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_prim_u_8_loose(List<int> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_prim_u_8_strict(
+    Uint8List self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_record_string_list_string(
+    List<(String, List<String>)> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_record_string_string(
+    List<(String, String)> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_rar_archive(
+    LocalRarArchive self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_local_rar_image(LocalRarImage self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_local_rar_metadata(
+    LocalRarMetadata self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_opt_AutoExplicit_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    RequestClient? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void
+  sse_encode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    DnsSettings? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_Chrono_Duration(
+    Duration? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_aidoku_deep_link(
+    AidokuDeepLink? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_aidoku_image_request(
+    AidokuImageRequest? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_aidoku_listing(
+    AidokuListing? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_client_certificate(
+    ClientCertificate? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_client_settings(
+    ClientSettings? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_f_32(double? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_http_headers(
+    HttpHeaders? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_proxy_settings(
+    ProxySettings? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_redirect_settings(
+    RedirectSettings? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_timeout_settings(
+    TimeoutSettings? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_tls_settings(
+    TlsSettings? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_tls_version(
+    TlsVersion? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_list_String(List<String>? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_list_aidoku_chapter(
+    List<AidokuChapter>? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_list_prim_u_8_strict(
+    Uint8List? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_list_record_string_string(
+    List<(String, String)>? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_proxy_condition(
+    ProxyCondition self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_proxy_settings(ProxySettings self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_record_string_list_string(
+    (String, List<String>) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_record_string_string(
+    (String, String) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_redirect_settings(
+    RedirectSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rhttp_error(RhttpError self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_static_dns_settings(
+    StaticDnsSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_sync_host_config(
+    SyncHostConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_sync_host_request(
+    SyncHostRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_sync_host_request_kind(
+    SyncHostRequestKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_sync_host_response(
+    SyncHostResponse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_sync_identity(SyncIdentity self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_sync_peer_response(
+    SyncPeerResponse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_timeout_settings(
+    TimeoutSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_tls_settings(TlsSettings self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_tls_version(TlsVersion self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_16(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_64(BigInt self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_8(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_unit(void self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_usize(BigInt self, SseSerializer serializer);
+}
 
 // Section: wire_class
 
 class RustLibWire implements BaseWire {
-            RustLibWire.fromExternalLibrary(ExternalLibrary lib);
+  RustLibWire.fromExternalLibrary(ExternalLibrary lib);
 
-            void rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(int ptr) => wasmModule.rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(ptr);
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+        ptr,
+      );
 
-void rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(int ptr) => wasmModule.rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(ptr);
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+        ptr,
+      );
 
-void rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(int ptr) => wasmModule.rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(ptr);
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+        ptr,
+      );
 
-void rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(int ptr) => wasmModule.rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(ptr);
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+        ptr,
+      );
 
-void rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(int ptr) => wasmModule.rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(ptr);
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+        ptr,
+      );
 
-void rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(int ptr) => wasmModule.rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(ptr);
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+        ptr,
+      );
 
-void rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(int ptr) => wasmModule.rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(ptr);
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+        ptr,
+      );
 
-void rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(int ptr) => wasmModule.rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(ptr);
-        }
-        @JS('wasm_bindgen') external RustLibWasmModule get wasmModule;
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+        ptr,
+      );
 
-        @JS() @anonymous extension type RustLibWasmModule._(JSObject _) implements JSObject {
-            external void rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(int ptr);
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+        ptr,
+      );
 
-external void rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(int ptr);
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+        ptr,
+      );
 
-external void rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(int ptr);
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+        ptr,
+      );
 
-external void rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(int ptr);
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+        ptr,
+      );
+}
 
-external void rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(int ptr);
+@JS('wasm_bindgen')
+external RustLibWasmModule get wasmModule;
 
-external void rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(int ptr);
+@JS()
+@anonymous
+extension type RustLibWasmModule._(JSObject _) implements JSObject {
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+    int ptr,
+  );
 
-external void rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(int ptr);
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAidokuSource(
+    int ptr,
+  );
 
-external void rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(int ptr);
-        }
-        
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDnsSettings(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerRequestClient(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncHost(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncPeerClient(
+    int ptr,
+  );
+}

@@ -1,14 +1,10 @@
-import 'package:mangayomi/eval/model/m_manga.dart';
 import 'package:mangayomi/eval/model/m_pages.dart';
 import 'package:mangayomi/models/source.dart';
-import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
-import 'package:mangayomi/services/built_in_sources.dart';
+import 'package:mangayomi/providers/browse_state_provider.dart';
+import 'package:mangayomi/services/built_in_extension_service.dart';
 import 'package:mangayomi/repositories/manga_repository.dart';
 import 'package:mangayomi/services/isolate_service.dart';
-import 'package:mangayomi/services/jmcomic/jmcomic_service.dart';
 import 'package:mangayomi/services/local_source_page.dart';
-import 'package:mangayomi/services/wogg/wogg_service.dart';
-import 'package:mangayomi/services/yydsys/yydsys_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'get_popular.g.dart';
 
@@ -29,59 +25,15 @@ Future<MPages?> getPopular(
     );
   }
 
-  // Built-in sources: run in main isolate.
-  if (BuiltInSources.isBuiltIn(source)) {
-    final bi = BuiltInSources.getForSource(source)!;
-    if (bi.nameId == 'wogg') {
-      final woggService = WoggService(baseUrl: bi.baseUrl);
-      try {
-        final items = await woggService.getPopular();
-        final result = items
-            .map((e) => MManga(
-                  name: e['name'],
-                  imageUrl: e['imageUrl'],
-                  link: e['link'],
-                ))
-            .toList();
-        return MPages(list: result, hasNextPage: true);
-      } catch (e) {
-        // Log error but return empty list instead of crashing.
-        return MPages(list: [], hasNextPage: false);
-      } finally {
-        woggService.dispose();
-      }
-    } else if (bi.nameId == 'jmcomic') {
-      final jmcomicService = JmcomicService(baseUrl: bi.baseUrl);
-      try {
-        final items = await jmcomicService.getPopular();
-        final result = items
-            .map((e) => MManga(
-                  name: e['name'],
-                  imageUrl: e['imageUrl'],
-                  link: e['link'],
-                ))
-            .toList();
-        return MPages(list: result, hasNextPage: true);
-      } catch (e) {
-        return MPages(list: [], hasNextPage: false);
-      } finally {
-        jmcomicService.dispose();
-      }
-    } else if (bi.nameId == 'yydsys') {
-      final yydsysService = YydsysService(baseUrl: bi.baseUrl);
-      try {
-        final items = await yydsysService.getPopular();
-        final result = items
-            .map((e) => MManga(
-                  name: e['name'],
-                  imageUrl: e['imageUrl'],
-                  link: e['link'],
-                ))
-            .toList();
-        return MPages(list: result, hasNextPage: false);
-      } catch (e) {
-        return MPages(list: [], hasNextPage: false);
-      }
+  // Built-in sources have no sourceCode, so no isolate can run them.
+  final builtIn = builtInServiceFor(source);
+  if (builtIn != null) {
+    try {
+      return await builtIn.getPopular(page);
+    } catch (e) {
+      return MPages(list: [], hasNextPage: false);
+    } finally {
+      builtIn.dispose();
     }
   }
 

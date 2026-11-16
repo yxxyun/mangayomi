@@ -15,6 +15,17 @@ analyzer:
     # dependencies that aren't resolved in the app's analysis context, so it
     # reports false errors. It's build-time only, not app code.
     - rust_builder/**
+    # Shiori and its catalogue are their own packages, analysed (and tested)
+    # from their own directories.
+    - packages/**
+    # The sync server is its own package too, analysed and tested by its own
+    # workflow.
+    - server/**
+    # Written by `flutter gen-l10n`, which still lists the delegates of
+    # flutter_localizations; the app takes material_ui's instead
+    # (lib/l10n/l10n_delegates.dart).
+    - lib/l10n/generated/**
+    - widgetbook/**
     - build/**
     - android/**
     - ios/**
@@ -22,6 +33,7 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    - lib/services/http/rhttp/**
 include: package:flutter_lints/flutter.yaml
 
 linter:
@@ -40,7 +52,19 @@ linter:
     cancel_subscriptions: true
     close_sinks: true
     avoid_empty_else: true
+    use_build_context_synchronously: true
+    unnecessary_statements: true
+    unnecessary_null_aware_assignments: true
+    control_flow_in_finally: true
+    empty_statements: true
+    no_duplicate_case_values: true
+    valid_regexps: true
+    hash_and_equals: true
+    test_types_in_equals: true
+    throw_in_finally: true
+    no_adjacent_strings_in_list: true
     # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
     # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
 
 # Additional information about this file can be found at

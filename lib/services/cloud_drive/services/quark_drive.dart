@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:http_interceptor/http_interceptor.dart';
 
 import 'package:mangayomi/models/video.dart';
 import 'package:mangayomi/services/http/m_client.dart';
@@ -105,6 +104,10 @@ class QuarkDriveService implements CloudDriveService {
     if (saved != null) {
       _account = saved;
     }
+    // Cross-isolate handoff: a QR login that completed in another isolate
+    // (or a previous run that could not reach Isar) leaves the cookie in the
+    // temp file; take it when Isar has nothing better.
+    _readSharedCookie();
     final cookie = _account.cookie;
     if (cookie != null && cookie.isNotEmpty) {
       await _setCookiesIfChanged(cookie);
@@ -130,6 +133,8 @@ class QuarkDriveService implements CloudDriveService {
     _account.isLoggedIn = true;
     _account.lastLoginAt = DateTime.now();
     await CloudCookieManager.saveAccount(_account);
+    // Mirror for isolates that have not opened Isar yet (worker pools).
+    _writeSharedCookie();
     return true;
   }
 
@@ -789,13 +794,6 @@ class QuarkDriveService implements CloudDriveService {
       }
     } catch (_) {}
     return '';
-  }
-
-  Map<String, String> _getHeaders() {
-    return {
-      'User-Agent': _userAgent,
-      'Referer': _refererUrl,
-    };
   }
 
   /// Returns headers with cookie — async because reads Isar.

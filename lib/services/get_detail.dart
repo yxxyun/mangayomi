@@ -2,12 +2,9 @@ import 'dart:async';
 
 import 'package:mangayomi/eval/model/m_manga.dart';
 import 'package:mangayomi/models/source.dart';
-import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
-import 'package:mangayomi/services/built_in_sources.dart';
+import 'package:mangayomi/providers/browse_state_provider.dart';
+import 'package:mangayomi/services/built_in_extension_service.dart';
 import 'package:mangayomi/services/isolate_service.dart';
-import 'package:mangayomi/services/jmcomic/jmcomic_service.dart';
-import 'package:mangayomi/services/wogg/wogg_service.dart';
-import 'package:mangayomi/services/yydsys/yydsys_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'get_detail.g.dart';
 
@@ -18,32 +15,15 @@ Future<MManga> getDetail(
   required Source source,
 }) async {
   // Built-in sources: run in main isolate (no worker isolate HTTP issues).
-  final bi = BuiltInSources.getForSource(source);
-  if (bi != null) {
-    if (bi.nameId == 'wogg') {
-      final woggService = WoggService(baseUrl: bi.baseUrl);
-      try {
-        final detail = await woggService.getDetail(url);
-        return detail ?? MManga(name: '未知', chapters: []);
-      } finally {
-        woggService.dispose();
-      }
-    } else if (bi.nameId == 'jmcomic') {
-      final jmcomicService = JmcomicService(baseUrl: bi.baseUrl);
-      try {
-        final detail = await jmcomicService.getDetail(url);
-        return detail ?? MManga(name: '未知', chapters: []);
-      } finally {
-        jmcomicService.dispose();
-      }
-    } else if (bi.nameId == 'yydsys') {
-      final yydsysService = YydsysService(baseUrl: bi.baseUrl);
-      try {
-        final detail = await yydsysService.getDetail(url);
-        return detail ?? MManga(name: '未知', chapters: []);
-      } catch (e) {
-        return MManga(name: '未知', chapters: []);
-      }
+  // Built-in sources have no sourceCode, so no isolate can run them.
+  final builtIn = builtInServiceFor(source);
+  if (builtIn != null) {
+    try {
+      return await builtIn.getDetail(url);
+    } catch (e) {
+      return MManga(name: '未知', chapters: []);
+    } finally {
+      builtIn.dispose();
     }
   }
 

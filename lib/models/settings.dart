@@ -193,6 +193,12 @@ class Settings {
 
   int? defaultSkipIntroLength;
 
+  /// The player's fit (a [BoxFit] name), kept from one episode to the next.
+  String? playerVideoFit;
+
+  /// Whether a subtitle track is turned on when an episode starts.
+  bool? subtitlesOnByDefault;
+
   int? defaultDoubleTapToSkipLength;
 
   double? defaultPlayBackSpeed;
@@ -218,6 +224,11 @@ class Settings {
   String? customDohUrl;
 
   String? cfProxyUrl;
+
+  /// The `.desktop` file basename of the browser that opens external links,
+  /// or empty for the system default. Device-local: installed browsers differ
+  /// per machine.
+  String? externalBrowser;
 
   String? btServerAddress;
 
@@ -317,6 +328,9 @@ class Settings {
 
   List<String>? hideItems;
 
+  /// Keys the user rebound, as `player.mute=keyId`; see `resolveKeyBindings`.
+  List<String>? keyboardShortcuts;
+
   bool? clearChapterCacheOnAppLaunch;
 
   String? lastTrackerLibraryLocation;
@@ -329,6 +343,65 @@ class Settings {
   ///
   /// False by default so existing installs keep the standard attached bar.
   bool? useFloatingNavigationBar;
+
+  /// Shows how many chapters were found since Updates was last opened as a
+  /// badge on its navigation icon. On by default.
+  bool? showUpdatesBadge;
+
+  /// When Updates was last opened or left, as epoch milliseconds. The badge
+  /// counts the unread updates found after it. App state rather than a
+  /// preference: kept on this device and out of sync.
+  int? updatesLastSeenAt;
+
+  /// The category tab each library was last left on, by category id, so the
+  /// library reopens there. Null is the first tab (Default when there is
+  /// one). App state rather than a preference: kept on this device and out
+  /// of sync.
+  int? libraryLastCategoryIdMangas;
+  int? libraryLastCategoryIdAnime;
+  int? libraryLastCategoryIdNovel;
+
+  /// Lets the chosen palette colour the surfaces (backgrounds, cards, bars)
+  /// as well as the accent, the way the app looked before Shiori.
+  ///
+  /// False by default: surfaces stay on Shiori's neutrals and the palette
+  /// only drives the accent.
+  bool? tintSurfacesWithPalette;
+
+  /// Whether the navigation groups the three libraries into one Library
+  /// destination and Updates and History into one Activity destination,
+  /// each with a switcher on its screen. Null, for a library saved before
+  /// the option existed, means on.
+  bool? groupNavDestinations;
+
+  /// Whether a library opens on a row of the series in progress. Null, for a
+  /// library saved before the option existed, means on.
+  bool? showContinueShelf;
+
+  /// Whether a library lists the filters that are on as chips above its
+  /// grid. Null, for a library saved before the option existed, means on.
+  bool? showActiveFilterChips;
+
+  /// Whether the video player's gesture guide has been shown once already.
+  bool? playerGestureHintSeen;
+
+  /// The series whose chapters are listed by their number ("Chapter 12")
+  /// instead of the title the source gives them.
+  List<int>? chapterNumberDisplayMangaIds;
+
+  /// Whether the volume buttons turn the reader's pages (Android, iOS).
+  bool? volumeKeysPaging;
+
+  /// Whether volume up turns forward rather than back.
+  bool? volumeKeysInverted;
+
+  /// How the readers hold the screen: 0 follows the device, 1 portrait,
+  /// 2 landscape.
+  int? readerOrientation;
+
+  /// The screen's brightness while a reader is open, from 1 to 100; -1
+  /// leaves it to the system.
+  int? readerScreenBrightness;
 
   bool? enableDiscordRpc;
 
@@ -453,6 +526,49 @@ class Settings {
   bool? doublePageSingleFirstPage;
   bool? doublePageAuto;
 
+  bool? rememberPlayerVolume;
+
+  bool? rememberPlayerBrightness;
+
+  double? playerVolume;
+
+  double? playerBrightness;
+
+  List<int>? playerVideoFilters;
+
+  int? audioDelayMs;
+
+  int? secureScreen;
+
+  int? appLockDelayMinutes;
+
+  bool? splitTallImages;
+
+  bool? skipReadChapters;
+
+  bool? skipFilteredChapters;
+
+  bool? skipDuplicateChapters;
+
+  int? deleteAfterReadingSlot;
+
+  bool? deleteBookmarkedAfterReading;
+
+  int? downloadAheadWhileReading;
+
+  bool? downloadNewChapters;
+
+  List<int>? downloadNewChaptersCategories;
+
+  List<int>? downloadNewChaptersExcludedCategories;
+
+  bool? libraryUpdateSkipCompleted;
+
+  bool? libraryUpdateSkipUnread;
+
+  bool? libraryUpdateSkipNotStarted;
+  bool? hideNotificationContent;
+
   Settings({
     this.id = 227,
     this.updatedAt = 0,
@@ -534,6 +650,8 @@ class Settings {
     this.autoScrollPages,
     this.markEpisodeAsSeenType = 85,
     this.defaultSkipIntroLength = 85,
+    this.playerVideoFit,
+    this.subtitlesOnByDefault = true,
     this.defaultDoubleTapToSkipLength = 10,
     this.defaultPlayBackSpeed = 1.0,
     this.fullScreenPlayer = false,
@@ -547,6 +665,7 @@ class Settings {
     this.doHProviderId = 0,
     this.customDohUrl = "",
     this.cfProxyUrl = "",
+    this.externalBrowser = "",
     this.btServerAddress = "127.0.0.1",
     this.btServerPort,
     this.fullScreenReader = true,
@@ -586,6 +705,7 @@ class Settings {
     this.novelTapToScroll = false,
     this.navigationOrder,
     this.hideItems,
+    this.keyboardShortcuts,
     this.clearChapterCacheOnAppLaunch = false,
     this.mangaExtensionsRepo,
     this.animeExtensionsRepo,
@@ -598,6 +718,21 @@ class Settings {
     this.mergeLibraryNavMobile = false,
     this.showNavDoubleTapTooltip = true,
     this.useFloatingNavigationBar = false,
+    this.showUpdatesBadge = true,
+    this.updatesLastSeenAt,
+    this.libraryLastCategoryIdMangas,
+    this.libraryLastCategoryIdAnime,
+    this.libraryLastCategoryIdNovel,
+    this.tintSurfacesWithPalette = false,
+    this.groupNavDestinations = true,
+    this.showContinueShelf = true,
+    this.showActiveFilterChips = true,
+    this.playerGestureHintSeen = false,
+    this.chapterNumberDisplayMangaIds = const [],
+    this.volumeKeysPaging = false,
+    this.volumeKeysInverted = false,
+    this.readerOrientation = 0,
+    this.readerScreenBrightness = -1,
     this.enableDiscordRpc = true,
     this.hideDiscordRpcInIncognito = true,
     this.rpcShowReadingWatchingProgress = true,
@@ -668,6 +803,28 @@ class Settings {
     this.tvHomeGenreRows,
     this.doublePageSingleFirstPage = false,
     this.doublePageAuto = false,
+    this.rememberPlayerVolume = false,
+    this.rememberPlayerBrightness = false,
+    this.playerVolume,
+    this.playerBrightness,
+    this.playerVideoFilters,
+    this.audioDelayMs = 0,
+    this.secureScreen = 0,
+    this.appLockDelayMinutes = 0,
+    this.splitTallImages = false,
+    this.skipReadChapters = false,
+    this.skipFilteredChapters = true,
+    this.skipDuplicateChapters = true,
+    this.deleteAfterReadingSlot = 0,
+    this.deleteBookmarkedAfterReading = false,
+    this.downloadAheadWhileReading = 0,
+    this.downloadNewChapters = false,
+    this.downloadNewChaptersCategories,
+    this.downloadNewChaptersExcludedCategories,
+    this.libraryUpdateSkipCompleted = false,
+    this.libraryUpdateSkipUnread = false,
+    this.libraryUpdateSkipNotStarted = false,
+    this.hideNotificationContent = false,
     this.developerMode = false,
   });
 
@@ -825,6 +982,8 @@ class Settings {
     usePageTapZones = json['usePageTapZones'];
     markEpisodeAsSeenType = json['markEpisodeAsSeenType'];
     defaultSkipIntroLength = json['defaultSkipIntroLength'];
+    playerVideoFit = json['playerVideoFit'];
+    subtitlesOnByDefault = json['subtitlesOnByDefault'];
     defaultDoubleTapToSkipLength = json['defaultDoubleTapToSkipLength'];
     defaultPlayBackSpeed = json['defaultPlayBackSpeed'] is double
         ? json['defaultPlayBackSpeed']
@@ -840,6 +999,7 @@ class Settings {
     doHProviderId = json['doHProviderId'];
     customDohUrl = json['customDohUrl'];
     cfProxyUrl = json['cfProxyUrl'];
+    externalBrowser = json['externalBrowser'];
     btServerAddress = json['btServerAddress'];
     btServerPort = json['btServerPort'];
     customColorFilter = json['customColorFilter'] != null
@@ -908,6 +1068,9 @@ class Settings {
     if (json['hideItems'] != null) {
       hideItems = (json['hideItems'] as List).cast<String>();
     }
+    if (json['keyboardShortcuts'] != null) {
+      keyboardShortcuts = (json['keyboardShortcuts'] as List).cast<String>();
+    }
     clearChapterCacheOnAppLaunch = json['clearChapterCacheOnAppLaunch'];
     if (json['mangaExtensionsRepo'] != null) {
       mangaExtensionsRepo = json['mangaExtensionsRepo'] is String
@@ -938,6 +1101,22 @@ class Settings {
     mergeLibraryNavMobile = json['mergeLibraryNavMobile'];
     showNavDoubleTapTooltip = json['showNavDoubleTapTooltip'];
     useFloatingNavigationBar = json['useFloatingNavigationBar'] ?? false;
+    showUpdatesBadge = json['showUpdatesBadge'] ?? true;
+    updatesLastSeenAt = json['updatesLastSeenAt'];
+    libraryLastCategoryIdMangas = json['libraryLastCategoryIdMangas'];
+    libraryLastCategoryIdAnime = json['libraryLastCategoryIdAnime'];
+    libraryLastCategoryIdNovel = json['libraryLastCategoryIdNovel'];
+    tintSurfacesWithPalette = json['tintSurfacesWithPalette'] ?? false;
+    groupNavDestinations = json['groupNavDestinations'] ?? true;
+    showContinueShelf = json['showContinueShelf'] ?? true;
+    showActiveFilterChips = json['showActiveFilterChips'] ?? true;
+    playerGestureHintSeen = json['playerGestureHintSeen'] ?? false;
+    chapterNumberDisplayMangaIds =
+        (json['chapterNumberDisplayMangaIds'] as List?)?.cast<int>() ?? [];
+    volumeKeysPaging = json['volumeKeysPaging'] ?? false;
+    volumeKeysInverted = json['volumeKeysInverted'] ?? false;
+    readerOrientation = json['readerOrientation'] ?? 0;
+    readerScreenBrightness = json['readerScreenBrightness'] ?? -1;
     enableDiscordRpc = json['enableDiscordRpc'];
     hideDiscordRpcInIncognito = json['hideDiscordRpcInIncognito'];
     rpcShowReadingWatchingProgress = json['rpcShowReadingWatchingProgress'];
@@ -1019,6 +1198,30 @@ class Settings {
     tvHomeGenreRows = json['tvHomeGenreRows'];
     doublePageSingleFirstPage = json['doublePageSingleFirstPage'];
     doublePageAuto = json['doublePageAuto'];
+    rememberPlayerVolume = json['rememberPlayerVolume'];
+    rememberPlayerBrightness = json['rememberPlayerBrightness'];
+    playerVolume = json['playerVolume'];
+    playerBrightness = json['playerBrightness'];
+    playerVideoFilters = (json['playerVideoFilters'] as List?)?.cast<int>();
+    audioDelayMs = json['audioDelayMs'];
+    secureScreen = json['secureScreen'];
+    appLockDelayMinutes = json['appLockDelayMinutes'];
+    splitTallImages = json['splitTallImages'];
+    skipReadChapters = json['skipReadChapters'];
+    skipFilteredChapters = json['skipFilteredChapters'];
+    skipDuplicateChapters = json['skipDuplicateChapters'];
+    deleteAfterReadingSlot = json['deleteAfterReadingSlot'];
+    deleteBookmarkedAfterReading = json['deleteBookmarkedAfterReading'];
+    downloadAheadWhileReading = json['downloadAheadWhileReading'];
+    downloadNewChapters = json['downloadNewChapters'];
+    downloadNewChaptersCategories =
+        (json['downloadNewChaptersCategories'] as List?)?.cast<int>();
+    downloadNewChaptersExcludedCategories =
+        (json['downloadNewChaptersExcludedCategories'] as List?)?.cast<int>();
+    libraryUpdateSkipCompleted = json['libraryUpdateSkipCompleted'];
+    libraryUpdateSkipUnread = json['libraryUpdateSkipUnread'];
+    libraryUpdateSkipNotStarted = json['libraryUpdateSkipNotStarted'];
+    hideNotificationContent = json['hideNotificationContent'];
   }
 
   Map<String, dynamic> toJson() => {
@@ -1121,6 +1324,8 @@ class Settings {
     'usePageTapZones': usePageTapZones,
     'markEpisodeAsSeenType': markEpisodeAsSeenType,
     'defaultSkipIntroLength': defaultSkipIntroLength,
+    'playerVideoFit': playerVideoFit,
+    'subtitlesOnByDefault': subtitlesOnByDefault,
     'defaultDoubleTapToSkipLength': defaultDoubleTapToSkipLength,
     'defaultPlayBackSpeed': defaultPlayBackSpeed,
     'fullScreenPlayer': fullScreenPlayer,
@@ -1134,6 +1339,7 @@ class Settings {
     'doHProviderId': doHProviderId,
     'customDohUrl': customDohUrl,
     'cfProxyUrl': cfProxyUrl,
+    'externalBrowser': externalBrowser,
     'btServerAddress': btServerAddress,
     'btServerPort': btServerPort,
     'fullScreenReader': fullScreenReader,
@@ -1176,6 +1382,7 @@ class Settings {
     'novelTapToScroll': novelTapToScroll,
     'navigationOrder': navigationOrder,
     'hideItems': hideItems,
+    'keyboardShortcuts': keyboardShortcuts,
     'clearChapterCacheOnAppLaunch': clearChapterCacheOnAppLaunch,
     'mangaExtensionsRepo': mangaExtensionsRepo?.map((e) => e.toJson()).toList(),
     'animeExtensionsRepo': animeExtensionsRepo?.map((e) => e.toJson()).toList(),
@@ -1188,6 +1395,21 @@ class Settings {
     'mergeLibraryNavMobile': mergeLibraryNavMobile,
     'showNavDoubleTapTooltip': showNavDoubleTapTooltip,
     'useFloatingNavigationBar': useFloatingNavigationBar,
+    'showUpdatesBadge': showUpdatesBadge,
+    'updatesLastSeenAt': updatesLastSeenAt,
+    'libraryLastCategoryIdMangas': libraryLastCategoryIdMangas,
+    'libraryLastCategoryIdAnime': libraryLastCategoryIdAnime,
+    'libraryLastCategoryIdNovel': libraryLastCategoryIdNovel,
+    'tintSurfacesWithPalette': tintSurfacesWithPalette,
+    'groupNavDestinations': groupNavDestinations,
+    'showContinueShelf': showContinueShelf,
+    'showActiveFilterChips': showActiveFilterChips,
+    'playerGestureHintSeen': playerGestureHintSeen,
+    'chapterNumberDisplayMangaIds': chapterNumberDisplayMangaIds,
+    'volumeKeysPaging': volumeKeysPaging,
+    'volumeKeysInverted': volumeKeysInverted,
+    'readerOrientation': readerOrientation,
+    'readerScreenBrightness': readerScreenBrightness,
     'enableDiscordRpc': enableDiscordRpc,
     'hideDiscordRpcInIncognito': hideDiscordRpcInIncognito,
     'rpcShowReadingWatchingProgress': rpcShowReadingWatchingProgress,
@@ -1259,6 +1481,29 @@ class Settings {
     'tvHomeGenreRows': tvHomeGenreRows,
     'doublePageSingleFirstPage': doublePageSingleFirstPage,
     'doublePageAuto': doublePageAuto,
+    'rememberPlayerVolume': rememberPlayerVolume,
+    'rememberPlayerBrightness': rememberPlayerBrightness,
+    'playerVolume': playerVolume,
+    'playerBrightness': playerBrightness,
+    'playerVideoFilters': playerVideoFilters,
+    'audioDelayMs': audioDelayMs,
+    'secureScreen': secureScreen,
+    'appLockDelayMinutes': appLockDelayMinutes,
+    'splitTallImages': splitTallImages,
+    'skipReadChapters': skipReadChapters,
+    'skipFilteredChapters': skipFilteredChapters,
+    'skipDuplicateChapters': skipDuplicateChapters,
+    'deleteAfterReadingSlot': deleteAfterReadingSlot,
+    'deleteBookmarkedAfterReading': deleteBookmarkedAfterReading,
+    'downloadAheadWhileReading': downloadAheadWhileReading,
+    'downloadNewChapters': downloadNewChapters,
+    'downloadNewChaptersCategories': downloadNewChaptersCategories,
+    'downloadNewChaptersExcludedCategories':
+        downloadNewChaptersExcludedCategories,
+    'libraryUpdateSkipCompleted': libraryUpdateSkipCompleted,
+    'libraryUpdateSkipUnread': libraryUpdateSkipUnread,
+    'libraryUpdateSkipNotStarted': libraryUpdateSkipNotStarted,
+    'hideNotificationContent': hideNotificationContent,
   };
 }
 

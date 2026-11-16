@@ -1,6 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:shiori/shiori.dart';
 import 'package:mangayomi/models/track.dart';
 import 'package:mangayomi/models/track_search.dart';
 import 'package:mangayomi/modules/tracker_library/tracker_library_card.dart';
@@ -42,9 +43,15 @@ class _TrackerSectionScreenState extends State<TrackerSectionScreen> {
             setState(() {
               _trackIndex = {
                 for (final t in tracks)
-                  if (t.mediaId != null) t.mediaId!: t,
+                  // Media ids are each tracker's own: the same number on
+                  // another tracker is another series.
+                  if (t.mediaId != null && t.syncId == widget.section.syncId)
+                    t.mediaId!: t,
               };
             });
+            // Read from the device: a change to an entry moves it between
+            // shelves at once.
+            if (!widget.section.cache) _fetchData();
           }
         });
   }
@@ -77,7 +84,7 @@ class _TrackerSectionScreenState extends State<TrackerSectionScreen> {
             _isLoading
                 ? const SizedBox(
                     height: 60,
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(child: ShioriSkeleton.line(width: 160)),
                   )
                 : Builder(
                     builder: (context) {
@@ -111,7 +118,11 @@ class _TrackerSectionScreenState extends State<TrackerSectionScreen> {
                       }
                       return SizedBox(
                         height: 60,
-                        child: Center(child: Text(l10n.no_result)),
+                        child: ShioriEmptyState(
+                          icon: Symbols.search_off_rounded,
+                          title: l10n.no_result,
+                          compact: true,
+                        ),
                       );
                     },
                   ),
@@ -128,7 +139,9 @@ class _TrackerSectionScreenState extends State<TrackerSectionScreen> {
     try {
       _errorMessage = "";
       _tracks = await widget.section.func() ?? [];
-      await trackerLibraryCacheRepository.put(key, _tracks);
+      if (widget.section.cache) {
+        await trackerLibraryCacheRepository.put(key, _tracks);
+      }
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -143,7 +156,7 @@ class _TrackerSectionScreenState extends State<TrackerSectionScreen> {
   }
 
   Future<bool> _checkCache(String key) async {
-    if (widget.section.isSearch) return false;
+    if (widget.section.isSearch || !widget.section.cache) return false;
     final cached = await trackerLibraryCacheRepository.get(key);
     if (cached == null) return false;
     _errorMessage = "";

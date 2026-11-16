@@ -5,32 +5,41 @@
 // sequences those three pieces and turns their results into UI-facing state
 // (toasts, progress, invalidated providers).
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import 'package:mangayomi/services/external_browser.dart';
+import 'package:mangayomi/services/background_work/background_work.dart';
 import 'package:mangayomi/eval/model/m_bridge.dart';
 import 'package:mangayomi/models/manga.dart';
-import 'package:mangayomi/modules/more/settings/appearance/providers/blend_level_state_provider.dart';
-import 'package:mangayomi/modules/more/settings/appearance/providers/flex_scheme_color_state_provider.dart';
-import 'package:mangayomi/modules/more/settings/appearance/providers/floating_navigation_bar_state_provider.dart';
-import 'package:mangayomi/modules/more/settings/appearance/providers/pure_black_dark_mode_state_provider.dart';
-import 'package:mangayomi/modules/more/settings/appearance/providers/theme_mode_state_provider.dart';
-import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
-import 'package:mangayomi/modules/more/settings/security/providers/security_state_provider.dart';
-import 'package:mangayomi/modules/more/settings/sync/providers/sync_progress_provider.dart';
-import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
+import 'package:mangayomi/providers/blend_level_state_provider.dart';
+import 'package:mangayomi/providers/flex_scheme_color_state_provider.dart';
+import 'package:mangayomi/providers/floating_navigation_bar_state_provider.dart';
+import 'package:mangayomi/providers/show_updates_badge_state_provider.dart';
+import 'package:mangayomi/providers/pure_black_dark_mode_state_provider.dart';
+import 'package:mangayomi/providers/theme_mode_state_provider.dart';
+import 'package:mangayomi/providers/browse_state_provider.dart';
+import 'package:mangayomi/providers/security_state_provider.dart';
+import 'package:mangayomi/providers/sync_progress_provider.dart';
+import 'package:mangayomi/providers/sync_providers.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/sync/sync_api_client.dart';
 import 'package:mangayomi/services/sync/sync_change_collector.dart';
 import 'package:mangayomi/services/sync/sync_entity_applier.dart';
+import 'package:mangayomi/services/sync/sync_transport.dart';
+import 'package:mangayomi/services/sync_host/sync_host_providers.dart';
+import 'package:mangayomi/services/sync_host/sync_secrets.dart';
+import 'package:mangayomi/models/sync_preference.dart';
+import 'package:mangayomi/src/rust/api/sync_host.dart';
 import 'package:mangayomi/utils/client_id.dart';
-import 'package:mangayomi/utils/platform_utils.dart';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:mangayomi/l10n/generated/app_localizations.dart';
+import 'package:mangayomi/providers/tint_surfaces_state_provider.dart';
+import 'package:mangayomi/utils/error_toast.dart';
+import 'package:mangayomi/utils/log/logger.dart';
 part 'sync_server.g.dart';
 
 /// Matches the server's SYNC.maxRowsPerEntity. A changed-row batch larger
@@ -43,11 +52,31 @@ const _maxRowsPerEntity = 5000;
 // sync-server repo), not the port, so this can be anything not already in use.
 const _desktopOAuthCallbackPort = 48765;
 
+/// Where the sync server sends the browser back after login: a loopback
+/// server catches it on Windows and Linux, the app's own scheme everywhere
+/// else. flutter_web_auth_2 takes a loopback address only on Windows and
+/// Linux; macOS, counted as a desktop here, rejected it as a scheme (#1062).
+/// The trackers already split it this way.
+({String redirectUri, String callbackUrlScheme}) syncOAuthCallback({
+  required bool loopback,
+}) => loopback
+    ? (
+        redirectUri: 'http://localhost:$_desktopOAuthCallbackPort/callback',
+        callbackUrlScheme: 'http://localhost:$_desktopOAuthCallbackPort',
+      )
+    : (
+        redirectUri: 'mangayomi://oauth-callback',
+        callbackUrlScheme: 'mangayomi',
+      );
+
 @riverpod
 class SyncServer extends _$SyncServer {
   final http = MClient.init(reqcopyWith: {'useDartHttpClient': true});
   final _entityApplier = const SyncEntityApplier();
   late final _apiClient = SyncApiClient(http);
+
+  /// Where this sync's requests go; set when it starts.
+  late SyncTransport _transport;
 
   @override
   void build({required int syncId}) {
@@ -56,8 +85,8 @@ class SyncServer extends _$SyncServer {
 
   // ------------------------------------------------------------------
   // Login. OAuth (PKCE) only - the server's own authorize/token endpoints,
-  // opened in the system browser. There is no password form: this app talks
-  // to exactly one server it's paired with, not a third-party OAuth
+  // opened in the browser the user chose. There is no password form: this app
+  // talks to exactly one server it's paired with, not a third-party OAuth
   // provider, so the browser round trip is purely local - it's whichever
   // session is already logged into that server's website.
   // ------------------------------------------------------------------
@@ -68,12 +97,9 @@ class SyncServer extends _$SyncServer {
       final verifier = _generatePkceVerifier();
       final challenge = _codeChallengeFromVerifier(verifier);
       final state = _generatePkceVerifier();
-      final redirectUri = isDesktop
-          ? 'http://localhost:$_desktopOAuthCallbackPort/callback'
-          : 'mangayomi://oauth-callback';
-      final callbackUrlScheme = isDesktop
-          ? 'http://localhost:$_desktopOAuthCallbackPort'
-          : 'mangayomi';
+      final (:redirectUri, :callbackUrlScheme) = syncOAuthCallback(
+        loopback: Platform.isWindows || Platform.isLinux,
+      );
 
       final authorizeUrl = Uri.parse('$server/api/oauth/authorize').replace(
         queryParameters: {
@@ -84,11 +110,12 @@ class SyncServer extends _$SyncServer {
         },
       );
 
-      final resultUrl = await FlutterWebAuth2.authenticate(
-        url: authorizeUrl.toString(),
+      final resultUri = await ExternalBrowser.openOAuth(
+        authorizeUrl.toString(),
+        port: _desktopOAuthCallbackPort,
         callbackUrlScheme: callbackUrlScheme,
       );
-      final resultParams = Uri.parse(resultUrl).queryParameters;
+      final resultParams = resultUri?.queryParameters ?? const {};
       final code = resultParams['code'];
       // Confirms this callback answers the authorize call this same login()
       // just made, not a stray/replayed one.
@@ -120,7 +147,8 @@ class SyncServer extends _$SyncServer {
           .login(server, username, accessToken);
       botToast(l10n.sync_logged);
       return (true, "");
-    } catch (e) {
+    } catch (e, stackTrace) {
+      recordError(e, stack: stackTrace, source: 'sync_server');
       return (false, e.toString());
     }
   }
@@ -170,8 +198,10 @@ class SyncServer extends _$SyncServer {
     }
     final progress = ref.read(syncProgressProvider(syncId: syncId).notifier);
     progress.begin();
+    BackgroundWork.begin(BackgroundWorkKind.sync);
     try {
-      if (!await _apiClient.checkVersion(_getServer())) {
+      _transport = await _openTransport();
+      if (!await _transport.checkVersion()) {
         if (!silent && l10n != null) {
           botToast(l10n.sync_failed, second: 5);
         }
@@ -185,6 +215,7 @@ class SyncServer extends _$SyncServer {
       if (!ref.mounted) return false;
 
       final notifier = ref.read(synchingProvider(syncId: syncId).notifier);
+      _unsent = const [];
       final ok = upload
           ? await _forceUpload(notifier)
           : download
@@ -200,17 +231,46 @@ class SyncServer extends _$SyncServer {
       if (ref.mounted) {
         ref.invalidate(synchingProvider(syncId: syncId));
       }
+      if (_unsent.isNotEmpty) {
+        // The rest synced; these never will until they change. Kept where
+        // they can be found even after a sync no one watched.
+        final unsent = _unsent.join(', ');
+        final error = 'Rows too long to sync were left out: $unsent';
+        if (silent || l10n == null) {
+          recordError(error, source: 'sync', level: LogLevel.warning);
+        } else {
+          toastError(
+            error,
+            source: 'sync',
+            message: l10n.sync_rows_not_sent(unsent),
+          );
+          return true;
+        }
+      }
       if (!silent && l10n != null) {
         botToast(l10n.sync_finished, second: 2);
       }
       return true;
-    } catch (error) {
-      if (!silent) {
-        botToast(error.toString(), second: 5);
+    } catch (error, stack) {
+      if (silent) {
+        recordError(error, stack: stack, source: 'sync');
+      } else {
+        toastError(
+          error,
+          stack: stack,
+          source: 'sync',
+          message:
+              error is _SyncRefusedOf &&
+                  error.refused.invalidRequest &&
+                  l10n != null
+              ? l10n.sync_refused(error.what)
+              : null,
+        );
       }
       return false;
     } finally {
       progress.finish();
+      BackgroundWork.end(BackgroundWorkKind.sync);
     }
   }
 
@@ -256,8 +316,13 @@ class SyncServer extends _$SyncServer {
       };
       if (hasChunk) chunkIndex += 1;
 
-      final response = await _postSync(body);
-      if (response == null) return false;
+      final Map<String, dynamic> response;
+      try {
+        response = await _postSync(body);
+      } on SyncRefused catch (refused, stack) {
+        // Told with the row it names: only this request holds it.
+        Error.throwWithStackTrace(_SyncRefusedOf(refused, body), stack);
+      }
       if (hasChunk) progress.addDone(1);
       _trackDownloadProgress(progress, response);
 
@@ -269,10 +334,15 @@ class SyncServer extends _$SyncServer {
       if (chunkIndex >= chunks.length && !hasMore) {
         final syncedAt = response['syncedAt'] as int?;
         if (syncedAt != null) {
-          notifier.setSince(syncedAt);
-          notifier.setLastSync(DateTime.now().millisecondsSinceEpoch);
+          // One awaited write for both: see Synching.setSynced for why two
+          // back-to-back setters here silently lost `since`.
+          await notifier.setSynced(
+            since: syncedAt,
+            lastSync: DateTime.now().millisecondsSinceEpoch,
+          );
           await changed?.clearUploaded(notifier);
         }
+        _unsent = changed?.unsent ?? const [];
         return true;
       }
     }
@@ -340,8 +410,38 @@ class SyncServer extends _$SyncServer {
   // Wire transport
   // ------------------------------------------------------------------
 
-  Future<Map<String, dynamic>?> _postSync(Map<String, dynamic> body) =>
-      _apiClient.postSync(_getServer(), _getAccessToken(), body);
+  Future<Map<String, dynamic>> _postSync(Map<String, dynamic> body) =>
+      _transport.postSync(body);
+
+  /// What the last sync left out of its upload: see [ChangedRows.unsent].
+  List<UnsentSyncRow> _unsent = const [];
+
+  Future<SyncTransport> _openTransport() async {
+    final prefs = ref.read(synchingProvider(syncId: syncId));
+    if (prefs.server == SyncPreference.thisDeviceHost) {
+      return LocalSyncTransport(await ref.read(syncHostEngineProvider.future));
+    }
+    final hostFingerprint = prefs.hostFingerprint;
+    if (hostFingerprint != null && prefs.peerAddresses.isNotEmpty) {
+      final identity = await SyncSecrets().identity();
+      return PeerSyncTransport.trying(
+        prefs.peerAddresses,
+        (address) => SyncPeerClient(
+          identity: identity,
+          baseUrl: address,
+          hostFingerprint: hostFingerprint,
+          timeoutSeconds: 120,
+        ),
+        onReached: (address) {
+          if (!ref.mounted) return;
+          ref
+              .read(synchingProvider(syncId: syncId).notifier)
+              .rememberHostAddress(address);
+        },
+      );
+    }
+    return HttpSyncTransport(_apiClient, _getServer(), _getAccessToken());
+  }
 
   String _getAccessToken() {
     if (!ref.mounted) return "";
@@ -372,7 +472,9 @@ class SyncServer extends _$SyncServer {
     ref.invalidate(blendLevelStateProvider);
     ref.invalidate(flexSchemeColorStateProvider);
     ref.invalidate(pureBlackDarkModeStateProvider);
+    ref.invalidate(tintSurfacesStateProvider);
     ref.invalidate(floatingNavigationBarStateProvider);
+    ref.invalidate(showUpdatesBadgeStateProvider);
     ref.invalidate(l10nLocaleStateProvider);
     ref.invalidate(extensionsRepoStateProvider(ItemType.manga));
     ref.invalidate(extensionsRepoStateProvider(ItemType.anime));
@@ -382,13 +484,12 @@ class SyncServer extends _$SyncServer {
 
 /// Triggers auto sync if sync is enabled, user is logged in, autoSyncFrequency > 0,
 /// and enough time has elapsed since lastSync.
-Future<void> autoSyncIfDue(WidgetRef ref, {int syncId = 1}) async {
+Future<void> autoSyncIfDue(dynamic ref, {int syncId = 1}) async {
   if (!ref.read(appUnlockedStateProvider)) return;
 
   final syncPrefs = ref.read(synchingProvider(syncId: syncId));
   if (!syncPrefs.syncOn) return;
-  final authToken = syncPrefs.authToken;
-  if (authToken == null || authToken.isEmpty) return;
+  if (!syncPrefs.isConnected) return;
 
   final autoSyncFrequency = syncPrefs.autoSyncFrequency;
   if (autoSyncFrequency <= 0) return;
@@ -404,4 +505,18 @@ Future<void> autoSyncIfDue(WidgetRef ref, {int syncId = 1}) async {
   await ref
       .read(syncServerProvider(syncId: syncId).notifier)
       .startSync(null, true);
+}
+
+/// A refusal told with the row of the request it names.
+class _SyncRefusedOf implements Exception {
+  _SyncRefusedOf(this.refused, Map<String, dynamic> body)
+    : what = refused.describe(body);
+
+  final SyncRefused refused;
+
+  /// The row and field refused, such as `"Title" (link)`.
+  final String what;
+
+  @override
+  String toString() => '$refused: $what';
 }

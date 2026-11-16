@@ -48,7 +48,7 @@ final class RouterProvider
   }
 }
 
-String _$routerHash() => r'108e7a717ed9910f9af29793537c82646971e9e5';
+String _$routerHash() => r'e3e090da2c0ea4d1dfa9980938f41c96923e1660';
 
 @ProviderFor(RouterCurrentLocationState)
 final routerCurrentLocationStateProvider =
@@ -90,7 +90,7 @@ abstract class _$RouterCurrentLocationState extends $Notifier<String?> {
   String? build();
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<String?, String?>;
     final element =
         ref.element
@@ -100,6 +100,6 @@ abstract class _$RouterCurrentLocationState extends $Notifier<String?> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    return element.handleCreate(ref, build);
   }
 }

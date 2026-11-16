@@ -1,23 +1,19 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:mangayomi/repositories/download_repository.dart';
 
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/video.dart';
-import 'package:mangayomi/modules/library/providers/file_scanner.dart';
-import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
-import 'package:mangayomi/modules/browse/extension/providers/extension_preferences_providers.dart';
-import 'package:mangayomi/modules/more/settings/player/providers/player_state_provider.dart';
+import 'package:mangayomi/services/local_folders.dart';
+import 'package:mangayomi/providers/browse_state_provider.dart';
+import 'package:mangayomi/repositories/settings_repository.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
-import 'package:mangayomi/services/built_in_sources.dart';
+import 'package:mangayomi/services/built_in_extension_service.dart';
 import 'package:mangayomi/services/downloaded_chapter.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/services/torrent_server.dart';
-import 'package:mangayomi/services/wogg/wogg_service.dart';
-import 'package:mangayomi/services/yydsys/yydsys_service.dart';
 import 'package:mangayomi/utils/utils.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -25,6 +21,7 @@ import 'package:path/path.dart' as p;
 
 import '../models/source.dart';
 
+import 'package:mangayomi/utils/error_toast.dart';
 part 'get_video_list.g.dart';
 
 void _diag(String msg) {
@@ -47,7 +44,8 @@ Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
     // Otherwise a fresh install with no all-files access would hit a permission
     // error just for streaming an episode — the dir was being created on every
     // play even though useMpvConfig defaults to false. See #740.
-    final useMpvConfig = ref.read(useMpvConfigStateProvider);
+    final useMpvConfig =
+        settingsRepository.currentOrNull?.useMpvConfig ?? false;
     final mpvDirectory = useMpvConfig
         ? await storageProvider.getMpvDirectory()
         : null;
@@ -112,24 +110,14 @@ Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
       episode.manga.value!.sourceId,
       installedOnly: true,
     );
-    _diag('getVideoList: resolved source=${source?.name}, isBuiltIn=${source != null ? BuiltInSources.isBuiltIn(source) : "N/A"}');
+    _diag('getVideoList: resolved source=${source?.name}, isBuiltIn=${builtInServiceFor(source) != null}');
 
-    // Built-in sources: run in main isolate (no worker isolate HTTP issues).
-    if (source != null && BuiltInSources.isBuiltIn(source)) {
-      final bi = BuiltInSources.getForSource(source)!;
-      if (bi.nameId == 'wogg') {
-        final videos = await WoggService.getVideoList(episode.url!);
-        _diag('getVideoList WOGG: ${videos.length} videos');
-        for (int i = 0; i < videos.length && i < 3; i++) {
-          _diag('  video[$i]: url=${videos[i].url.substring(0, videos[i].url.length.clamp(0, 80))}, quality=${videos[i].quality}, headers=${videos[i].headers}');
-        }
-        keepAlive.close();
-        return (videos, false, infoHashes, mpvDirectory);
-      } else if (bi.nameId == 'yydsys') {
-        final videos = await YydsysService.getVideoList(episode.url!);
-        keepAlive.close();
-        return (videos, false, infoHashes, mpvDirectory);
-      }
+    // Built-in sources have no sourceCode, so no isolate can run them.
+    final builtIn = builtInServiceFor(source);
+    if (builtIn != null) {
+      final videos = await builtIn.getVideoList(episode.url!);
+      keepAlive.close();
+      return (videos, false, infoHashes, mpvDirectory);
     }
 
     final proxyServer = ref.read(androidProxyServerStateProvider);
@@ -169,7 +157,8 @@ Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
           serviceType: 'getVideoList',
           proxyServer: proxyServer,
         );
-      } catch (e) {
+      } catch (e, stackTrace) {
+        recordError(e, stack: stackTrace, source: 'get_video_list');
         list = [Video(episode.url!, episode.name!, episode.url!)];
       }
 
@@ -187,8 +176,8 @@ Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
           torrentList.add(
             video..quality = video.quality.substringBeforeLast("."),
           );
-          final videoHash =
-              Uri.tryParse(video.url)?.queryParameters['infohash'];
+          final videoHash = Uri.tryParse(video.url)
+              ?.queryParameters['infohash'];
           if (videoHash != null &&
               videoHash.isNotEmpty &&
               !infoHashes.contains(videoHash)) {
@@ -212,10 +201,20 @@ Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
         proxyServer: proxyServer,
       );
       final videos = <Video>[];
+      final qualityCounts = <String, int>{};
       for (final video in list) {
-        if (!videos.any((element) => element.quality == video.quality)) {
-          videos.add(video);
+        if (video.url.isEmpty) continue;
+        if (videos.any(
+          (element) =>
+              element.url == video.url && element.quality == video.quality,
+        )) {
+          continue;
         }
+        final baseQuality = video.quality.isEmpty ? 'Default' : video.quality;
+        final count = (qualityCounts[baseQuality] ?? 0) + 1;
+        qualityCounts[baseQuality] = count;
+        video.quality = count > 1 ? '$baseQuality ($count)' : baseQuality;
+        videos.add(video);
       }
       return videos;
     }, hasUsableResult: (videos) => videos.isNotEmpty);

@@ -18,7 +18,10 @@ import 'package:mangayomi/modules/manga/download/providers/download_gate.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/downloads/providers/downloads_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/general/providers/general_state_provider.dart';
+import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
+import 'package:mangayomi/router/router.dart';
+import 'package:mangayomi/services/download_manager/download_isolate_pool.dart';
 import 'package:mangayomi/services/download_manager/download_queue_order.dart';
 import 'package:mangayomi/services/download_manager/m_downloader.dart';
 import 'package:mangayomi/services/get_video_list.dart';
@@ -35,6 +38,7 @@ import 'package:mangayomi/utils/localized_message.dart';
 import 'package:mangayomi/utils/reg_exp_matcher.dart';
 import 'package:mangayomi/utils/utils.dart';
 import 'package:path/path.dart' as p;
+import 'package:flutter_riverpod/flutter_riverpod.dart' show WidgetRef;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'download_provider.g.dart';
 
@@ -50,8 +54,21 @@ Future<void> downloadChapter(
   bool? useWifi,
   VoidCallback? callback,
 }) async {
-  if (!scheduleDownload(chapter.id!)) return;
   final keepAlive = ref.keepAlive();
+  Future<void> progressWrites = Future.value();
+  // Enqueue under the same write queue as consolidation before claiming an ID.
+  // An old Updates/detail widget may still carry an ID merged during its click.
+  try {
+    final current = await downloadRepository.enqueue(chapter);
+    if (current == null || !scheduleDownload(current.id!)) {
+      keepAlive.close();
+      return;
+    }
+    chapter = current;
+  } catch (_) {
+    keepAlive.close();
+    rethrow;
+  }
 
   // Every download path funnels through here, so acquiring the shared gate is
   // what makes the concurrency limit, per-source serialization (#645) and the
@@ -63,7 +80,6 @@ Future<void> downloadChapter(
         ? ref.read(concurrentDownloadsStateProvider)
         : 1;
     final delaySeconds = ref.read(downloadDelaySecondsStateProvider);
-    await downloadRepository.enqueue(chapter);
     if (downloadRepository.getById(chapter.id!)?.isDownload == true) return;
     await DownloadGate.instance.acquire(
       id: chapter.id!,
@@ -73,8 +89,8 @@ Future<void> downloadChapter(
     );
     acquired = true;
     // Cancelled while it waited for a slot in the gate? Its record was deleted,
-    // so don't resurrect it.
-    if (isDownloadCancelled(chapter)) {
+    // so don't resurrect it. Paused in the meantime? It stays queued.
+    if (isDownloadCancelled(chapter) || downloadsPaused.value) {
       keepAlive.close();
       return;
     }
@@ -117,6 +133,9 @@ Future<void> downloadChapter(
       directory: mangaMainDirectory,
       headers: metadataHeaders,
       onlyIfMissing: true,
+      // A remote cover must not hold the download slot: it is fetched once
+      // the chapter is done, with a page standing in for it until then.
+      fetchCover: false,
     );
     List<Track>? subtitles;
     bool isOk = false;
@@ -168,6 +187,7 @@ Future<void> downloadChapter(
         directory: mangaMainDirectory,
         imageFile: imageFiles.first,
         onlyIfMissing: true,
+        fromPage: true,
       );
     }
 
@@ -206,7 +226,11 @@ Future<void> downloadChapter(
             chapterDirectory.path,
             mangaMainDirectory.path,
             chapterName,
-            pages.map((e) => e.fileName!).toList(),
+            // The pending batch excludes cached pages; the archive needs all pages.
+            List.generate(
+              pageUrls.length,
+              (index) => p.join(chapterDirectory.path, padIndex(index)),
+            ),
             comicInfo: comicInfo,
           ).future,
         );
@@ -250,7 +274,7 @@ Future<void> downloadChapter(
       }
     }
 
-    setProgress(DownloadProgress(0, 0, itemType));
+    await setProgress(DownloadProgress(0, 0, itemType));
     void savePageUrls() {
       // Re-downloading a chapter that is already on disk reads it locally, and
       // local pages carry no url. Storing those placeholders would leave the
@@ -281,11 +305,17 @@ Future<void> downloadChapter(
                 .where(
                   (element) =>
                       element.originalUrl.endsWith(".m3u8") ||
-                      element.originalUrl.endsWith(".m3u"),
+                      element.originalUrl.endsWith(".m3u") ||
+                      element.url.endsWith(".m3u8") ||
+                      element.url.endsWith(".m3u"),
                 )
                 .toList();
             final nonM3u8Urls = value.$1
-                .where((element) => element.originalUrl.isMediaVideo())
+                .where(
+                  (element) =>
+                      element.originalUrl.isMediaVideo() ||
+                      element.url.isMediaVideo(),
+                )
                 .toList();
             nonM3U8File = nonM3u8Urls.isNotEmpty;
             hasM3U8File = nonM3U8File ? false : m3u8Urls.isNotEmpty;
@@ -368,8 +398,9 @@ Future<void> downloadChapter(
       return;
     }
 
-    // Cancelled during the (up to 45s) prep wait? Bail before writing files.
-    if (isDownloadCancelled(chapter)) {
+    // Cancelled or paused during the (up to 45s) prep wait? Bail before
+    // writing files.
+    if (isDownloadCancelled(chapter) || downloadsPaused.value) {
       keepAlive.close();
       return;
     }
@@ -483,8 +514,10 @@ Future<void> downloadChapter(
           subtitles: subtitles,
           subDownloadDir: subtitleDirectoryBase,
         ).download((progress) {
-          setProgress(progress);
+          progressWrites = progressWrites.then((_) => setProgress(progress));
         });
+        // Worker callbacks are synchronous, but archive creation and writes are not.
+        await progressWrites;
         await exportCoverFromDownloadedPages();
       }
     } else if (itemType == ItemType.novel) {
@@ -514,27 +547,64 @@ Future<void> downloadChapter(
       }
     } else if (hasM3U8File) {
       await m3u8Downloader?.download((progress) {
-        setProgress(progress);
+        progressWrites = progressWrites.then((_) => setProgress(progress));
       });
+      await progressWrites;
     }
     if (callback != null) {
       callback();
     }
     await deleteEmptyAnimeEpisodeDirectory();
+    // Not awaited: the series' own cover may take its time, and the source's
+    // slot is released below whatever it does.
+    unawaited(
+      fetchMissingMangaCover(
+        manga: manga,
+        directory: mangaMainDirectory,
+        headers: metadataHeaders,
+      ),
+    );
     await ref.read(scanLocalLibraryProvider.future);
     keepAlive.close();
   } catch (e) {
-    // Surface the failure instead of swallowing it — a silent catch here is
-    // exactly how "downloads just don't start" stays invisible.
-    if (!isDownloadCancelled(chapter)) botToast("Download failed: $e");
-    await markDownloadFailed(chapter);
+    await progressWrites.catchError((Object _) {});
+    // Stopped by a pause: not a failure. The record stays queued, so the
+    // download starts again when the queue is resumed.
+    if (e is! DownloadsPausedException && !downloadsPaused.value) {
+      // Surface the failure instead of swallowing it — a silent catch here
+      // is exactly how "downloads just don't start" stays invisible.
+      if (!isDownloadCancelled(chapter)) botToast("Download failed: $e");
+      await markDownloadFailed(chapter);
+    }
     if (callback != null) callback();
     keepAlive.close();
   } finally {
+    await progressWrites.catchError((Object _) {});
     if (acquired) DownloadGate.instance.release(sourceKey);
     unscheduleDownload(chapter.id);
     keepAlive.close();
   }
+}
+
+/// Pauses the download queue: no download starts, and the running ones stop
+/// where they are and stay queued. Downloads asked for while it is paused
+/// join the queue and wait; only [resumeDownloads] starts it again.
+void pauseDownloads() {
+  if (downloadsPaused.value) return;
+  downloadsPaused.value = true;
+  DownloadGate.instance.pause();
+  for (final id in scheduledDownloads.value) {
+    DownloadIsolatePool.instance.cancelTask('$id');
+    DownloadIsolatePool.instance.cancelTask('m3u8_$id');
+  }
+}
+
+/// Resumes the queue after [pauseDownloads]: every queued download starts
+/// again, from the top of the list.
+void resumeDownloads(WidgetRef ref) {
+  downloadsPaused.value = false;
+  ref.invalidate(processDownloadsProvider());
+  ref.read(processDownloadsProvider());
 }
 
 @riverpod
@@ -570,7 +640,14 @@ Future<void> processDownloads(Ref ref, {bool? useWifi}) async {
       ref.read(provider);
     }
   } catch (error) {
-    botToast('Could not start download queue: $error');
+    final context = navigatorKey.currentContext;
+    final l10n = context == null || !context.mounted
+        ? null
+        : l10nLocalizations(context);
+    botToast(
+      l10n?.download_queue_start_failed('$error') ??
+          'Could not start the download queue: $error',
+    );
   } finally {
     keepAlive.close();
   }

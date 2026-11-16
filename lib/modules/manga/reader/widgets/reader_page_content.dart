@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:shiori/shiori.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/settings.dart';
@@ -8,14 +9,13 @@ import 'package:mangayomi/modules/manga/reader/subsampling_scale_image_view/subs
     as ssiv;
 import 'package:mangayomi/modules/manga/reader/u_chap_data_preload.dart';
 import 'package:mangayomi/modules/manga/reader/utils/reader_page_index_math.dart';
-import 'package:mangayomi/modules/manga/reader/widgets/circular_progress_indicator_animate_rotate.dart';
+import 'package:mangayomi/modules/manga/reader/utils/webtoon_scroll_physics.dart';
+import 'package:mangayomi/modules/manga/reader/widgets/reader_page_states.dart';
 import 'package:mangayomi/modules/manga/reader/widgets/double_page_view.dart';
 import 'package:mangayomi/modules/manga/reader/widgets/image_actions_dialog.dart';
-import 'package:mangayomi/modules/manga/reader/widgets/reader_interactive_region.dart';
 import 'package:mangayomi/modules/manga/reader/widgets/transition_view_paged.dart';
-import 'package:mangayomi/modules/more/settings/reader/providers/reader_state_provider.dart';
+import 'package:mangayomi/providers/reader_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/reader/reader_screen.dart';
-import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
@@ -64,6 +64,9 @@ class ReaderPageContent extends ConsumerWidget {
 
   final void Function(int index, bool failed) onFailedToLoadImage;
   final void Function(int index, double width, double height) onWidePage;
+
+  /// A page read top to bottom loaded much taller than wide.
+  final void Function(int index, double width, double height) onTallPage;
   final void Function(int index) onPageImageLoaded;
 
   /// A single page's image finished loading wider than tall; the caller
@@ -95,6 +98,7 @@ class ReaderPageContent extends ConsumerWidget {
     required this.pageControllerFor,
     required this.onFailedToLoadImage,
     required this.onWidePage,
+    required this.onTallPage,
     required this.onPageImageLoaded,
     required this.onWideSinglePageLoaded,
     required this.onDoublePageZoomChanged,
@@ -122,7 +126,7 @@ class ReaderPageContent extends ConsumerWidget {
             ? (pagePreloadAmount.clamp(1, 3) * 1.5) * context.width(1)
             : (pagePreloadAmount.clamp(1, 3) * 1.5) * context.height(1),
         initialScrollIndex: initialScrollIndex,
-        physics: const ClampingScrollPhysics(),
+        physics: const WebtoonScrollPhysics(),
         onLongPressData: (data) => ImageActionsDialog.show(
           context: context,
           data: data,
@@ -145,6 +149,13 @@ class ReaderPageContent extends ConsumerWidget {
         onImageLoaded: (index, width, height) {
           if (ref.read(splitWidePagesStateProvider) && width > height * 1.2) {
             onWidePage(index, width, height);
+          } else if (!isHorizontalContinuous &&
+              pageMode != PageMode.doublePage &&
+              ref.read(splitTallImagesStateProvider) &&
+              // Cropping borders reads the whole image to find them, and
+              // reports the cropped size, which a slice cannot be cut from.
+              !ref.read(cropBordersStateProvider)) {
+            onTallPage(index, width, height);
           }
           onPageImageLoaded(index);
         },
@@ -153,11 +164,9 @@ class ReaderPageContent extends ConsumerWidget {
 
     return TweenAnimationBuilder<Color?>(
       tween: ColorTween(
-        end:
-            getBackgroundColor(backgroundColor) ??
-            Theme.of(context).scaffoldBackgroundColor,
+        end: getBackgroundColor(backgroundColor) ?? context.shiori.color.ink0,
       ),
-      duration: const Duration(milliseconds: 300),
+      duration: ShioriMotion.enter,
       builder: (context, animColor, animChild) {
         return Material(
           color: animColor,
@@ -309,9 +318,9 @@ class ReaderPagedItem extends ConsumerWidget {
           return Container(
             color:
                 getBackgroundColor(backgroundColor) ??
-                Theme.of(context).scaffoldBackgroundColor,
+                context.shiori.color.ink0,
             height: context.height(0.8),
-            child: CircularProgressIndicatorAnimateRotate(progress: progress),
+            child: ReaderPageLoading(progress: progress),
           );
         }
         if (state.loadState == ssiv.LoadState.completed) {
@@ -320,44 +329,16 @@ class ReaderPagedItem extends ConsumerWidget {
         }
         if (state.loadState == ssiv.LoadState.failed) {
           onFailedToLoadImage(index, true);
-          final l10n = l10nLocalizations(context)!;
           return Container(
             color:
                 getBackgroundColor(backgroundColor) ??
-                Theme.of(context).scaffoldBackgroundColor,
+                context.shiori.color.ink0,
             height: context.height(0.8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  l10n.image_loading_error,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: ReaderInteractiveRegion(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: context.primaryColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 20,
-                        ),
-                      ),
-                      onPressed: () {
-                        state.reLoadImage();
-                        onFailedToLoadImage(index, false);
-                      },
-                      icon: const Icon(Icons.refresh, size: 18),
-                      label: Text(l10n.retry),
-                    ),
-                  ),
-                ),
-              ],
+            child: ReaderPageError(
+              onRetry: () {
+                state.reLoadImage();
+                onFailedToLoadImage(index, false);
+              },
             ),
           );
         }

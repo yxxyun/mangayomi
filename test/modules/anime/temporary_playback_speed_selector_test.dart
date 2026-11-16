@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mangayomi/l10n/generated/app_localizations.dart';
+import 'package:mangayomi/l10n/l10n_delegates.dart';
 import 'package:mangayomi/modules/anime/widgets/temporary_playback_speed_selector.dart';
 
 void main() {
@@ -12,14 +13,14 @@ void main() {
 
     await tester.pumpWidget(_testApp(size: size, speed: 2.0));
 
-    expect(find.text('2x'), findsOneWidget);
-    expect(find.text('3x'), findsNothing);
-    expect(find.text('2.5x'), findsNothing);
-    expect(find.text('1.5x'), findsNothing);
-    expect(find.text('1x'), findsNothing);
-    expect(find.text('0.75x'), findsNothing);
-    expect(find.text('0.5x'), findsNothing);
-    expect(find.text('0.25x'), findsNothing);
+    expect(find.text('2×'), findsOneWidget);
+    expect(find.text('3×'), findsNothing);
+    expect(find.text('2.5×'), findsNothing);
+    expect(find.text('1.5×'), findsNothing);
+    expect(find.text('1×'), findsNothing);
+    expect(find.text('0.75×'), findsNothing);
+    expect(find.text('0.5×'), findsNothing);
+    expect(find.text('0.25×'), findsNothing);
 
     final indicator = find.byKey(const ValueKey('temporary-speed-indicator'));
     expect(tester.getSize(indicator), const Size(58, 34));
@@ -67,8 +68,8 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(find.text('0.25x'), findsOneWidget);
-    expect(find.bySemanticsLabel('Playback speed: 0.25x'), findsOneWidget);
+    expect(find.text('0.25×'), findsOneWidget);
+    expect(find.bySemanticsLabel('Playback speed: 0.25×'), findsOneWidget);
     final indicator = tester.getRect(
       find.byKey(const ValueKey('temporary-speed-indicator')),
     );
@@ -90,7 +91,7 @@ Widget _testApp({
   TextScaler textScaler = TextScaler.noScaling,
 }) {
   return MaterialApp(
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    localizationsDelegates: appLocalizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: MediaQuery(
       data: MediaQueryData(

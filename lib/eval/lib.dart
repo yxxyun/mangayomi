@@ -7,7 +7,14 @@ import 'mihon/service.dart';
 import 'lnreader/service.dart';
 import 'aidoku/service.dart';
 
+import 'package:mangayomi/services/built_in_extension_service.dart';
+
 ExtensionService getExtensionService(Source source, String androidProxyServer) {
+  // Built-in sources ship without sourceCode; the interpreter-backed
+  // services below would spin up on null code and throw. Dispatch them
+  // through the facade instead.
+  final builtIn = builtInServiceFor(source);
+  if (builtIn != null) return builtIn;
   return switch (source.sourceCodeLanguage) {
     SourceCodeLanguage.dart => DartExtensionService(source),
     SourceCodeLanguage.javascript => JsExtensionService(source),
@@ -41,7 +48,7 @@ ExtensionService getCachedExtensionService(
   }
   final service = getExtensionService(source, androidProxyServer);
   _serviceCache[key] = service;
-  if (_serviceCache.length > _cachedServiceLimit) {
+  if (_cachedServiceLimit > _serviceCache.length) {
     _serviceCache.remove(_serviceCache.keys.first)?.dispose();
   }
   return service;

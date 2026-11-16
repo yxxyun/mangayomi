@@ -5,7 +5,6 @@ import 'package:d4rt/d4rt.dart';
 import 'package:flutter_qjs/flutter_qjs.dart';
 import 'package:http_interceptor/http_interceptor.dart';
 import 'package:mangayomi/eval/http_response_extensions.dart';
-import 'package:mangayomi/services/http/m_client.dart';
 import 'package:http/http.dart' as http;
 
 class JsHttpClient {

@@ -1,14 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:shiori/shiori.dart';
 
 const double mobilePlayerPortraitControlIconSize = 24;
 const double mobilePlayerBottomControlsBottomPadding = 30;
-
-ButtonStyle mobilePlayerEpisodeNavigationButtonStyle() => IconButton.styleFrom(
-  backgroundColor: Colors.transparent,
-  disabledBackgroundColor: Colors.transparent,
-  foregroundColor: Colors.white,
-  disabledForegroundColor: Colors.white.withValues(alpha: 0.35),
-);
 
 bool usesCompactPortraitPlayerControls({
   required Orientation orientation,
@@ -165,6 +159,12 @@ class MobilePlayerControlsOverlayLayout extends StatelessWidget {
   }
 }
 
+/// The insets the player's controls keep clear of: the gesture bar at the
+/// bottom only. The video runs under a notch or a camera cutout, so the
+/// controls do too, rather than stopping short of it in landscape.
+EdgeInsets mobilePlayerControlInsets(BuildContext context) =>
+    EdgeInsets.only(bottom: MediaQuery.viewPaddingOf(context).bottom);
+
 class MobilePlayerUnlockControl extends StatelessWidget {
   const MobilePlayerUnlockControl({
     super.key,
@@ -178,18 +178,24 @@ class MobilePlayerUnlockControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      minimum: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      // Under the cutout, as the rest of the controls.
+      left: false,
+      right: false,
+      minimum: const EdgeInsets.symmetric(
+        horizontal: ShioriSpace.s16,
+        vertical: ShioriSpace.s24,
+      ),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: IconButton.filledTonal(
+        // Everything else is hidden while locked: the one pill says what it
+        // does, so a tap that found the screen unresponsive finds the way out.
+        child: KeyedSubtree(
           key: const ValueKey('mobile-player-unlock-button'),
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.black.withValues(alpha: 0.55),
-            foregroundColor: Colors.white,
+          child: ShioriOverlayPill(
+            icon: Symbols.lock_rounded,
+            label: tooltip,
+            onTap: onPressed,
           ),
-          tooltip: tooltip,
-          onPressed: onPressed,
-          icon: const Icon(Icons.lock_outline, size: 24),
         ),
       ),
     );
@@ -215,7 +221,8 @@ class MobilePlayerCompactSeekControl extends StatelessWidget {
     final secondsLabel = seconds?.toString();
     final icon = secondsLabel == null
         ? const Icon(
-            Icons.fast_forward_rounded,
+            Symbols.fast_forward_rounded,
+            fill: 1,
             size: mobilePlayerPortraitControlIconSize,
             color: Colors.white,
           )
@@ -225,7 +232,7 @@ class MobilePlayerCompactSeekControl extends StatelessWidget {
               alignment: Alignment.center,
               children: [
                 const Icon(
-                  Icons.rotate_right_outlined,
+                  Symbols.rotate_right_rounded,
                   size: mobilePlayerPortraitControlIconSize,
                   color: Colors.white,
                 ),
@@ -296,11 +303,12 @@ class MobilePlayerBottomControlsLayout extends StatelessWidget {
         if (!compactPortrait) {
           return Padding(
             key: const ValueKey('mobile-player-bottom-controls-wide'),
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: ShioriSpace.s8),
             child: Row(
               key: const ValueKey('mobile-player-bottom-controls-wide-row'),
               children: [
                 lockButton,
+                const SizedBox(width: ShioriSpace.s8),
                 seekButton,
                 chapterButton,
                 Expanded(
@@ -317,15 +325,15 @@ class MobilePlayerBottomControlsLayout extends StatelessWidget {
 
         return Padding(
           key: const ValueKey('mobile-player-bottom-controls-compact'),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: ShioriSpace.s12),
           child: Row(
             key: const ValueKey('mobile-player-compact-controls-row'),
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               lockButton,
-              const Spacer(),
+              const SizedBox(width: ShioriSpace.s8),
               seekButton,
-              const SizedBox(width: 8),
+              const Spacer(),
               shortcutButtons,
             ],
           ),

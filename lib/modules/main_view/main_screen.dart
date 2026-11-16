@@ -1,387 +1,348 @@
-import 'dart:async';
-
-import 'package:google_fonts/google_fonts.dart';
-import 'package:mangayomi/utils/constant.dart';
-import 'package:flutter/material.dart';
-import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
-import 'package:mangayomi/utils/platform_utils.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mangayomi/eval/model/m_bridge.dart';
-import 'package:mangayomi/main.dart';
-import 'package:mangayomi/models/manga.dart';
-import 'package:mangayomi/repositories/source_repository.dart';
-import 'package:mangayomi/repositories/update_repository.dart';
-import 'package:mangayomi/modules/more/about/providers/download_file_screen.dart';
-import 'package:mangayomi/modules/widgets/error_state.dart';
-import 'package:mangayomi/modules/widgets/loading_icon.dart';
+import 'package:mangayomi/modules/main_view/controllers/main_screen_lifecycle_mixin.dart';
+import 'package:mangayomi/modules/main_view/nav_actions.dart';
+import 'package:mangayomi/modules/main_view/nav_groups.dart';
+import 'package:mangayomi/modules/main_view/nav_shrink.dart';
 import 'package:mangayomi/modules/main_view/providers/migration.dart';
 import 'package:mangayomi/modules/main_view/providers/tv_mode_provider.dart';
-import 'package:mangayomi/modules/more/about/providers/check_for_update.dart';
-import 'package:mangayomi/modules/more/data_and_storage/providers/auto_backup.dart';
+import 'package:mangayomi/modules/main_view/widgets/mobile_bottom_navigation.dart';
+import 'package:mangayomi/modules/main_view/widgets/mode_bars.dart';
+import 'package:mangayomi/modules/main_view/widgets/nav_destination_builders.dart';
+import 'package:mangayomi/modules/main_view/widgets/tablet_layout.dart';
+import 'package:mangayomi/modules/manga/detail/providers/state_providers.dart';
+import 'package:mangayomi/modules/more/providers/downloaded_only_state_provider.dart';
 import 'package:mangayomi/modules/more/providers/incognito_mode_state_provider.dart';
-import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
-import 'package:mangayomi/services/sync_server.dart';
+import 'package:mangayomi/modules/more/settings/appearance/providers/floating_navigation_bar_state_provider.dart';
+import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
+import 'package:mangayomi/providers/reader_state_provider.dart';
+import 'package:mangayomi/modules/widgets/error_state.dart';
+import 'package:mangayomi/modules/widgets/loading_icon.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/router/router.dart';
-import 'package:mangayomi/services/fetch_item_sources.dart';
-import 'package:mangayomi/modules/manga/reader/providers/push_router.dart';
-import 'package:mangayomi/repositories/chapter_repository.dart';
-import 'package:mangayomi/repositories/history_repository.dart';
-import 'package:mangayomi/models/manga.dart';
+import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
+import 'package:mangayomi/utils/platform_utils.dart';
 
-/// Shell widget for the 4-tab navigation.
-///
-/// Tabs: Anime, Manga, Novel, Settings
-/// Responsive: NavigationBar (mobile) / NavigationRail (tablet)
 class MainScreen extends ConsumerStatefulWidget {
-  const MainScreen({super.key, required this.navigationShell});
+  const MainScreen({super.key, required this.child});
 
-  final StatefulNavigationShell navigationShell;
+  final Widget child;
 
   @override
   ConsumerState<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends ConsumerState<MainScreen> {
-  Timer? _backupTimer;
-  Timer? _syncTimer;
+class _MainScreenState extends ConsumerState<MainScreen>
+    with MainScreenLifecycleMixin {
+  late final String _defaultLocation;
+  late final List<String> _navigationOrder;
 
-  static const _tabRoutes = ['/anime', '/manga', '/novel', '/more'];
-  static const _readerRoutes = [
-    '/mangaReaderView',
-    '/animePlayerView',
-    '/novelReaderView',
-  ];
+  final NavDestinationBuilders _navBuilders = NavDestinationBuilders();
+
+  // Double-tapping a Manga/Anime/Novel destination on the mobile bottom bar
+  // opens Global Search scoped to that type, mirroring the desktop rail's
+  // double-click. Keyed by destination string since the bottom bar callback
+  // only hands back the route, not an index.
+  String? _lastMobileNavDest;
+  DateTime? _lastMobileNavTapTime;
+
+  int currentIndex = 0;
+  bool isLibSwitch = false;
+
+  final NavShrink _navShrink = NavShrink();
 
   @override
   void initState() {
     super.initState();
+
+    _navigationOrder = ref.read(navigationOrderStateProvider);
+    final hiddenItems = ref.read(hideItemsStateProvider);
+
+    // On the anime-only TV layout, never land on a hidden manga/novel library.
+    final order = ref.read(animeOnlyTvModeProvider)
+        ? _navigationOrder.where(isNotHiddenLibOnTv).toList()
+        : _navigationOrder;
+    final visible = order.where((e) => !hiddenItems.contains(e)).toList();
+    _defaultLocation = visible.isNotEmpty ? visible.first : "/AnimeLibrary";
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _initialize();
-    });
-    discordRpc?.connect(ref);
-  }
-
-  void _initialize() {
-    _backupTimer = Timer.periodic(
-      const Duration(minutes: 5),
-      (_) => ref.read(checkAndBackupProvider),
-    );
-    final autoSyncFrequency =
-        ref.read(synchingProvider(syncId: 1)).autoSyncFrequency;
-    if (autoSyncFrequency != 0) {
-      _syncTimer = Timer.periodic(
-        Duration(seconds: autoSyncFrequency),
-        (timer) => _onSyncTimerTick(timer),
-      );
-    }
-
-    // Pauses the auto-sync timer for the duration of a restore (and its
-    // post-restore upload), instead of just rescheduling it — a restore can
-    // outlast one sync interval, so a reschedule alone could still let the
-    // timer fire mid-restore. syncServerProvider.startSync also checks this
-    // guard directly, covering a manual sync trigger too.
-    ref.listenManual<bool>(restoreSyncGuardProvider, (_, restoring) {
-      if (restoring) {
-        _syncTimer?.cancel();
-        return;
-      }
-      // Re-read the live setting rather than the _autoSyncFrequency snapshot
-      // taken at init — a restore can turn sync off (frequency reset to 0),
-      // and that must take effect immediately, not just on next app launch.
-      final freq = ref.read(synchingProvider(syncId: 1)).autoSyncFrequency;
-      _syncTimer?.cancel();
-      if (freq != 0) {
-        _syncTimer = Timer.periodic(Duration(seconds: freq), _onSyncTimerTick);
-      }
-    });
-    _initializeProviders();
-  }
-
-  void _initializeProviders() {
-    // The extension-repo fetches (one per item type) and the GitHub update
-    // check hit the network; delay them so they don't compete with the first
-    // paint and the initial library queries.
-    Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
-        for (final type in ItemType.values) {
-          ref.read(
-            fetchItemSourcesListProvider(
-              id: null,
-              reFresh: false,
-              itemType: type,
-            ),
-          );
-        }
+        context.go(_defaultLocation);
+        initLifecycleServices();
       }
     });
-  }
-
-  void _onSyncTimerTick(Timer timer) {
-    if (!mounted) return timer.cancel();
-    try {
-      ref.read(syncServerProvider(syncId: 1).notifier).startSync(
-        l10nLocalizations(context)!,
-        true,
-      );
-    } catch (e) {
-      botToast(
-        'Failed to sync! Maybe the sync server is down. '
-        'Restart the app to resume auto sync.',
-      );
-      timer.cancel();
-    }
   }
 
   @override
   void dispose() {
-    _backupTimer?.cancel();
-    _syncTimer?.cancel();
-    discordRpc?.disconnect();
+    disposeLifecycleServices();
     super.dispose();
   }
 
+  /// The first library the user actually has visible, in their own nav order.
+  String? _firstVisibleLibrary() {
+    final hidden = ref.read(hideItemsStateProvider);
+    final order = ref.read(animeOnlyTvModeProvider)
+        ? _navigationOrder.where(isNotHiddenLibOnTv)
+        : _navigationOrder;
+    for (final nav in order) {
+      if (libLocationRegex.hasMatch(nav) && !hidden.contains(nav)) return nav;
+    }
+    return null;
+  }
+
+  bool _onPageScroll(
+    ScrollNotification notification, {
+    required bool useFloatingNav,
+  }) {
+    if (!useFloatingNav || notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+
+    var changed = false;
+    if (notification is ScrollUpdateNotification) {
+      final metrics = notification.metrics;
+      if (metrics.maxScrollExtent <= 0 ||
+          metrics.pixels <= metrics.minScrollExtent) {
+        changed = _navShrink.reset();
+      } else {
+        changed = _navShrink.update(notification.scrollDelta ?? 0);
+      }
+    }
+    if (changed) setState(() {});
+    return false;
+  }
+
+  void _wakeNav() {
+    if (_navShrink.reset()) setState(() {});
+  }
+
+  static bool _isReadingScreen(String? location) {
+    return location == '/mangaReaderView' ||
+        location == '/animePlayerView' ||
+        location == '/novelReaderView';
+  }
+
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<UpdateInfo?>>(checkForUpdateProvider, (_, next) {
-      // On TV the in-app updater (download + install an APK) is not reachable
-      // with a d-pad and is not how TV builds update (sideload / the release
-      // APK). Left on, this modal would appear unannounced over whatever the
-      // user is doing and trap focus with no way to dismiss it.
-      if (isTv) return;
-      next.whenData((updateInfo) {
-        if (updateInfo != null && context.mounted) {
-          showDialog(
-            context: context,
-            builder: (_) => DownloadFileScreen(updateAvailable: updateInfo),
-          );
-        }
-      });
+    ref.listen<Locale>(l10nLocaleStateProvider, (previous, next) {
+      _navBuilders.clearCache();
+      setState(() {});
+    });
+    // Destinations are cached by route list alone, so a toggle that only
+    // changes what's baked into those same widgets (the tooltip) needs its
+    // own cache-busting listener, same as the locale above.
+    ref.listen<bool>(showNavDoubleTapTooltipStateProvider, (previous, next) {
+      _navBuilders.clearCache();
+      setState(() {});
+    });
+    ref.listen<bool>(floatingNavigationBarStateProvider, (previous, next) {
+      if (!next) _wakeNav();
+    });
+    // Remember where the user was inside each group, so tapping the group
+    // brings them back there.
+    ref.listen<String?>(routerCurrentLocationStateProvider, (_, location) {
+      if (location != null) {
+        ref.read(lastNavMemberProvider.notifier).visit(location);
+      }
     });
 
+    final l10n = context.l10n;
+    final route = GoRouter.of(context);
+    final navigationOrder = ref.watch(navigationOrderStateProvider);
+    final hideItems = ref.watch(hideItemsStateProvider);
+    final mergeLibraryNavMobile = ref.watch(mergeLibraryNavMobileStateProvider);
+    // A television has its own home and keeps one destination per route.
+    final grouped = ref.watch(navGroupingProvider) && !isTv;
     final location = ref.watch(routerCurrentLocationStateProvider);
 
-    // When in a reader/viewer route, hide the navigation shell entirely.
-    if (location != null && _readerRoutes.contains(location)) {
-      return widget.navigationShell;
-    }
+    return ref
+        .watch(migrationProvider)
+        .when(
+          data: (_) => Consumer(
+            builder: (context, ref, child) {
+              final useFloatingNav = shouldUseFloatingNav(
+                enabled: ref.watch(floatingNavigationBarStateProvider),
+              );
+              final prefersNavRail = context.prefersNavRail(
+                useFloatingNav: useFloatingNav,
+              );
+              final isReadingScreen = _isReadingScreen(location);
+              bool uniqueSwitch = false;
+              List<String> dest = !prefersNavRail && isLibSwitch
+                  ? [
+                      "_disableLibSwitch",
+                      ...navigationOrder.where(
+                        (nav) => libLocationRegex.hasMatch(nav),
+                      ),
+                    ].where((nav) => !hideItems.contains(nav)).toList()
+                  : navigationOrder
+                        .where((nav) => !hideItems.contains(nav))
+                        .toList();
 
-    final shell = widget.navigationShell;
-    final incognitoMode = ref.watch(incognitoModeStateProvider);
-    final l10n = context.l10n;
-    return ref.watch(migrationProvider).when(
-      data: (_) => Scaffold(
-        body: Column(
-          children: [
-            _IncognitoModeBar(incognitoMode: incognitoMode, l10n: l10n),
-            Expanded(
-              child: context.isTablet ? _tabletLayout(shell) : shell,
-            ),
-          ],
-        ),
-        bottomNavigationBar:
-            context.isTablet ? null : _mobileBottomNav(shell),
-      ),
-      // A failed migration used to render the loading screen, so the app
-      // sat on a blank splash forever with nothing to act on. Show what
-      // happened and let the user run it again.
-      error: (error, _) => Scaffold(
-        body: ErrorState(
-          message: l10n.startup_failed,
-          detail: error.toString(),
-          onRetry: () => ref.invalidate(migrationProvider),
-        ),
-      ),
-      loading: () => const LoadingIcon(),
-    );
-  }
+              // Anime-only TV layout: drop the manga & novel library tabs.
+              if (ref.watch(animeOnlyTvModeProvider)) {
+                dest = dest.where(isNotHiddenLibOnTv).toList();
+              }
 
-  Widget _tabletLayout(StatefulNavigationShell shell) {
-    return Row(
-      children: [
-        NavigationRail(
-          labelType: NavigationRailLabelType.all,
-          useIndicator: true,
-          indicatorShape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-          destinations: _buildRailDestinations(),
-          selectedIndex: shell.currentIndex,
-          onDestinationSelected: (index) =>
-              shell.goBranch(index, initialLocation: index == shell.currentIndex),
-        ),
-        Expanded(child: shell),
-      ],
-    );
-  }
+              if (grouped) {
+                dest = groupDestinations(dest);
+              } else if (mergeLibraryNavMobile &&
+                  !prefersNavRail &&
+                  !isLibSwitch) {
+                dest = dest
+                    .map((nav) {
+                      if ([
+                        "/MangaLibrary",
+                        "/AnimeLibrary",
+                        "/NovelLibrary",
+                      ].contains(nav)) {
+                        if (uniqueSwitch) return null;
+                        uniqueSwitch = true;
+                        return "_enableLibSwitch";
+                      }
+                      return nav;
+                    })
+                    .nonNulls
+                    .toList();
+              }
 
-  Widget _mobileBottomNav(StatefulNavigationShell shell) {
-    return NavigationBar(
-      selectedIndex: shell.currentIndex,
-      animationDuration: const Duration(milliseconds: 300),
-      indicatorShape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
-      ),
-      destinations: _buildNavDestinations(),
-      onDestinationSelected: (index) =>
-          shell.goBranch(index, initialLocation: index == shell.currentIndex),
-    );
-  }
+              if (isLibSwitch &&
+                  (currentIndex >= dest.length ||
+                      !libLocationRegex.hasMatch(location ?? ""))) {
+                currentIndex = 0;
+              } else {
+                String? libLocation;
+                final group = NavGroup.of(location);
+                if (grouped && group != null && dest.contains(group)) {
+                  libLocation = group;
+                } else if (!grouped &&
+                    mergeLibraryNavMobile &&
+                    !prefersNavRail &&
+                    !isLibSwitch) {
+                  libLocation = location?.replaceAll(
+                    libLocationRegex,
+                    "_enableLibSwitch",
+                  );
+                }
+                int currentIdx = dest.indexOf(
+                  libLocation ?? location ?? _defaultLocation,
+                );
+                if (currentIdx != -1) {
+                  currentIndex = currentIdx;
+                }
+              }
 
-  List<NavigationRailDestination> _buildRailDestinations() {
-    final loc = l10nLocalizations(context);
-    // Fallback labels if l10n not yet available
-    const fallback = ['Anime', 'Manga', 'Novel', 'More'];
-    final labels = loc != null ? [loc.anime, loc.manga, loc.novel, loc.more] : fallback;
-    return [
-      NavigationRailDestination(
-        icon: const Icon(Icons.video_collection_outlined),
-        selectedIcon: const Icon(Icons.video_collection),
-        label: Text(labels[0]),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.collections_bookmark_outlined),
-        selectedIcon: const Icon(Icons.collections_bookmark),
-        label: Text(labels[1]),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.local_library_outlined),
-        selectedIcon: const Icon(Icons.local_library),
-        label: Text(labels[2]),
-      ),
-      NavigationRailDestination(
-        icon: const Icon(Icons.more_horiz_outlined),
-        selectedIcon: const Icon(Icons.more_horiz),
-        label: Text(labels[3]),
-      ),
-    ];
-  }
+              final incognitoMode = ref.watch(incognitoModeStateProvider);
+              final downloadedOnly = ref.watch(downloadedOnlyStateProvider);
+              final isLongPressed = ref.watch(isLongPressedStateProvider);
 
-  List<NavigationDestination> _buildNavDestinations() {
-    final loc = l10nLocalizations(context);
-    const fallback = ['Anime', 'Manga', 'Novel', 'More'];
-    final labels = loc != null ? [loc.anime, loc.manga, loc.novel, loc.more] : fallback;
-    return [
-      NavigationDestination(
-        icon: const Icon(Icons.video_collection_outlined),
-        selectedIcon: const Icon(Icons.video_collection),
-        label: labels[0],
-      ),
-      NavigationDestination(
-        icon: const Icon(Icons.collections_bookmark_outlined),
-        selectedIcon: const Icon(Icons.collections_bookmark),
-        label: labels[1],
-      ),
-      NavigationDestination(
-        icon: const Icon(Icons.local_library_outlined),
-        selectedIcon: const Icon(Icons.local_library),
-        label: labels[2],
-      ),
-      NavigationDestination(
-        icon: const Icon(Icons.more_horiz_outlined),
-        selectedIcon: const Icon(Icons.more_horiz),
-        label: labels[3],
-      ),
-    ];
-  }
-}
-
-class _IncognitoModeBar extends StatelessWidget {
-  const _IncognitoModeBar({required this.incognitoMode, required this.l10n});
-
-  final bool incognitoMode;
-  final dynamic l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      child: AnimatedContainer(
-        height: incognitoMode
-            ? isMobile
-                  ? MediaQuery.of(context).padding.top * 2
-                  : 50
-            : 0,
-        curve: Curves.easeIn,
-        duration: const Duration(milliseconds: 150),
-        color: context.primaryColor,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                l10n.incognito_mode,
-                style: const TextStyle(
-                  color: Colors.white,
+              return FloatingNavigationScope(
+                enabled: useFloatingNav,
+                child: Column(
+                  children: [
+                    if (!isReadingScreen)
+                      DownloadedOnlyBar(
+                        downloadedOnly: downloadedOnly,
+                        l10n: l10n,
+                      ),
+                    if (!isReadingScreen)
+                      IncognitoModeBar(
+                        incognitoMode: incognitoMode,
+                        l10n: l10n,
+                      ),
+                    Flexible(
+                      child: Scaffold(
+                        extendBody: useFloatingNav,
+                        body: NotificationListener<ScrollNotification>(
+                          onNotification: (notification) => _onPageScroll(
+                            notification,
+                            useFloatingNav: useFloatingNav,
+                          ),
+                          child: prefersNavRail
+                              ? MainTabletLayout(
+                                  isLongPressed: isLongPressed,
+                                  location: location,
+                                  dest: dest,
+                                  currentIndex: currentIndex,
+                                  route: route,
+                                  ref: ref,
+                                  buildNavigationWidgetsDesktop: _navBuilders
+                                      .buildNavigationWidgetsDesktop,
+                                  child: widget.child,
+                                )
+                              : widget.child,
+                        ),
+                        bottomNavigationBar: prefersNavRail
+                            ? null
+                            : MainMobileBottomNavigation(
+                                isLongPressed: isLongPressed,
+                                location: location,
+                                currentIndex: currentIndex,
+                                dest: dest,
+                                route: route,
+                                ref: ref,
+                                useFloatingNav: useFloatingNav,
+                                shrink: _navShrink.shrunk ? 1.0 : 0.0,
+                                onWake: _wakeNav,
+                                buildNavigationWidgetsMobile:
+                                    _navBuilders.buildNavigationWidgetsMobile,
+                                onDestinationSelected: (destination) {
+                                  if (destination == "_enableLibSwitch") {
+                                    setState(() {
+                                      isLibSwitch = true;
+                                    });
+                                    if (!libLocationRegex.hasMatch(
+                                      location ?? "",
+                                    )) {
+                                      final target = _firstVisibleLibrary();
+                                      if (target != null) route.go(target);
+                                    }
+                                  } else if (destination ==
+                                      "_disableLibSwitch") {
+                                    setState(() {
+                                      isLibSwitch = false;
+                                    });
+                                  } else {
+                                    final now = DateTime.now();
+                                    final isDoubleTap = isNavDoubleTap(
+                                      destination,
+                                      _lastMobileNavDest,
+                                      _lastMobileNavTapTime,
+                                      now,
+                                    );
+                                    if (isDoubleTap) {
+                                      _lastMobileNavDest = null;
+                                      _lastMobileNavTapTime = null;
+                                    } else {
+                                      _lastMobileNavDest = destination;
+                                      _lastMobileNavTapTime = now;
+                                    }
+                                    openNavDestination(
+                                      context,
+                                      ref,
+                                      destination,
+                                      isDoubleTap: isDoubleTap,
+                                    );
+                                  }
+                                },
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
+              );
+            },
+          ),
+          error: (error, _) => Scaffold(
+            body: ErrorState(
+              message: l10n.startup_failed,
+              detail: error.toString(),
+              onRetry: () => ref.invalidate(migrationProvider),
             ),
-          ],
-        ),
-      ),
-    );
+          ),
+          loading: () => const LoadingIcon(),
+        );
   }
 }
-
-// ---- helpers ported from upstream/main main_screen.dart (2026-10-09 merge) ----
-// Upstream widget files (mode_bars.dart / tablet_layout.dart) reference these;
-// the fork's 4-tab main_screen keeps its own body, so the shared helpers are
-// appended here to satisfy those imports.
-
-/// The ItemType a nav destination maps to, or null for destinations with no
-/// single content type to scope a global search to (Updates, History,
-/// Browse, More, ...). Shared by the desktop rail and mobile bottom bar's
-/// double-tap-for-global-search handling.
-ItemType? itemTypeForNavDest(String dest) => switch (dest) {
-  "/MangaLibrary" => ItemType.manga,
-  "/AnimeLibrary" => ItemType.anime,
-  "/NovelLibrary" => ItemType.novel,
-  _ => null,
-};
-
-/// How close together two taps on the same nav destination need to land to
-/// count as a double-tap/double-click, rather than two separate single taps.
-const _navDoubleTapWindow = Duration(milliseconds: 450);
-
-/// Resumes the most recently read/watched entry from history (optionally filtered by [itemType]),
-/// or shows a snackbar if none found.
-Future<void> resumeLatestHistory(
-  BuildContext context, [
-  ItemType? itemType,
-]) async {
-  // When an itemType is specified (e.g. from the active tab), strictly query that itemType.
-  final history = itemType != null
-      ? historyRepository.getLatestHistory(itemType)
-      : historyRepository.getLatestHistory();
-  if (history != null && history.chapterId != null) {
-    final chapter = chapterRepository.findByIdSync(history.chapterId!);
-    if (chapter != null && chapter.manga.value != null) {
-      await pushMangaReaderView(context: context, chapter: chapter);
-      return;
-    }
-  }
-  if (context.mounted) {
-    botToast(context.l10n.no_next_chapter, second: 2);
-  }
-}
-
-/// Whether tapping [current] counts as a double-tap on [last], given when
-/// [last] landed. Shared by the desktop rail and mobile bottom bar, which
-/// each track their own last-tap state (an index vs. a route string) but
-/// apply the same timing check to it.
-bool isNavDoubleTap<T>(
-  T current,
-  T? last,
-  DateTime? lastTapTime,
-  DateTime now,
-) {
-  return current == last &&
-      lastTapTime != null &&
-      now.difference(lastTapTime) < _navDoubleTapWindow;
-}
-
-// Resolved once — GoogleFonts lookups in build run font resolution on every
-// rebuild of these always-mounted bars.
-final String? barFontFamily = GoogleFonts.aBeeZee().fontFamily;

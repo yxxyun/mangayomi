@@ -48,14 +48,14 @@ class YydsysService {
     final name = doc
         .querySelector('div.video-info .video-info-header h1')
         ?.text
-        ?.trim();
+        .trim();
     final imageUrl = doc
         .querySelector('div.video-cover .module-item-cover .module-item-pic img')
         ?.attributes['data-src'];
     final description = doc
         .querySelector('div.video-info .video-info-content')
         ?.text
-        ?.replaceAll('[收起部分]', '')
+        .replaceAll('[收起部分]', '')
         .replaceAll('[展开全部]', '')
         .trim();
 

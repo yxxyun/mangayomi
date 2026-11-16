@@ -474,7 +474,7 @@ class Cloud189DriveService implements CloudDriveService {
   Future<Map<String, dynamic>?> _listShareDir(String fileId, {int pageNum = 1}) async {
     try {
       final noCache = Random().nextDouble().toString();
-      return _api(
+      return await _api(
         'open/share/listShareDir.action'
         '?key=noCache'
         '&pageNum=$pageNum'

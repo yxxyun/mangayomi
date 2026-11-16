@@ -1,6 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:mangayomi/modules/widgets/in_library_badge.dart';
+import 'package:shiori/shiori.dart';
+import 'package:mangayomi/modules/browse/sources/widgets/source_list_tile.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/eval/model/m_manga.dart';
@@ -13,10 +16,10 @@ import 'package:mangayomi/modules/manga/home/manga_home_screen.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/router/router.dart';
 import 'package:mangayomi/models/source.dart';
+import 'package:mangayomi/services/fetch_gate.dart';
 import 'package:mangayomi/services/get_popular.dart';
 import 'package:mangayomi/services/search.dart';
 import 'package:mangayomi/utils/cached_network.dart';
-import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/utils/item_type_localization.dart';
 import 'package:mangayomi/utils/constant.dart';
 import 'package:mangayomi/utils/headers.dart';
@@ -24,7 +27,7 @@ import 'package:mangayomi/utils/language.dart';
 import 'package:mangayomi/modules/library/widgets/search_text_form_field.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/modules/widgets/bottom_text_widget.dart';
-import 'package:mangayomi/modules/widgets/manga_image_card_widget.dart';
+import 'package:mangayomi/modules/manga/widgets/manga_image_card_widget.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 import 'package:mangayomi/modules/widgets/tv_pill.dart';
 import 'package:mangayomi/utils/platform_utils.dart';
@@ -36,36 +39,6 @@ class GlobalSearchScreen extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<GlobalSearchScreen> createState() => _GlobalSearchScreenState();
-}
-
-/// Caps how many source rows fetch at once.
-///
-/// Every row used to call getPopular/search in initState, so opening the
-/// screen fired one isolate evaluation per installed source simultaneously —
-/// the more extensions installed, the worse the stall. Gating it to a
-/// handful in flight keeps the device's isolate pool from being flooded
-/// while still finishing the full scan in the background.
-class FetchGate {
-  FetchGate(this._maxConcurrent);
-  final int _maxConcurrent;
-  int _active = 0;
-  final _waiting = <Completer<void>>[];
-
-  Future<void> acquire() async {
-    if (_active < _maxConcurrent) {
-      _active++;
-      return;
-    }
-    final completer = Completer<void>();
-    _waiting.add(completer);
-    await completer.future;
-    _active++;
-  }
-
-  void release() {
-    _active--;
-    if (_waiting.isNotEmpty) _waiting.removeAt(0).complete();
-  }
 }
 
 class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
@@ -215,35 +188,10 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
       ),
     };
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.extension_off_outlined,
-              size: 44,
-              color: context.textColor.withValues(alpha: 0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              hint,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: context.textColor.withValues(alpha: 0.7),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return ShioriEmptyState(
+      icon: Symbols.extension_off_rounded,
+      title: message,
+      message: hint,
     );
   }
 
@@ -264,17 +212,14 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
         shape: const Border(),
         collapsedShape: const Border(),
         leading: Icon(
-          Icons.error_outline,
+          Symbols.error_rounded,
           size: 18,
-          color: context.textColor.withValues(alpha: 0.7),
+          color: context.shiori.color.fgMuted,
         ),
         title: Text(
           l10nLocalizations(context)!
               .sources_with_no_results(_nothingToShow.length),
-          style: TextStyle(
-            fontSize: 13,
-            color: context.textColor.withValues(alpha: 0.7),
-          ),
+          style: context.shiori.caption,
         ),
         children: [
           for (final entry in _nothingToShow.entries)
@@ -294,20 +239,13 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                     ),
                   );
                 },
-                title: Text(
-                  byId[entry.key]!.name!,
-                  style: const TextStyle(fontSize: 13),
-                ),
+                title: Text(byId[entry.key]!.name!),
                 subtitle: Text(
                   entry.value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: context.textColor.withValues(alpha: 0.7),
-                  ),
                 ),
-                trailing: const Icon(Icons.arrow_forward_sharp, size: 18),
+                trailing: const Icon(Symbols.chevron_forward_rounded, size: 18),
               ),
         ],
       ),
@@ -358,6 +296,12 @@ class _SourceSearchScreenState extends ConsumerState<SourceSearchScreen> {
     // Throttled: with many sources installed, letting every row fire its
     // isolate call the moment it's built is what made this screen laggy.
     await widget.fetchGate.acquire();
+    // A new query replaces every row, and the ones still queued for the old
+    // one have nothing left to show.
+    if (!mounted) {
+      widget.fetchGate.release();
+      return;
+    }
     try {
       _errorMessage = "";
       // No query: same "Popular" request the source's own tab makes, so an
@@ -434,12 +378,12 @@ class _SourceSearchScreenState extends ConsumerState<SourceSearchScreen> {
           ),
         );
       },
+      // The source's icon, as in the sources list, so a row of results is
+      // found by its look as well as its name.
+      leading: SourceIcon(iconUrl: widget.source.iconUrl),
       title: Text(widget.source.name!),
-      subtitle: Text(
-        completeLanguageName(widget.source.lang!),
-        style: const TextStyle(fontSize: 10),
-      ),
-      trailing: const Icon(Icons.arrow_forward_sharp),
+      subtitle: Text(languageName(context, widget.source.lang!)),
+      trailing: const Icon(Symbols.chevron_forward_rounded),
     );
 
     // A Scaffold per list row was never needed; it also forces the row to
@@ -456,12 +400,41 @@ class _SourceSearchScreenState extends ConsumerState<SourceSearchScreen> {
             // a transient blip, and the header still opens the source.
             Flexible(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  // The shape of what is coming: a row of covers.
+                  ? ListView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: ShioriSpace.s8,
+                      ),
+                      children: [
+                        for (var i = 0; i < 6; i++)
+                          const Padding(
+                            padding: EdgeInsets.all(ShioriSpace.s4),
+                            child: SizedBox(
+                              width: _cardWidth - ShioriSpace.s8,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                spacing: ShioriSpace.s8,
+                                children: [
+                                  ShioriSkeleton.box(
+                                    height: _cardHeight - ShioriSpace.s16,
+                                    radius: ShioriShape.cover,
+                                  ),
+                                  ShioriSkeleton.line(),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    )
                   : SuperListView.builder(
                       extentPrecalculationPolicy: SuperPrecalculationPolicy(),
                       scrollDirection: Axis.horizontal,
                       padding: isTv
-                          ? const EdgeInsets.symmetric(horizontal: 8)
+                          ? const EdgeInsets.symmetric(
+                              horizontal: ShioriSpace.s8,
+                            )
                           : null,
                       itemCount: pages!.list.length,
                       itemBuilder: (context, index) {
@@ -547,7 +520,7 @@ class _MangaGlobalImageCardState extends ConsumerState<MangaGlobalImageCard>
           Scrollable.ensureVisible(
             context,
             alignment: 0.5,
-            duration: const Duration(milliseconds: 200),
+            duration: ShioriMotion.standard,
             curve: Curves.easeOut,
           );
         }
@@ -564,10 +537,13 @@ class _MangaGlobalImageCardState extends ConsumerState<MangaGlobalImageCard>
       // and buy nothing, which is why the block had to be stretched before.
       child: Padding(
         padding: isTv
-            ? const EdgeInsets.symmetric(horizontal: 8, vertical: 8)
-            : const EdgeInsets.only(left: 10),
+            ? const EdgeInsets.symmetric(
+                horizontal: ShioriSpace.s8,
+                vertical: ShioriSpace.s8,
+              )
+            : const EdgeInsets.only(left: ShioriSpace.s12),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 130),
+          duration: ShioriMotion.fast,
           curve: Curves.easeOut,
           // Matches the library cover: accent ring plus a slight lift.
           transform: Matrix4.identity()
@@ -579,9 +555,11 @@ class _MangaGlobalImageCardState extends ConsumerState<MangaGlobalImageCard>
             ),
           transformAlignment: Alignment.center,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(ShioriShape.cover),
             border: Border.all(
-              color: _focused ? context.primaryColor : Colors.transparent,
+              color: _focused
+                  ? context.shiori.color.accentInk
+                  : Colors.transparent,
               width: 2,
             ),
           ),
@@ -618,7 +596,9 @@ class _MangaGlobalImageCardState extends ConsumerState<MangaGlobalImageCard>
                                 );
                               }
                               return ClipRRect(
-                                borderRadius: BorderRadius.circular(5),
+                                borderRadius: BorderRadius.circular(
+                                  ShioriShape.cover,
+                                ),
                                 child: cachedNetworkImage(
                                   headers: ref.watch(
                                     headersProvider(
@@ -642,36 +622,29 @@ class _MangaGlobalImageCardState extends ConsumerState<MangaGlobalImageCard>
                             },
                           ),
                           BottomTextWidget(
-                            fontSize: 12.0,
+                            fontSize: context.shiori.text.meta.fontSize,
                             text: widget.manga.name!,
                             isLoading: true,
-                            textColor: Theme.of(context)
-                                .textTheme
-                                .bodyLarge!
-                                .color,
+                            textColor: context.shiori.color.fg,
                             isComfortableGrid: true,
                           ),
                         ],
                       ),
                     ),
+                    // Already in the library: a light veil and a label, so the
+                    // cover stays recognisable. A near-black veil hid it.
                     Container(
                       width: _cardWidth,
                       height: _cardHeight,
                       color: hasData && matched.favorite!
-                          ? Colors.black.withValues(alpha: 0.7)
+                          ? inLibraryVeil
                           : null,
                     ),
                     if (hasData && matched.favorite!)
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: Icon(
-                            Icons.collections_bookmark,
-                            color: context.primaryColor,
-                          ),
-                        ),
+                      PositionedDirectional(
+                        top: ShioriSpace.s8,
+                        start: ShioriSpace.s8,
+                        child: const InLibraryBadge(),
                       ),
                   ],
                 );

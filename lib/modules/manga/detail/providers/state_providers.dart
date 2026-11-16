@@ -91,22 +91,12 @@ class IsLongPressedState extends _$IsLongPressedState {
 }
 
 @riverpod
-class IsExtendedState extends _$IsExtendedState {
-  @override
-  bool build() {
-    return true;
-  }
-
-  void update(bool value) {
-    state = value;
-  }
-}
-
-@riverpod
 class SortChapterState extends _$SortChapterState {
   @override
   SortChapter build({required int mangaId}) {
-    return settingsRepository.current.sortChapterList!
+    // A series opened without passing through its card (from history, a
+    // notification, a fresh database) has no sort saved yet.
+    return (settingsRepository.current.sortChapterList ?? const [])
             .where((element) => element.mangaId == mangaId)
             .toList()
             .firstOrNull ??
@@ -324,6 +314,7 @@ class ChaptersListttState extends _$ChaptersListttState {
   void set(List<Chapter> chapters) async {
     // Yield to the event loop to avoid setState during build
     await Future(() {});
+    if (!ref.mounted) return;
     state = chapters;
   }
 }

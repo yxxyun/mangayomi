@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/modules/novel/tts/novel_tts_service.dart';
 import 'package:mangayomi/modules/novel/tts/tts_settings_tab.dart';
@@ -17,9 +17,8 @@ class NovelReaderScreen extends ConsumerWidget {
       length: ttsSupported ? 3 : 2,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('${context.l10n.novel} ${context.l10n.reader}'),
+          title: Text(context.l10n.novel_reader),
           bottom: TabBar(
-            indicatorSize: TabBarIndicatorSize.tab,
             tabs: [
               Tab(text: context.l10n.reader),
               Tab(text: context.l10n.general),

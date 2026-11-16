@@ -8,7 +8,6 @@ import 'package:mangayomi/eval/model/m_chapter.dart';
 import 'package:mangayomi/eval/model/m_manga.dart';
 import 'package:mangayomi/models/video.dart';
 import 'package:mangayomi/services/cloud_drive/cloud_drive_manager.dart';
-import 'package:mangayomi/services/cloud_drive/cloud_drive_service.dart';
 import 'package:mangayomi/services/cloud_drive/models/cloud_drive_type.dart';
 
 /// Built-in wogg server integration — runs in main isolate.
@@ -41,8 +40,9 @@ class WoggService {
     final name = doc.querySelector('div.video-info .video-info-header h1')?.text;
     final imageUrl =
         doc.querySelector('div.video-cover .module-item-cover .module-item-pic img')?.attributes['data-src'];
-    final description = doc.querySelector('div.video-info .video-info-content')?.text
-        ?.replaceAll('[收起部分]', '')
+    final description = doc.querySelector('div.video-info .video-info-content')
+        ?.text
+        .replaceAll('[收起部分]', '')
         .replaceAll('[展开全部]', '')
         .trim();
 

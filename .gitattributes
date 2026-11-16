@@ -1,0 +1,47 @@
+# Normalize line endings so cross-branch merges stop producing
+# whole-file LF<->CRLF diffs (core.autocrlf=true writes CRLF into the tree).
+*.dart text eol=lf
+*.arb text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.arb.template text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.xml text eol=lf
+*.gradle text eol=lf
+*.properties text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.wasm binary
+*.so binary
+*.dll binary
+*.dylib binary
+*.a binary
+*.lib binary
+*.apk binary
+*.aab binary
+*.ipa binary
+*.jar binary
+*.pak binary
+*.dat binary
+*.pdf binary
+*.lock text eol=lf
+.dart_tool/ linguist-generated
+*.g.dart text eol=lf linguist-generated

@@ -5,22 +5,25 @@ import 'dart:io';
 import 'package:app_links/app_links.dart';
 import 'package:archive/archive.dart';
 import 'package:bot_toast/bot_toast.dart';
-import 'package:desktop_webview_window/desktop_webview_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:shiori/shiori.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:isar_community/isar.dart';
 import 'package:mangayomi/eval/model/m_bridge.dart';
 import 'package:mangayomi/models/custom_button.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/repositories/custom_button_repository.dart';
+import 'package:mangayomi/repositories/db.dart';
 import 'package:mangayomi/repositories/track_repository.dart';
+export 'package:mangayomi/repositories/db.dart';
+export 'package:mangayomi/services/http/m_client.dart'
+    show webViewEnvironment, customDns;
 import 'package:mangayomi/models/track.dart' as track;
 import 'package:mangayomi/modules/manga/detail/providers/track_state_providers.dart';
 import 'package:mangayomi/modules/more/data_and_storage/providers/storage_usage.dart';
@@ -33,6 +36,8 @@ import 'package:mangayomi/providers/storage_provider.dart';
 import 'package:mangayomi/router/router.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/theme_mode_state_provider.dart';
 import 'package:mangayomi/l10n/generated/app_localizations.dart';
+import 'package:mangayomi/l10n/l10n_delegates.dart';
+import 'package:mangayomi/utils/legacy_material.dart';
 import 'package:mangayomi/services/library_updater.dart';
 import 'package:mangayomi/services/sync_server.dart';
 import 'package:mangayomi/services/http/m_client.dart';
@@ -48,6 +53,15 @@ import 'package:mangayomi/utils/platform_utils.dart';
 import 'package:mangayomi/utils/url_protocol/api.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/theme_provider.dart';
 import 'package:mangayomi/modules/library/providers/file_scanner.dart';
+import 'package:mangayomi/utils/app_lock.dart';
+import 'package:mangayomi/services/secure_screen.dart';
+import 'package:mangayomi/modules/manga/download/providers/download_provider.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:mangayomi/services/background_work/background_work.dart';
+import 'package:mangayomi/services/background_work/download_work.dart';
+import 'package:mangayomi/repositories/chapter_repository.dart';
+import 'package:mangayomi/utils/extensions/chapter_extensions.dart';
+import 'package:mangayomi/services/download_manager/download_gate.dart';
 import 'package:mangayomi/modules/more/settings/security/providers/security_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/security/app_lock_screen.dart';
 import 'package:media_kit/media_kit.dart';
@@ -60,17 +74,15 @@ import 'package:mangayomi/modules/more/settings/general/providers/memory_probe_p
 import 'package:mangayomi/modules/widgets/memory_overlay.dart';
 import 'package:mangayomi/modules/widgets/app_ui_scale.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/app_ui_scale_state_provider.dart';
+import 'package:mangayomi/utils/error_toast.dart';
+import 'package:mangayomi/utils/startup_error_hint.dart';
+export 'package:mangayomi/services/discord_rpc.dart' show discordRpc;
 
-late Isar isar;
-DiscordRPC? discordRpc;
-WebViewEnvironment? webViewEnvironment;
-String? customDns;
 void main(List<String> args) async {
   // Zone-level catch-all for anything that slips through both layers
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
-      if (Platform.isLinux && runWebViewTitleBarWidget(args)) return;
 
       // Cap the decoded image cache so a large library grid can't fill the
       // default 100 MB ceiling with full-resolution covers and OOM constrained
@@ -148,6 +160,9 @@ void main(List<String> args) async {
         AppLogger.log('DB init failed: $e\n$st', logLevel: LogLevel.error);
         startupError = e;
       }
+      // The background work notification's buttons reach the app through
+      // this port.
+      if (Platform.isAndroid) FlutterForegroundTask.initCommunicationPort();
       runApp(
         startupError != null
             ? _StartupErrorApp(error: startupError.toString())
@@ -183,12 +198,24 @@ class _StartupErrorApp extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const Icon(
+                  Symbols.error_outline_rounded,
+                  fill: 1,
+                  size: 64,
+                  color: Colors.red,
+                ),
                 const SizedBox(height: 16),
                 const Text(
                   'Failed to start Mangayomi',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
+                if (startupErrorHint(error) case final hint?) ...[
+                  const SizedBox(height: 12),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: Text(hint, textAlign: TextAlign.center),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 SelectableText(
                   error,
@@ -218,7 +245,9 @@ Future<void> _deleteLegacyHiveCache() async {
       final file = File(p.join(dir, name));
       if (await file.exists()) await file.delete();
     }
-  } catch (_) {}
+  } catch (error, stackTrace) {
+    recordError(error, stack: stackTrace, source: 'main');
+  }
 }
 
 Future<void> _postLaunchInit(StorageProvider storage) async {
@@ -272,6 +301,12 @@ class _MyAppState extends ConsumerState<MyApp>
     WidgetsBinding.instance.addObserver(this);
     if (!isMobile) windowManager.addListener(this);
     initializeDateFormatting();
+    ref.listenManual(
+      secureScreenOnProvider,
+      (_, secure) => SecureScreen.apply(secure),
+      fireImmediately: true,
+    );
+    _initBackgroundWork();
     customDns = ref.read(customDnsStateProvider);
     _initDeepLinks();
     _setupMpvConfig();
@@ -291,7 +326,7 @@ class _MyAppState extends ConsumerState<MyApp>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(seconds: 5), () {
         if (!mounted) return;
-        unawaited(autoUpdateLibraryIfDue(ref));
+        unawaited(_autoUpdateLibrary());
         unawaited(autoSyncIfDue(ref));
       });
     });
@@ -311,25 +346,57 @@ class _MyAppState extends ConsumerState<MyApp>
     });
   }
 
+  /// When the app last left the screen, for the lock delay.
+  DateTime? _backgroundedAt;
+
+  /// Whether the app is off screen or on its way, on iOS, where a secure
+  /// screen is covered so the app switcher's preview shows nothing.
+  bool _obscured = false;
+
+  /// The scheduled library refresh, when due; starts the download queue when
+  /// it queued new chapters.
+  Future<void> _autoUpdateLibrary() async {
+    final result = await autoUpdateLibraryIfDue(ref);
+    if (!mounted || (result?.queued ?? 0) == 0) return;
+    ref.invalidate(processDownloadsProvider());
+    ref.read(processDownloadsProvider());
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    // iOS takes the app switcher's preview as the app goes inactive.
+    if (Platform.isIOS) {
+      final obscured = state != AppLifecycleState.resumed;
+      if (obscured != _obscured) setState(() => _obscured = obscured);
+    }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       if (Platform.isLinux) {
         return;
       }
-      // Lock the app when going to background (if lock is enabled)
+      // Lock the app when going to background (if lock is enabled), or note
+      // when it left for a lock delay to count from.
+      _backgroundedAt ??= DateTime.now();
       final lockEnabled = ref.read(appLockEnabledStateProvider);
-      if (lockEnabled) {
+      if (lockEnabled && ref.read(appLockDelayStateProvider) == 0) {
         ref.read(appUnlockedStateProvider.notifier).lock();
       }
     } else if (state == AppLifecycleState.resumed) {
+      if (ref.read(appLockEnabledStateProvider) &&
+          shouldLockOnResume(
+            delayMinutes: ref.read(appLockDelayStateProvider),
+            backgroundedAt: _backgroundedAt,
+            now: DateTime.now(),
+          )) {
+        ref.read(appUnlockedStateProvider.notifier).lock();
+      }
+      _backgroundedAt = null;
       // Launch is the other trigger for the scheduled refresh, so without this
       // a session that stays open for days - a desktop one, typically - would
       // never run one. The interval check makes this a no-op the rest of the
       // time.
-      unawaited(autoUpdateLibraryIfDue(ref));
+      unawaited(_autoUpdateLibrary());
       unawaited(autoSyncIfDue(ref));
     }
   }
@@ -350,7 +417,7 @@ class _MyAppState extends ConsumerState<MyApp>
       themeMode: themeMode,
       debugShowCheckedModeBanner: false,
       locale: locale,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: appLocalizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       builder: (context, child) {
         Widget content = child ?? const SizedBox.shrink();
@@ -374,6 +441,13 @@ class _MyAppState extends ConsumerState<MyApp>
               ? const OnboardingScreen()
               : KeyedSubtree(key: const ValueKey('app'), child: content),
         );
+        // The theme's ground behind every page: a page transition fades the
+        // page it leaves, and the window's black showed through on a light
+        // theme.
+        content = ColoredBox(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: content,
+        );
         // On TV, a single-line text field consumes Up/Down for the text cursor,
         // trapping focus so the remote can't reach the surrounding buttons (a
         // dialog's Cancel/Add, etc.). Remap Up/Down to move focus app-wide: a
@@ -395,10 +469,24 @@ class _MyAppState extends ConsumerState<MyApp>
           scale: ref.watch(appUiScaleStateProvider),
           child: content,
         );
-        final base = BotToastInit()(context, scaledChild);
+        // bot_toast draws its toasts on the old built-in Material library,
+        // as do a few other packages under it.
+        final base = LegacyMaterialBridge(
+          child: BotToastInit()(context, scaledChild),
+        );
         final withBackHandler = !isMobile
             ? _MouseBackButtonHandler(router: router, child: base)
             : base;
+
+        if (_obscured && ref.watch(secureScreenOnProvider)) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              withBackHandler,
+              ColoredBox(color: Theme.of(context).scaffoldBackgroundColor),
+            ],
+          );
+        }
 
         if (!Platform.isLinux) {
           final isUnlocked = ref.watch(appUnlockedStateProvider);
@@ -437,8 +525,27 @@ class _MyAppState extends ConsumerState<MyApp>
     );
   }
 
+  /// The notification shown while the app works in the background, and
+  /// what its buttons do.
+  void _initBackgroundWork() {
+    DownloadWork.instance.start();
+    FlutterForegroundTask.addTaskDataCallback(BackgroundWork.handleAction);
+    BackgroundWork.onAction = (action) {
+      switch (action) {
+        case 'stop_library_update':
+          ref.read(libraryUpdateProvider.notifier).requestCancel();
+        case 'cancel_downloads':
+          for (final id in scheduledDownloads.value) {
+            chapterRepository.findByIdSync(id)?.cancelDownloads(id);
+          }
+      }
+    };
+  }
+
   @override
   void dispose() {
+    DownloadWork.instance.dispose();
+    FlutterForegroundTask.removeTaskDataCallback(BackgroundWork.handleAction);
     WidgetsBinding.instance.removeObserver(this);
     if (!isMobile) {
       windowManager.removeListener(this);
@@ -504,8 +611,8 @@ class _MyAppState extends ConsumerState<MyApp>
           showDialog(
             context: navigatorKey.currentContext!,
             builder: (BuildContext context) {
-              return AlertDialog(
-                title: Text(l10n.add_repo),
+              return ShioriDialog(
+                title: l10n.add_repo,
                 content: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -528,19 +635,19 @@ class _MyAppState extends ConsumerState<MyApp>
                       Text(
                         l10n.add_repo_warning,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
+                          color: context.shiori.color.error.foreground,
                         ),
                       ),
                     ],
                   ),
                 ),
                 actions: [
-                  TextButton(
-                    child: Text(l10n.cancel),
+                  ShioriButton.quiet(
+                    label: l10n.cancel,
                     onPressed: () => Navigator.of(context).pop(),
                   ),
-                  FilledButton(
-                    child: Text(l10n.add),
+                  ShioriButton(
+                    label: l10n.add,
                     onPressed: () async {
                       if (context.mounted) Navigator.of(context).pop();
 
@@ -633,8 +740,8 @@ class _MyAppState extends ConsumerState<MyApp>
               await showDialog(
                 context: navigatorKey.currentContext!,
                 builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: Text(l10n.custom_buttons_add),
+                  return ShioriDialog(
+                    title: l10n.custom_buttons_add,
                     content: SingleChildScrollView(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -650,7 +757,7 @@ class _MyAppState extends ConsumerState<MyApp>
                           Text(
                             l10n.custom_buttons_add_warning,
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
+                              color: context.shiori.color.error.foreground,
                             ),
                           ),
                           for (final (label, code) in codeSections) ...[
@@ -660,9 +767,7 @@ class _MyAppState extends ConsumerState<MyApp>
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(8),
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest,
+                              color: context.shiori.color.ink2,
                               child: SelectableText(
                                 code!,
                                 style: const TextStyle(
@@ -676,12 +781,12 @@ class _MyAppState extends ConsumerState<MyApp>
                       ),
                     ),
                     actions: [
-                      TextButton(
-                        child: Text(l10n.cancel),
+                      ShioriButton.quiet(
+                        label: l10n.cancel,
                         onPressed: () => Navigator.of(context).pop(),
                       ),
-                      FilledButton(
-                        child: Text(l10n.add),
+                      ShioriButton(
+                        label: l10n.add,
                         onPressed: () async {
                           if (context.mounted) Navigator.of(context).pop();
                           final pos = await customButtonRepository.count();
@@ -717,7 +822,8 @@ class _MyAppState extends ConsumerState<MyApp>
         if (sourceList.firstOrNull?.name == null) {
           return false;
         }
-      } catch (err) {
+      } catch (err, stackTrace) {
+        recordError(err, stack: stackTrace, source: 'main');
         return false;
       }
     }

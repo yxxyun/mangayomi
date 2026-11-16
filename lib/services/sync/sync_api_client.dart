@@ -5,11 +5,13 @@
 // explicit list rather than inferred from what's missing from a response.
 //
 // Deliberately knows nothing about Isar or Riverpod - it only turns
-// (server, token, body) into a decoded JSON response or null, so it can be
+// (server, token, body) into a decoded JSON response or a refusal, so it can be
 // exercised without a database or a widget tree.
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:mangayomi/services/sync/sync_transport.dart';
+import 'package:mangayomi/utils/error_toast.dart';
 
 class SyncApiClient {
   SyncApiClient(this._http);
@@ -30,12 +32,14 @@ class SyncApiClient {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       final supported = (body['supported'] as List?)?.cast<String>() ?? [];
       return supported.contains(supportedProtocolVersion);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      recordError(error, stack: stackTrace, source: 'sync_api_client');
       return false;
     }
   }
 
-  Future<Map<String, dynamic>?> postSync(
+  /// Throws [SyncRefused] for any answer but 200, with the server's reason.
+  Future<Map<String, dynamic>> postSync(
     String server,
     String accessToken,
     Map<String, dynamic> body,
@@ -48,7 +52,9 @@ class SyncApiClient {
       },
       body: jsonEncode(body),
     );
-    if (response.statusCode != 200) return null;
+    if (response.statusCode != 200) {
+      throw SyncRefused.fromBody(response.statusCode, response.bodyBytes);
+    }
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 

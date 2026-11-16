@@ -4,47 +4,47 @@ import 'dart:math';
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_qjs/quickjs/ffi.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:mangayomi/modules/reader_common/key_bindings.dart';
+import 'package:mangayomi/modules/novel/utils/reading_time.dart';
+import 'package:shiori/shiori.dart';
+import 'package:mangayomi/services/volume_keys.dart';
+import 'package:mangayomi/modules/reader_common/utils/reader_orientation.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mangayomi/main.dart';
+import 'package:mangayomi/services/discord_rpc.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/repositories/chapter_repository.dart';
-import 'package:mangayomi/modules/anime/widgets/desktop.dart';
-import 'package:mangayomi/modules/manga/reader/mixins/reader_gestures.dart';
-import 'package:mangayomi/modules/manga/reader/widgets/auto_scroll_button.dart';
-import 'package:mangayomi/modules/manga/reader/widgets/reader_app_bar.dart';
-import 'package:mangayomi/modules/more/settings/reader/providers/reader_state_provider.dart';
+import 'package:mangayomi/modules/reader_common/mixins/reader_gestures.dart';
+import 'package:mangayomi/modules/reader_common/widgets/auto_scroll_button.dart';
+import 'package:mangayomi/modules/reader_common/widgets/reader_app_bar.dart';
+import 'package:mangayomi/providers/reader_state_provider.dart';
 import 'package:mangayomi/modules/novel/novel_reader_controller_provider.dart';
+import 'package:mangayomi/modules/novel/mixins/novel_pagination_tts_mixin.dart';
 import 'package:mangayomi/modules/novel/tts/novel_tts_service.dart';
 import 'package:mangayomi/modules/novel/tts/tts_player_bar.dart';
 import 'package:mangayomi/modules/novel/tts/tts_settings_tab.dart';
-import 'package:mangayomi/modules/novel/utils/novel_paginator.dart';
+import 'package:mangayomi/modules/more/settings/appearance/providers/app_font_family.dart';
 import 'package:mangayomi/modules/novel/utils/novel_reader_fonts.dart';
+import 'package:mangayomi/modules/novel/widgets/novel_bottom_bar.dart';
 import 'package:mangayomi/modules/novel/widgets/novel_general_settings_tab.dart';
+import 'package:mangayomi/modules/novel/widgets/novel_html_content.dart';
 import 'package:mangayomi/modules/novel/widgets/novel_reader_settings_sheet.dart';
+import 'package:mangayomi/modules/novel/widgets/novel_tap_zones.dart';
 import 'package:mangayomi/modules/widgets/custom_draggable_tabbar.dart';
 import 'package:mangayomi/modules/widgets/error_state.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/get_html_content.dart';
 import 'package:mangayomi/src/rust/api/epub.dart';
-import 'package:mangayomi/utils/extensions/dom_extensions.dart';
 import 'package:mangayomi/utils/platform_utils.dart';
 import 'package:mangayomi/utils/system_ui.dart';
 import 'package:mangayomi/utils/utils.dart';
-import 'package:mangayomi/modules/manga/reader/providers/push_router.dart';
-import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:mangayomi/router/push_router.dart';
+import 'package:mangayomi/services/external_browser.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:flutter_html/flutter_html.dart';
-import 'package:html/dom.dart' as dom;
-import 'package:flutter/widgets.dart' as widgets;
-import 'package:mangayomi/modules/manga/reader/mixins/reader_auto_scroll.dart';
-
-typedef DoubleClickAnimationListener = void Function();
+import 'package:mangayomi/modules/reader_common/mixins/reader_auto_scroll.dart';
 
 class NovelReaderView extends ConsumerWidget {
   final int chapterId;
@@ -74,15 +74,17 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
     with
         TickerProviderStateMixin,
         WidgetsBindingObserver,
-        ReaderAutoScroll {
+        ReaderAutoScroll,
+        NovelPaginationAndTtsMixin<NovelWebView> {
   @override
   ValueNotifier<bool> get autoScrollEnabled => _autoScroll;
   @override
   ValueNotifier<double> get autoScrollSpeed => _pageOffset;
   @override
-  ScrollController get autoScrollController => _scrollController;
+  ScrollController get autoScrollController => scrollController;
   @override
   bool get canAutoScroll => _isContinuousMode();
+
   /// Resolved in [initState], not lazily.
   ///
   /// As a `late` field with an initialiser this was read for the first time
@@ -90,43 +92,34 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
   /// build got that far, that was `dispose()`. Riverpod forbids `ref` there:
   /// it needs the BuildContext, and the element is already deactivated. See
   /// issue #949, reported from the novel reader on 0.8.9.
-  late final NovelReaderController _readerController;
-  final _scrollController = ScrollController(
+  @override
+  late final NovelReaderController readerController;
+  @override
+  final scrollController = ScrollController(
     initialScrollOffset: 0,
     keepScrollOffset: true,
   );
-  late PageMode _pageMode = _readerController.getPageMode();
-  PageMode? _lastEffectivePageMode;
-  late ReaderMode _readerMode = _readerController.getReaderMode();
-  ReaderMode? _lastReaderMode;
-  late final PageController _spreadController = PageController();
-  int _currentSpreadIndex = 0;
-  NovelPaginationResult? _cachedPagination;
-  String? _cachedPaginationHtml;
-  double? _cachedPaginationWidth;
-  double? _cachedPaginationHeight;
-  int? _cachedPaginationFontSize;
-  double? _cachedPaginationLineHeight;
-  int? _cachedPaginationPadding;
-  String? _cachedPaginationFontFamily;
-  bool? _cachedPaginationRemoveExtraSpacing;
-  TextAlign? _cachedPaginationTextAlign;
+  late PageMode _pageMode = readerController.getPageMode();
+  late ReaderMode _readerMode = readerController.getReaderMode();
 
+  @override
   bool scrolled = false;
-  bool _scrollRestoreScheduled = false;
+  @override
+  bool scrollRestoreScheduled = false;
+  @override
   double offset = 0;
+  @override
   double maxOffset = 0;
   int fontSize = 14;
-  bool get _ttsSupported => !Platform.isLinux;
 
   final Stopwatch _readingStopwatch = Stopwatch();
   int? _discordReaderSession;
 
   void onScroll() {
-    if (_scrollController.hasClients) {
-      offset = _scrollController.offset;
-      maxOffset = _scrollController.position.maxScrollExtent;
-      _rebuildDetail.add(offset);
+    if (scrollController.hasClients) {
+      offset = scrollController.offset;
+      maxOffset = scrollController.position.maxScrollExtent;
+      rebuildDetail.add(offset);
     }
   }
 
@@ -134,34 +127,24 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
   void dispose() {
     _readingStopwatch.stop();
     WidgetsBinding.instance.removeObserver(this);
-    if (!_readerMode.isContinuous &&
-        _cachedPagination != null &&
-        _cachedPagination!.pageCount > 0) {
-      final progress = _lastEffectivePageMode == PageMode.doublePage
-          ? _cachedPagination!.progressForSpread(_currentSpreadIndex)
-          : _cachedPagination!.progressForPage(_currentSpreadIndex);
-      offset = progress * (maxOffset > 0 ? maxOffset : 100);
-      maxOffset = (maxOffset > 0 ? maxOffset : 100);
-    }
-    _readerController.setChapterOffset(offset, maxOffset, true);
-    _readerController.setHistoryUpdate(
+    VolumeKeys.disable();
+    releaseReaderOrientation();
+    applyReaderScreenBrightness(-1);
+    updatePaginatedOffsetBeforeDispose(_readerMode);
+    readerController.setChapterOffset(offset, maxOffset, true);
+    readerController.setHistoryUpdate(
       elapsedSeconds: _readingStopwatch.elapsed.inSeconds,
     );
-    _scrollController.removeListener(onScroll);
-    _scrollController.dispose();
-    _spreadController.dispose();
-    _rebuildDetail.close();
+    scrollController.removeListener(onScroll);
+    scrollController.dispose();
+    rebuildDetail.close();
     disposeAutoScroll();
     _autoScroll.removeListener(onAutoScrollChanged);
     _autoScroll.value = false;
     _autoScroll.dispose();
     _autoScrollPage.dispose();
     _keyboardFocusNode.dispose();
-    _ttsIndexSub?.cancel();
-    _ttsStateSub?.cancel();
-    _ttsWordSub?.cancel();
-    _ttsProgress.dispose();
-    NovelTtsService.instance.stop();
+    disposePaginationAndTts();
     if (isDesktop) {
       setFullScreen(value: false);
     } else {
@@ -184,12 +167,34 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
       if (keepOn) {
         WakelockPlus.disable();
       }
+      // The volume buttons are the system's again while away.
+      VolumeKeys.disable();
+      applyReaderScreenBrightness(-1);
     } else if (state == AppLifecycleState.resumed) {
       _readingStopwatch.start();
       if (keepOn) {
         WakelockPlus.enable();
       }
+      _setVolumeKeys(ref.read(volumeKeysPagingStateProvider));
+      applyReaderScreenBrightness(
+        ref.read(readerScreenBrightnessStateProvider),
+      );
     }
+  }
+
+  /// Takes the volume buttons for page turns while [on], as the manga
+  /// reader does: volume down turns forward, volume up back, unless
+  /// inverted.
+  void _setVolumeKeys(bool on) {
+    if (!on) {
+      VolumeKeys.disable();
+      return;
+    }
+    VolumeKeys.enable((up) {
+      if (!mounted) return;
+      final inverted = ref.read(volumeKeysInvertedStateProvider);
+      _onBtnTapped((inverted ? up : !up) ? 100 : -100);
+    });
   }
 
   void _initWakelock() {
@@ -199,17 +204,20 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
     }
   }
 
+  @override
   late Chapter chapter = widget.chapter;
+  @override
   EpubNovel? epubBook;
 
-  final StreamController<double> _rebuildDetail =
+  @override
+  final StreamController<double> rebuildDetail =
       StreamController<double>.broadcast();
   @override
   void initState() {
     super.initState();
     // Before anything that can fail, so the controller dispose() needs is
     // always there: this is the whole point of not leaving it lazy.
-    _readerController = ref.read(
+    readerController = ref.read(
       novelReaderControllerProvider(chapter: chapter).notifier,
     );
     WidgetsBinding.instance.addObserver(this);
@@ -217,7 +225,14 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
     _autoScroll.addListener(onAutoScrollChanged);
     _initWakelock();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollController.addListener(onScroll);
+      if (mounted) {
+        _setVolumeKeys(ref.read(volumeKeysPagingStateProvider));
+        applyReaderOrientation(ref.read(readerOrientationStateProvider));
+        applyReaderScreenBrightness(
+          ref.read(readerScreenBrightnessStateProvider),
+        );
+      }
+      scrollController.addListener(onScroll);
       final initFontSize = ref.read(novelFontSizeStateProvider);
       setState(() {
         fontSize = initFontSize;
@@ -230,56 +245,20 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
     _discordReaderSession = discordRpc?.beginReaderSession();
     discordRpc?.showChapterDetails(ref, chapter);
 
-    _ttsIndexSub = NovelTtsService.instance.paragraphIndexStream.listen((i) {
-      _ttsProgress.value = (paragraph: i, wordStart: -1, wordEnd: -1);
-      _scrollToTtsParagraph(i);
-      if (_lastEffectivePageMode == PageMode.doublePage &&
-          _cachedPagination != null) {
-        final targetSpread = _cachedPagination!.spreadForBlock(i);
-        if (_spreadController.hasClients &&
-            targetSpread != _currentSpreadIndex) {
-          _currentSpreadIndex = targetSpread;
-          _spreadController.animateToPage(
-            targetSpread,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-          );
-        }
-      }
-    });
-    _ttsStateSub = NovelTtsService.instance.stateStream.listen((s) {
-      if (s == TtsState.stopped) {
-        _ttsProgress.value = (paragraph: -1, wordStart: -1, wordEnd: -1);
-      }
-    });
-    _ttsWordSub = NovelTtsService.instance.wordProgressStream.listen((wp) {
-      _ttsProgress.value = (
-        paragraph: wp.paragraphIndex,
-        wordStart: wp.startOffset,
-        wordEnd: wp.endOffset,
-      );
-    });
+    initTtsSubscriptions();
   }
 
-  late bool _isBookmarked = _readerController.getChapterBookmarked();
+  late bool _isBookmarked = readerController.getChapterBookmarked();
 
   bool _isView = false;
   final _keyboardFocusNode = FocusNode();
-  bool _showTts = false;
-  String? _currentHtmlContent;
-  final ValueNotifier<({int paragraph, int wordStart, int wordEnd})>
-  _ttsProgress = ValueNotifier((paragraph: -1, wordStart: -1, wordEnd: -1));
-  int _ttsTotalBlocks = 0;
-  StreamSubscription<int>? _ttsIndexSub;
-  StreamSubscription<TtsState>? _ttsStateSub;
-  StreamSubscription<TtsWordProgress>? _ttsWordSub;
 
   double get pixelRatio => View.of(context).devicePixelRatio;
 
   Size get size => View.of(context).physicalSize / pixelRatio;
 
   Color _backgroundColor(BuildContext context) =>
-      Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.9);
+      context.shiori.color.ink1.withValues(alpha: Alphas.chrome);
 
   void _setFullScreen({bool? value}) async {
     if (isDesktop) {
@@ -290,27 +269,15 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
   }
 
   late final _autoScroll = ValueNotifier(
-    _readerController.autoScrollValues().$1,
+    readerController.autoScrollValues().$1,
   );
   late final _pageOffset = ValueNotifier(
-    _readerController.autoScrollValues().$2,
+    readerController.autoScrollValues().$2,
   );
   late final _autoScrollPage = ValueNotifier(_autoScroll.value);
 
   bool _isContinuousMode() {
     return _readerMode.isContinuous;
-  }
-
-
-  void _scrollToTtsParagraph(int index) {
-    if (!_scrollController.hasClients || _ttsTotalBlocks <= 0) return;
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final targetOffset = (index / _ttsTotalBlocks) * maxScroll;
-    _scrollController.animateTo(
-      targetOffset.clamp(0.0, maxScroll),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-    );
   }
 
   /// Goes to either next or previous chapter
@@ -322,18 +289,27 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
   /// If the reader is already at the first or last chapter (depending on
   /// the direction), the method returns without navigating.
   void _goToChapter(bool next) {
-    if (next && !_readerController.hasNextChapter) return;
-    if (!next && !_readerController.hasPreviousChapter) return;
+    if (next && !readerController.hasNextChapter) return;
+    if (!next && !readerController.hasPreviousChapter) return;
     pushReplacementMangaReaderView(
       context: context,
       chapter: next
-          ? _readerController.getNextChapter()
-          : _readerController.getPrevChapter(),
+          ? readerController.getNextChapter()
+          : readerController.getPrevChapter(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<bool>(volumeKeysPagingStateProvider, (_, on) {
+      _setVolumeKeys(on);
+    });
+    ref.listen<int>(readerOrientationStateProvider, (_, value) {
+      applyReaderOrientation(value);
+    });
+    ref.listen<int>(readerScreenBrightnessStateProvider, (_, value) {
+      applyReaderScreenBrightness(value);
+    });
     ref.listen(keepScreenOnReaderStateProvider, (_, next) {
       if (next) {
         WakelockPlus.enable();
@@ -351,54 +327,13 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
               : PageMode.onePage)
         : _pageMode;
 
-    final prevEffectiveMode = _lastEffectivePageMode ?? effectivePageMode;
-    final prevReaderMode = _lastReaderMode ?? _readerMode;
-    if (prevEffectiveMode != effectivePageMode || prevReaderMode != _readerMode) {
-      if (!_readerMode.isContinuous) {
-        _autoScroll.value = false;
-        stopAutoScroll();
-        final double progress;
-        if (prevReaderMode.isContinuous) {
-          progress = maxOffset > 0 ? (offset / maxOffset).clamp(0.0, 1.0) : 0.0;
-        } else if (_cachedPagination != null && _cachedPagination!.pageCount > 0) {
-          progress = prevEffectiveMode == PageMode.doublePage
-              ? _cachedPagination!.progressForSpread(_currentSpreadIndex)
-              : _cachedPagination!.progressForPage(_currentSpreadIndex);
-        } else {
-          progress = maxOffset > 0 ? (offset / maxOffset).clamp(0.0, 1.0) : 0.0;
-        }
-        _cachedPagination = null;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          if (_cachedPagination != null && _spreadController.hasClients) {
-            final targetSpread = effectivePageMode == PageMode.doublePage
-                ? _cachedPagination!.spreadForProgress(progress)
-                : _cachedPagination!.pageForProgress(progress);
-            _currentSpreadIndex = targetSpread;
-            _spreadController.jumpToPage(targetSpread);
-          }
-        });
-      } else {
-        final progress = _cachedPagination != null && _cachedPagination!.pageCount > 0
-            ? (prevEffectiveMode == PageMode.doublePage
-                ? _cachedPagination!.progressForSpread(_currentSpreadIndex)
-                : _cachedPagination!.progressForPage(_currentSpreadIndex))
-            : (maxOffset > 0 ? (offset / maxOffset).clamp(0.0, 1.0) : 0.0);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          if (_scrollController.hasClients) {
-            final targetOffset =
-                progress * _scrollController.position.maxScrollExtent;
-            _scrollController.jumpTo(targetOffset);
-            if (_autoScroll.value) {
-              startAutoScroll();
-            }
-          }
-        });
-      }
-      _lastEffectivePageMode = effectivePageMode;
-      _lastReaderMode = _readerMode;
-    }
+    syncPaginationModeTransition(
+      effectivePageMode: effectivePageMode,
+      readerMode: _readerMode,
+      autoScroll: _autoScroll,
+      stopAutoScroll: stopAutoScroll,
+      startAutoScroll: startAutoScroll,
+    );
 
     return ReaderKeyboardHandler(
       onEscape: () => _goBack(context),
@@ -407,6 +342,13 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
       onPreviousChapter: () => _goToChapter(false),
       onNextPage: () => _onBtnTapped(100),
       onPreviousPage: () => _onBtnTapped(-100),
+      onToggleUI: _isViewFunction,
+      onShowShortcuts: () => showReaderShortcuts(
+        context,
+        zoom: false,
+        bindings: ref.read(keyBindingsStateProvider),
+      ),
+      bindings: ref.watch(keyBindingsStateProvider),
     ).wrapWithKeyboardListener(
       child: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
@@ -440,7 +382,8 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                           child: Builder(
                             builder: (context) {
                               epubBook = data.$2;
-                              _currentHtmlContent = data.$1;
+                              currentHtmlContent = data.$1;
+                              chapterMinutes = readingMinutes(data.$1);
 
                               final padding = ref.watch(
                                 novelReaderPaddingStateProvider,
@@ -460,22 +403,28 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                               final customTextColor = ref.watch(
                                 novelReaderTextColorStateProvider,
                               );
-                              final fontFamily = resolveNovelFontFamily(
-                                ref.watch(novelFontFamilyStateProvider),
-                              );
+                              // "Default" is the font the user picked in
+                              // Appearance.
+                              final fontFamily =
+                                  resolveNovelFontFamily(
+                                    ref.watch(novelFontFamilyStateProvider),
+                                  ) ??
+                                  ref.watch(
+                                    appFontFamilyProvider.select((t) => t.$2),
+                                  );
 
-                              if (!_scrollRestoreScheduled &&
+                              if (!scrollRestoreScheduled &&
                                   _readerMode.isContinuous) {
-                                _scrollRestoreScheduled = true;
+                                scrollRestoreScheduled = true;
                                 Future.delayed(
                                   const Duration(milliseconds: 100),
                                   () {
                                     if (!scrolled &&
                                         mounted &&
-                                        _scrollController.hasClients) {
-                                      _scrollController
+                                        scrollController.hasClients) {
+                                      scrollController
                                           .animateTo(
-                                            _scrollController
+                                            scrollController
                                                     .position
                                                     .maxScrollExtent *
                                                 (double.tryParse(
@@ -511,10 +460,10 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                                       int wordEnd,
                                     })
                                   >(
-                                    valueListenable: _ttsProgress,
+                                    valueListenable: ttsProgress,
                                     builder: (context, tts, _) {
                                       String htmlData = data.$1;
-                                      if (_showTts && tts.paragraph >= 0) {
+                                      if (showTts && tts.paragraph >= 0) {
                                         final result = NovelTtsService.instance
                                             .highlightHtml(
                                               data.$1,
@@ -523,287 +472,43 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                                               wordEnd: tts.wordEnd,
                                             );
                                         htmlData = result.$1;
-                                        _ttsTotalBlocks = result.$2;
+                                        ttsTotalBlocks = result.$2;
                                       }
 
-                                      final parsedTextColor = _parseColor(
+                                      final parsedTextColor = parseNovelColor(
                                         customTextColor,
                                         fallback: Colors.white,
                                       );
-                                      final parsedBackgroundColor = _parseColor(
-                                        customBackgroundColor,
-                                        fallback: const Color(0xFF292832),
-                                      );
-                                      final textAlignEnum = _getTextAlign(
+                                      final parsedBackgroundColor =
+                                          parseNovelColor(
+                                            customBackgroundColor,
+                                            // shiori: the book's own styles, set against whatever page colour the reader chose
+                                            fallback: const Color(0xFF292832),
+                                          );
+                                      final textAlignEnum = getNovelTextAlign(
                                         textAlign,
                                       );
 
                                       if (!_readerMode.isContinuous) {
-                                        return LayoutBuilder(
-                                          builder: (context, constraints) {
-                                            final isDouble =
-                                                effectivePageMode ==
-                                                PageMode.doublePage;
-                                            final singlePageWidth = isDouble
-                                                ? (constraints.maxWidth - 1.0) /
-                                                    2
-                                                : constraints.maxWidth;
-                                            final pageHeight =
-                                                constraints.maxHeight;
-
-                                            if (_cachedPagination == null ||
-                                                _cachedPaginationWidth !=
-                                                    singlePageWidth ||
-                                                _cachedPaginationHeight !=
-                                                    pageHeight ||
-                                                _cachedPaginationFontSize !=
-                                                    fontSize ||
-                                                _cachedPaginationLineHeight !=
-                                                    lineHeight ||
-                                                _cachedPaginationPadding !=
-                                                    padding ||
-                                                _cachedPaginationHtml !=
-                                                    htmlData ||
-                                                _cachedPaginationFontFamily !=
-                                                    fontFamily ||
-                                                _cachedPaginationRemoveExtraSpacing !=
-                                                    removeExtraSpacing ||
-                                                _cachedPaginationTextAlign !=
-                                                    textAlignEnum) {
-                                              _cachedPagination =
-                                                  NovelPaginator.paginate(
-                                                    htmlContent: htmlData,
-                                                    pageWidth: singlePageWidth,
-                                                    pageHeight: pageHeight,
-                                                    fontSize: fontSize
-                                                        .toDouble(),
-                                                    lineHeight: lineHeight,
-                                                    padding: padding.toDouble(),
-                                                    fontFamily: fontFamily,
-                                                    removeExtraSpacing:
-                                                        removeExtraSpacing,
-                                                    textAlign: textAlignEnum,
-                                                  );
-                                              _cachedPaginationWidth =
-                                                  singlePageWidth;
-                                              _cachedPaginationHeight =
-                                                  pageHeight;
-                                              _cachedPaginationFontSize =
-                                                  fontSize;
-                                              _cachedPaginationLineHeight =
-                                                  lineHeight;
-                                              _cachedPaginationPadding =
-                                                  padding;
-                                              _cachedPaginationHtml = htmlData;
-                                              _cachedPaginationFontFamily =
-                                                  fontFamily;
-                                              _cachedPaginationRemoveExtraSpacing =
-                                                  removeExtraSpacing;
-                                              _cachedPaginationTextAlign =
-                                                  textAlignEnum;
-                                            }
-
-                                            if (!_scrollRestoreScheduled) {
-                                              _scrollRestoreScheduled = true;
-                                              final progress =
-                                                  double.tryParse(
-                                                    chapter.lastPageRead ?? '',
-                                                  ) ??
-                                                  0.0;
-                                              final targetIndex = isDouble
-                                                  ? _cachedPagination!
-                                                      .spreadForProgress(
-                                                        progress,
-                                                      )
-                                                  : _cachedPagination!
-                                                      .pageForProgress(
-                                                        progress,
-                                                      );
-                                              _currentSpreadIndex =
-                                                  targetIndex;
-                                              WidgetsBinding.instance
-                                                  .addPostFrameCallback((_) {
-                                                    if (!mounted) return;
-                                                    if (_spreadController
-                                                        .hasClients) {
-                                                      _spreadController
-                                                          .jumpToPage(
-                                                            targetIndex,
-                                                          );
-                                                      scrolled = true;
-                                                    }
-                                                  });
-                                            }
-
-                                            final pagination =
-                                                _cachedPagination!;
-                                            final totalCount = isDouble
-                                                ? pagination.spreadCount
-                                                : pagination.pageCount;
-
-                                            return Container(
-                                              color: parsedBackgroundColor,
-                                              child: PageView.builder(
-                                                controller: _spreadController,
-                                                itemCount: totalCount,
-                                                onPageChanged: (pageIndex) {
-                                                  // Keep the page swipe isolated
-                                                  // from the expensive reader
-                                                  // tree. The bottom bar already
-                                                  // listens to this stream.
-                                                  _currentSpreadIndex = pageIndex;
-                                                  final progress = isDouble
-                                                      ? pagination
-                                                          .progressForSpread(
-                                                            pageIndex,
-                                                          )
-                                                      : pagination
-                                                          .progressForPage(
-                                                            pageIndex,
-                                                          );
-                                                  offset =
-                                                      progress *
-                                                      (maxOffset > 0
-                                                          ? maxOffset
-                                                          : 100);
-                                                  maxOffset = (maxOffset > 0
-                                                      ? maxOffset
-                                                      : 100);
-                                                  _readerController
-                                                      .setChapterOffset(
-                                                        offset,
-                                                        maxOffset,
-                                                        true,
-                                                      );
-                                                  _rebuildDetail.add(offset);
-                                                },
-                                                itemBuilder: (context, index) {
-                                                  if (isDouble) {
-                                                    final leftHtml = pagination
-                                                        .leftPageForSpread(
-                                                          index,
-                                                        );
-                                                    final rightHtml = pagination
-                                                        .rightPageForSpread(
-                                                          index,
-                                                        );
-
-                                                    return Row(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .stretch,
-                                                      children: [
-                                                        Expanded(
-                                                          child: ClipRect(
-                                                            child: SingleChildScrollView(
-                                                              physics:
-                                                                  const NeverScrollableScrollPhysics(),
-                                                              child: _buildNovelHtmlWidget(
-                                                                context: context,
-                                                                htmlData: leftHtml,
-                                                                fontFamily:
-                                                                    fontFamily,
-                                                                fontSize: fontSize,
-                                                                lineHeight:
-                                                                    lineHeight,
-                                                                padding: padding,
-                                                                textAlign:
-                                                                    textAlignEnum,
-                                                                removeExtraSpacing:
-                                                                    removeExtraSpacing,
-                                                                textColor:
-                                                                    parsedTextColor,
-                                                                backgroundColor:
-                                                                    parsedBackgroundColor,
-                                                                showTts: _showTts,
-                                                                tts: tts,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        VerticalDivider(
-                                                          width: 1,
-                                                          thickness: 0.5,
-                                                          color: Colors.grey
-                                                              .withValues(
-                                                                alpha: 0.2,
-                                                              ),
-                                                        ),
-                                                        Expanded(
-                                                          child: rightHtml != null
-                                                              ? ClipRect(
-                                                                  child: SingleChildScrollView(
-                                                                    physics:
-                                                                        const NeverScrollableScrollPhysics(),
-                                                                    child: _buildNovelHtmlWidget(
-                                                                      context:
-                                                                          context,
-                                                                      htmlData:
-                                                                          rightHtml,
-                                                                      fontFamily:
-                                                                          fontFamily,
-                                                                      fontSize:
-                                                                          fontSize,
-                                                                      lineHeight:
-                                                                          lineHeight,
-                                                                      padding:
-                                                                          padding,
-                                                                      textAlign:
-                                                                          textAlignEnum,
-                                                                      removeExtraSpacing:
-                                                                          removeExtraSpacing,
-                                                                      textColor:
-                                                                          parsedTextColor,
-                                                                      backgroundColor:
-                                                                          parsedBackgroundColor,
-                                                                      showTts:
-                                                                          _showTts,
-                                                                      tts: tts,
-                                                                    ),
-                                                                  ),
-                                                                )
-                                                              : Container(
-                                                                  color:
-                                                                      parsedBackgroundColor,
-                                                                ),
-                                                        ),
-                                                      ],
-                                                    );
-                                                  } else {
-                                                    final pageHtml = pagination
-                                                        .pageForIndex(index);
-                                                    return ClipRect(
-                                                      child: SingleChildScrollView(
-                                                        physics:
-                                                            const NeverScrollableScrollPhysics(),
-                                                        child: _buildNovelHtmlWidget(
-                                                          context: context,
-                                                          htmlData: pageHtml,
-                                                          fontFamily: fontFamily,
-                                                          fontSize: fontSize,
-                                                          lineHeight: lineHeight,
-                                                          padding: padding,
-                                                          textAlign: textAlignEnum,
-                                                          removeExtraSpacing:
-                                                              removeExtraSpacing,
-                                                          textColor: parsedTextColor,
-                                                          backgroundColor:
-                                                              parsedBackgroundColor,
-                                                          showTts: _showTts,
-                                                          tts: tts,
-                                                        ),
-                                                      ),
-                                                    );
-                                                  }
-                                                },
-                                              ),
-                                            );
-                                          },
+                                        return buildPaginatedSpreadView(
+                                          effectivePageMode: effectivePageMode,
+                                          htmlData: htmlData,
+                                          fontSize: fontSize,
+                                          lineHeight: lineHeight,
+                                          padding: padding,
+                                          fontFamily: fontFamily,
+                                          removeExtraSpacing:
+                                              removeExtraSpacing,
+                                          textAlignEnum: textAlignEnum,
+                                          parsedTextColor: parsedTextColor,
+                                          parsedBackgroundColor:
+                                              parsedBackgroundColor,
+                                          tts: tts,
                                         );
                                       }
 
                                       return Scrollbar(
-                                        controller: _scrollController,
+                                        controller: scrollController,
                                         interactive: true,
                                         child: GestureDetector(
                                           behavior: HitTestBehavior.translucent,
@@ -811,13 +516,12 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                                             _isViewFunction();
                                           },
                                           child: CustomScrollView(
-                                            controller: _scrollController,
+                                            controller: scrollController,
                                             physics:
                                                 const BouncingScrollPhysics(),
                                             slivers: [
                                               SliverToBoxAdapter(
-                                                child: _buildNovelHtmlWidget(
-                                                  context: context,
+                                                child: NovelHtmlContent(
                                                   htmlData: htmlData,
                                                   fontFamily: fontFamily,
                                                   fontSize: fontSize,
@@ -829,8 +533,9 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                                                   textColor: parsedTextColor,
                                                   backgroundColor:
                                                       parsedBackgroundColor,
-                                                  showTts: _showTts,
+                                                  showTts: showTts,
                                                   tts: tts,
+                                                  epubBook: epubBook,
                                                 ),
                                               ),
                                             ],
@@ -845,81 +550,23 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                           ),
                         ),
                         if (ref.watch(novelShowScrollPercentageStateProvider))
-                          StreamBuilder(
-                            stream: _rebuildDetail.stream,
-                            builder: (context, asyncSnapshot) {
-                              return Consumer(
-                                builder: (context, ref, child) {
-                                  final customBackgroundColor = ref.watch(
-                                    novelReaderThemeStateProvider,
-                                  );
-                                  final customTextColor = ref.watch(
-                                    novelReaderTextColorStateProvider,
-                                  );
-                                  final String displayLabel;
-                                  if (!_readerMode.isContinuous &&
-                                      _cachedPagination != null &&
-                                      _cachedPagination!.pageCount > 0) {
-                                    displayLabel = effectivePageMode ==
-                                            PageMode.doublePage
-                                        ? _cachedPagination!
-                                            .pageLabelForSpread(
-                                              _currentSpreadIndex,
-                                            )
-                                        : _cachedPagination!
-                                            .pageLabelForIndex(
-                                              _currentSpreadIndex,
-                                            );
-                                  } else {
-                                    final scrollPercentage = maxOffset > 0
-                                        ? ((offset / maxOffset) * 100)
-                                              .clamp(0, 100)
-                                              .toInt()
-                                        : 0;
-                                    displayLabel = '$scrollPercentage %';
-                                  }
-                                  return Row(
-                                    children: [
-                                      Expanded(
-                                        child: Container(
-                                          color: Color(
-                                            int.parse(
-                                              'FF${customBackgroundColor.replaceAll('#', '')}',
-                                              radix: 16,
-                                            ),
-                                          ),
-                                          child: Center(
-                                            child: Padding(
-                                              padding: const EdgeInsets.all(
-                                                4.0,
-                                              ),
-                                              child: Text(
-                                                displayLabel,
-                                                style: TextStyle(
-                                                  color: Color(
-                                                    int.parse(
-                                                      'FF${customTextColor.replaceAll('#', '')}',
-                                                      radix: 16,
-                                                    ),
-                                                  ),
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            },
+                          NovelScrollProgressBanner(
+                            rebuildStream: rebuildDetail.stream,
+                            isContinuous: _readerMode.isContinuous,
+                            cachedPagination: () => cachedPagination,
+                            effectivePageMode: effectivePageMode,
+                            currentSpreadIndex: () => currentSpreadIndex,
+                            offset: () => offset,
+                            maxOffset: () => maxOffset,
                           ),
                       ],
                     ),
-                    _gestureRightLeft(ref.watch(novelTapToScrollStateProvider)),
-                    _gestureTopBottom(ref.watch(novelTapToScrollStateProvider)),
+                    NovelTapZones(
+                      usePageTapZones: ref.watch(novelTapToScrollStateProvider),
+                      isContinuousMode: _readerMode.isContinuous,
+                      onPageStep: _onBtnTapped,
+                      onToggleUi: _isViewFunction,
+                    ),
                     _appBar(),
                     _bottomBar(backgroundColor, effectivePageMode),
                     ReaderAutoScrollButton(
@@ -931,18 +578,19 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                         _autoScroll.value = !_autoScroll.value;
                       },
                     ),
-                    if (_ttsSupported &&
-                        _showTts &&
-                        _currentHtmlContent != null)
+                    if (ttsSupported && showTts && currentHtmlContent != null)
                       Positioned(
-                        bottom: _isView ? 145 : 0,
+                        // Just above the panel while it is shown.
+                        bottom: _isView
+                            ? novelBottomBarHeightAbove(context)
+                            : 0,
                         left: 0,
                         right: 0,
                         child: TtsPlayerBar(
-                          htmlContent: _currentHtmlContent!,
+                          htmlContent: currentHtmlContent!,
                           onClose: () {
                             if (mounted) {
-                              setState(() => _showTts = false);
+                              setState(() => showTts = false);
                             }
                           },
                         ),
@@ -950,16 +598,10 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                   ],
                 );
               },
-              loading: () => scaffoldWith(
-                context,
-                Center(child: CircularProgressIndicator()),
-              ),
+              loading: () => scaffoldWith(context, const ShioriLoading()),
               error: (err, stack) {
                 if (widget.result.isRefreshing || widget.result.isReloading) {
-                  return scaffoldWith(
-                    context,
-                    Center(child: CircularProgressIndicator()),
-                  );
+                  return scaffoldWith(context, const ShioriLoading());
                 }
                 return scaffoldWith(
                   context,
@@ -985,7 +627,7 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
     bool restoreUi = false,
   }) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: context.shiori.color.ink0,
       appBar: AppBar(
         title: const Text(''),
         leading: BackButton(
@@ -1008,116 +650,47 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
 
   void _onBtnTapped(double value) {
     if (!_readerMode.isContinuous) {
-      if (_spreadController.hasClients) {
+      if (spreadController.hasClients) {
         if (value > 0) {
-          _spreadController.nextPage(
-            duration: const Duration(milliseconds: 250),
+          spreadController.nextPage(
+            duration: ShioriMotion.standard,
             curve: Curves.easeOut,
           );
         } else {
-          _spreadController.previousPage(
-            duration: const Duration(milliseconds: 250),
+          spreadController.previousPage(
+            duration: ShioriMotion.standard,
             curve: Curves.easeOut,
           );
         }
       }
       return;
     }
-    if (_scrollController.hasClients) {
-      final currentOffset = _scrollController.offset;
-      final maxScroll = _scrollController.position.maxScrollExtent;
+    if (scrollController.hasClients) {
+      final currentOffset = scrollController.offset;
+      final maxScroll = scrollController.position.maxScrollExtent;
 
       final newOffset = currentOffset + value;
-      _scrollController.animateTo(
+      scrollController.animateTo(
         min(newOffset, maxScroll),
-        duration: const Duration(milliseconds: 100),
+        duration: ShioriMotion.fast,
         curve: Curves.linear,
       );
     }
   }
 
-  Widget _gestureRightLeft(bool usePageTapZones) {
-    final enableTapPaging = usePageTapZones || !_readerMode.isContinuous;
-    return Row(
-      children: [
-        /// left region
-        Expanded(
-          flex: 2,
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () {
-              enableTapPaging ? _onBtnTapped(-100) : _isViewFunction();
-            },
-          ),
-        ),
-
-        /// center region
-        Expanded(
-          flex: 2,
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () {
-              _isViewFunction();
-            },
-          ),
-        ),
-
-        /// right region
-        Expanded(
-          flex: 2,
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () {
-              enableTapPaging ? _onBtnTapped(100) : _isViewFunction();
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _gestureTopBottom(bool usePageTapZones) {
-    return Column(
-      children: [
-        /// top region
-        Expanded(
-          flex: 2,
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () {
-              usePageTapZones ? _onBtnTapped(-100) : _isViewFunction();
-            },
-          ),
-        ),
-
-        /// center region
-        const Expanded(flex: 5, child: SizedBox.shrink()),
-
-        /// bottom region
-        Expanded(
-          flex: 2,
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () {
-              usePageTapZones ? _onBtnTapped(100) : _isViewFunction();
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _appBar() {
     return ReaderAppBar(
       chapter: chapter,
-      mangaName: _readerController.getMangaName(),
-      chapterTitle: _readerController.getChapterTitle(),
+      mangaName: readerController.getMangaName(),
+      chapterTitle: readerController.getChapterTitle(),
       isVisible: _isView,
       isBookmarked: _isBookmarked,
       backgroundColor: _backgroundColor,
+      // In the bottom panel, within reach.
+      showChapterList: false,
       onBackPressed: () => Navigator.pop(context),
       onBookmarkPressed: () {
-        _readerController.setChapterBookmarked();
+        readerController.setChapterBookmarked();
         setState(() => _isBookmarked = !_isBookmarked);
       },
       onWebViewPressed: (chapter.manga.value!.isLocalArchive ?? false)
@@ -1134,13 +707,9 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
                   ? '${source.baseUrl}/${chapter.url!}'
                   : chapter.url!;
               if (Platform.isLinux) {
-                final uri = Uri.parse(url);
-                await launchUrl(
-                  uri,
-                  mode: LaunchMode.inAppBrowserView,
-                ).catchError(
-                  (_) => launchUrl(uri, mode: LaunchMode.externalApplication),
-                );
+                // The chosen browser, or the system default: the reader cannot
+                // show a page on Linux, so the link leaves the app.
+                await ExternalBrowser.open(url);
               } else {
                 context.push(
                   '/mangawebview',
@@ -1155,655 +724,83 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
     );
   }
 
-  void _showFontSizeBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Consumer(
-          builder: (context, ref, _) {
-            final currentFontSize = ref.watch(novelFontSizeStateProvider);
-            final primaryColor = Theme.of(context).primaryColor;
-            return Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    blurRadius: 16,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.35),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.format_size_rounded,
-                            color: primaryColor,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            context.l10n.font_size,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: primaryColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '$currentFontSize px',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: primaryColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      IconButton.filledTonal(
-                        visualDensity: VisualDensity.compact,
-                        constraints: const BoxConstraints(
-                          minWidth: 34,
-                          minHeight: 34,
-                        ),
-                        onPressed: currentFontSize > 8
-                            ? () {
-                                final newSize = currentFontSize - 1;
-                                ref
-                                    .read(novelFontSizeStateProvider.notifier)
-                                    .set(newSize);
-                                setState(() => fontSize = newSize);
-                              }
-                            : null,
-                        icon: const Icon(Icons.remove_rounded, size: 18),
-                        tooltip: context.l10n.decrease,
-                      ),
-                      Expanded(
-                        child: SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            trackHeight: 3,
-                            thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 6,
-                            ),
-                            overlayShape: const RoundSliderOverlayShape(
-                              overlayRadius: 12,
-                            ),
-                            activeTrackColor: primaryColor,
-                            inactiveTrackColor: primaryColor.withValues(
-                              alpha: 0.2,
-                            ),
-                            thumbColor: primaryColor,
-                            overlayColor: primaryColor.withValues(alpha: 0.2),
-                          ),
-                          child: Slider(
-                            value: currentFontSize.toDouble().clamp(8.0, 40.0),
-                            min: 8,
-                            max: 40,
-                            divisions: 32,
-                            onChanged: (val) {
-                              final newSize = val.toInt();
-                              ref
-                                  .read(novelFontSizeStateProvider.notifier)
-                                  .set(newSize);
-                              setState(() => fontSize = newSize);
-                            },
-                          ),
-                        ),
-                      ),
-                      IconButton.filledTonal(
-                        visualDensity: VisualDensity.compact,
-                        constraints: const BoxConstraints(
-                          minWidth: 34,
-                          minHeight: 34,
-                        ),
-                        onPressed: currentFontSize < 40
-                            ? () {
-                                final newSize = currentFontSize + 1;
-                                ref
-                                    .read(novelFontSizeStateProvider.notifier)
-                                    .set(newSize);
-                                setState(() => fontSize = newSize);
-                              }
-                            : null,
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        tooltip: context.l10n.increase,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [12, 14, 16, 18, 20, 24, 28].map((size) {
-                        final isSelected = currentFontSize == size;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 3),
-                          child: ChoiceChip(
-                            visualDensity: VisualDensity.compact,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            labelStyle: const TextStyle(fontSize: 11),
-                            label: Text('$size'),
-                            selected: isSelected,
-                            onSelected: (_) {
-                              ref
-                                  .read(novelFontSizeStateProvider.notifier)
-                                  .set(size);
-                              setState(() => fontSize = size);
-                            },
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   Widget _bottomBar(
     BackgroundColor backgroundColor,
     PageMode effectivePageMode,
   ) {
-    if (!_isView && Platform.isIOS) {
-      return const SizedBox.shrink();
-    }
-    bool hasPrevChapter = _readerController.hasPreviousChapter;
-    bool hasNextChapter = _readerController.hasNextChapter;
-    final bodyLargeColor = Theme.of(context).textTheme.bodyLarge!.color;
-    return Positioned(
-      bottom: 0,
-      child: AnimatedContainer(
-        curve: Curves.ease,
-        duration: const Duration(milliseconds: 300),
-        width: context.width(1),
-        height: (_isView ? 116 : 0),
-        // The Column's natural content height briefly exceeds this box
-        // mid-animation (it's animating between 0 and 116), which is a
-        // transient overflow, not a real layout bug - clip it during the
-        // transition instead of restructuring content that fits fine once
-        child: ClipRect(
-          child: OverflowBox(
-            alignment: Alignment.topCenter,
-            minHeight: 0,
-            maxHeight: 116,
-            child: SizedBox(
-              height: 116,
-              child: Column(
-                children: [
-                  if (_isView)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8.0,
-                        vertical: 2.0,
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundColor: _backgroundColor(context),
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                minWidth: 36,
-                                minHeight: 36,
-                              ),
-                              onPressed: hasPrevChapter
-                                  ? () {
-                                      pushReplacementMangaReaderView(
-                                        context: context,
-                                        chapter: _readerController
-                                            .getPrevChapter(),
-                                      );
-                                    }
-                                  : null,
-                              icon: Icon(
-                                Icons.skip_previous_rounded,
-                                size: 22,
-                                color: hasPrevChapter
-                                    ? bodyLargeColor
-                                    : bodyLargeColor!.withValues(alpha: 0.35),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Container(
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: _backgroundColor(context),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: StreamBuilder(
-                                stream: _rebuildDetail.stream,
-                                builder: (context, asyncSnapshot) {
-                                  return Consumer(
-                                    builder: (context, ref, child) {
-                                      if (!_readerMode.isContinuous) {
-                                        final pagination = _cachedPagination;
-                                        final isDouble = effectivePageMode ==
-                                            PageMode.doublePage;
-                                        final totalItems = isDouble
-                                            ? (pagination?.spreadCount ?? 1)
-                                            : (pagination?.pageCount ?? 1);
-                                        final currentIndex =
-                                            _currentSpreadIndex.clamp(
-                                              0,
-                                              max(0, totalItems - 1),
-                                            ).toInt();
-                                        final currentLabel = isDouble
-                                            ? (pagination?.spreadLabelForSpread(
-                                                    currentIndex,
-                                                  ) ??
-                                                  '${currentIndex + 1}')
-                                            : '${currentIndex + 1}';
-                                        final totalLabel =
-                                            '${pagination?.pageCount ?? totalItems}';
-                                        final sliderValue = totalItems > 1
-                                            ? (currentIndex / (totalItems - 1))
-                                                  .clamp(0.0, 1.0)
-                                            : 0.0;
-
-                                        return Row(
-                                          children: [
-                                            const SizedBox(width: 12),
-                                            Text(
-                                              currentLabel,
-                                              style: TextStyle(
-                                                color: bodyLargeColor,
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            Expanded(
-                                              child: SliderTheme(
-                                                data: SliderTheme.of(context)
-                                                    .copyWith(
-                                                      trackHeight: 2.5,
-                                                      thumbShape:
-                                                          const RoundSliderThumbShape(
-                                                            enabledThumbRadius:
-                                                                6.0,
-                                                          ),
-                                                      overlayShape:
-                                                          const RoundSliderOverlayShape(
-                                                            overlayRadius: 12.0,
-                                                          ),
-                                                      activeTrackColor:
-                                                          Theme.of(context)
-                                                              .colorScheme
-                                                              .primary,
-                                                      thumbColor:
-                                                          Theme.of(context)
-                                                              .colorScheme
-                                                              .primary,
-                                                    ),
-                                                child: Slider(
-                                                  onChanged: (value) {
-                                                    if (totalItems > 1 &&
-                                                        _spreadController
-                                                            .hasClients) {
-                                                      final targetIndex =
-                                                          (value *
-                                                                  (totalItems -
-                                                                      1))
-                                                              .round();
-                                                      _spreadController
-                                                          .jumpToPage(
-                                                            targetIndex,
-                                                          );
-                                                    }
-                                                  },
-                                                  value: sliderValue,
-                                                  min: 0,
-                                                  max: 1,
-                                                ),
-                                              ),
-                                            ),
-                                            Text(
-                                              totalLabel,
-                                              style: TextStyle(
-                                                color: bodyLargeColor
-                                                    ?.withValues(alpha: 0.6),
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                          ],
-                                        );
-                                      }
-
-                                      final scrollPercentage = maxOffset > 0
-                                          ? ((offset / maxOffset) * 100)
-                                                .clamp(0, 100)
-                                                .toInt()
-                                          : 0;
-                                      return Row(
-                                        children: [
-                                          const SizedBox(width: 12),
-                                          Text(
-                                            '$scrollPercentage%',
-                                            style: TextStyle(
-                                              color: bodyLargeColor,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Expanded(
-                                            child: SliderTheme(
-                                              data: SliderTheme.of(context)
-                                                  .copyWith(
-                                                    trackHeight: 2.5,
-                                                    thumbShape:
-                                                        const RoundSliderThumbShape(
-                                                          enabledThumbRadius:
-                                                              6.0,
-                                                        ),
-                                                    overlayShape:
-                                                        const RoundSliderOverlayShape(
-                                                          overlayRadius: 12.0,
-                                                        ),
-                                                    activeTrackColor: Theme.of(
-                                                      context,
-                                                    ).colorScheme.primary,
-                                                    thumbColor:
-                                                        Theme.of(context)
-                                                            .colorScheme
-                                                            .primary,
-                                                  ),
-                                              child: Slider(
-                                                onChanged: (value) {
-                                                  if (_scrollController
-                                                      .hasClients) {
-                                                    _scrollController.jumpTo(
-                                                      _scrollController
-                                                              .position
-                                                              .maxScrollExtent *
-                                                          value,
-                                                    );
-                                                  }
-                                                },
-                                                value: (scrollPercentage / 100)
-                                                    .clamp(0.0, 1.0),
-                                                min: 0,
-                                                max: 1,
-                                              ),
-                                            ),
-                                          ),
-                                          Text(
-                                            '100%',
-                                            style: TextStyle(
-                                              color: bodyLargeColor?.withValues(
-                                                alpha: 0.6,
-                                              ),
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                        ],
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundColor: _backgroundColor(context),
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                minWidth: 36,
-                                minHeight: 36,
-                              ),
-                              onPressed: hasNextChapter
-                                  ? () {
-                                      pushReplacementMangaReaderView(
-                                        context: context,
-                                        chapter: _readerController
-                                            .getNextChapter(),
-                                      );
-                                    }
-                                  : null,
-                              icon: Icon(
-                                Icons.skip_next_rounded,
-                                size: 22,
-                                color: hasNextChapter
-                                    ? bodyLargeColor
-                                    : bodyLargeColor!.withValues(alpha: 0.35),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (_isView)
-                    Expanded(
-                      child: Container(
-                        color: _backgroundColor(context),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            IconButton(
-                              visualDensity: VisualDensity.compact,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                minWidth: 40,
-                                minHeight: 40,
-                              ),
-                              onPressed: () =>
-                                  _showFontSizeBottomSheet(context),
-                              icon: const Icon(
-                                Icons.format_size_rounded,
-                                size: 22,
-                              ),
-                              tooltip: context.l10n.font_size,
-                            ),
-                            IconButton(
-                              visualDensity: VisualDensity.compact,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                minWidth: 40,
-                                minHeight: 40,
-                              ),
-                              onPressed: () {
-                                if (_readerMode.isContinuous) {
-                                  _readerController.setReaderMode(
-                                    ReaderMode.ltr,
-                                  );
-                                  _readerController.setPageMode(
-                                    PageMode.onePage,
-                                  );
-                                  ref
-                                      .read(doublePageAutoStateProvider.notifier)
-                                      .set(false);
-                                  setState(() {
-                                    _readerMode = ReaderMode.ltr;
-                                    _pageMode = PageMode.onePage;
-                                  });
-                                } else if (effectivePageMode ==
-                                    PageMode.onePage) {
-                                  _readerController.setPageMode(
-                                    PageMode.doublePage,
-                                  );
-                                  ref
-                                      .read(doublePageAutoStateProvider.notifier)
-                                      .set(false);
-                                  setState(() {
-                                    _pageMode = PageMode.doublePage;
-                                  });
-                                } else {
-                                  _readerController.setReaderMode(
-                                    ReaderMode.verticalContinuous,
-                                  );
-                                  setState(() {
-                                    _readerMode =
-                                        ReaderMode.verticalContinuous;
-                                  });
-                                }
-                              },
-                              icon: Icon(
-                                _readerMode.isContinuous
-                                    ? Icons.swap_vert_rounded
-                                    : (effectivePageMode == PageMode.doublePage
-                                          ? Icons.auto_stories
-                                          : Icons.article_outlined),
-                                size: 22,
-                                color: !_readerMode.isContinuous
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
-                              ),
-                              tooltip: _readerMode.isContinuous
-                                  ? context
-                                      .l10n
-                                      .reading_mode_vertical_continuous
-                                  : (effectivePageMode == PageMode.doublePage
-                                        ? context.l10n.double_page
-                                        : context.l10n.single_page),
-                            ),
-                            if (_ttsSupported)
-                              IconButton(
-                                visualDensity: VisualDensity.compact,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                  minWidth: 40,
-                                  minHeight: 40,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _showTts = !_showTts;
-                                  });
-                                },
-                                icon: Icon(
-                                  _showTts
-                                      ? Icons.record_voice_over_rounded
-                                      : Icons.record_voice_over_outlined,
-                                  size: 22,
-                                  color: _showTts
-                                      ? Theme.of(context).colorScheme.primary
-                                      : null,
-                                ),
-                                tooltip: context.l10n.tts,
-                              ),
-                            IconButton(
-                              visualDensity: VisualDensity.compact,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                minWidth: 40,
-                                minHeight: 40,
-                              ),
-                              onPressed: () async {
-                                bool autoScrollAlreadyFalse =
-                                    _autoScroll.value == false;
-                                if (!autoScrollAlreadyFalse) {
-                                  _autoScroll.value = false;
-                                }
-                                await customDraggableTabBar(
-                                  tabs: [
-                                    Tab(text: context.l10n.reader),
-                                    Tab(text: context.l10n.general),
-                                    if (_ttsSupported)
-                                      Tab(text: context.l10n.tts),
-                                  ],
-                                  children: [
-                                    ReaderSettingsTab(
-                                      readerController: _readerController,
-                                      currentReaderMode: _readerMode,
-                                      onReaderModeChanged: (newMode) {
-                                        setState(() {
-                                          _readerMode = newMode;
-                                        });
-                                      },
-                                      currentPageMode: effectivePageMode,
-                                      onPageModeChanged: (newMode) {
-                                        setState(() {
-                                          _pageMode = newMode;
-                                        });
-                                      },
-                                    ),
-                                    GeneralSettingsTab(
-                                      autoScrollPage: _autoScrollPage,
-                                      autoScroll: _autoScroll,
-                                      readerController: _readerController,
-                                      pageOffset: _pageOffset,
-                                    ),
-                                    if (_ttsSupported) const TtsSettingsTab(),
-                                  ],
-                                  context: context,
-                                  vsync: this,
-                                );
-                                if (!autoScrollAlreadyFalse ||
-                                    _autoScroll.value) {
-                                  if (_autoScrollPage.value &&
-                                      _isContinuousMode()) {
-                                    _autoScroll.value = true;
-                                  }
-                                }
-                              },
-                              icon: const Icon(Icons.tune_rounded),
-                              tooltip: context.l10n.settings,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+    return NovelBottomBar(
+      chapter: chapter,
+      readerController: readerController,
+      isVisible: _isView,
+      backgroundColor: _backgroundColor,
+      rebuildStream: rebuildDetail.stream,
+      readerMode: _readerMode,
+      effectivePageMode: effectivePageMode,
+      cachedPagination: () => cachedPagination,
+      currentSpreadIndex: () => currentSpreadIndex,
+      spreadController: spreadController,
+      scrollController: scrollController,
+      offset: () => offset,
+      maxOffset: () => maxOffset,
+      chapterMinutes: () => chapterMinutes,
+      ttsSupported: ttsSupported,
+      showTts: showTts,
+      onFontSizeChanged: (size) => setState(() => fontSize = size),
+      onLayoutModeCycled: (mode, pageMode) {
+        setState(() {
+          _readerMode = mode;
+          _pageMode = pageMode;
+        });
+      },
+      onToggleTts: () {
+        setState(() {
+          showTts = !showTts;
+        });
+      },
+      onOpenSettings: () async {
+        bool autoScrollAlreadyFalse = _autoScroll.value == false;
+        if (!autoScrollAlreadyFalse) {
+          _autoScroll.value = false;
+        }
+        await customDraggableTabBar(
+          tabs: [
+            Tab(text: context.l10n.reader),
+            Tab(text: context.l10n.general),
+            if (ttsSupported) Tab(text: context.l10n.tts),
+          ],
+          children: [
+            ReaderSettingsTab(
+              readerController: readerController,
+              currentReaderMode: _readerMode,
+              onReaderModeChanged: (newMode) {
+                setState(() {
+                  _readerMode = newMode;
+                });
+              },
+              currentPageMode: effectivePageMode,
+              onPageModeChanged: (newMode) {
+                setState(() {
+                  _pageMode = newMode;
+                });
+              },
             ),
-          ),
-        ),
-      ),
+            GeneralSettingsTab(
+              autoScrollPage: _autoScrollPage,
+              autoScroll: _autoScroll,
+              readerController: readerController,
+              pageOffset: _pageOffset,
+            ),
+            if (ttsSupported) const TtsSettingsTab(),
+          ],
+          context: context,
+          vsync: this,
+        );
+        if (!autoScrollAlreadyFalse || _autoScroll.value) {
+          if (_autoScrollPage.value && _isContinuousMode()) {
+            _autoScroll.value = true;
+          }
+        }
+      },
     );
   }
 
@@ -1821,198 +818,5 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
       }
     }
-  }
-
-  Color _parseColor(String hex, {Color? fallback}) {
-    try {
-      String hexColor = hex.trim().replaceAll('#', '');
-      if (hexColor.length == 6) {
-        return Color(int.parse('FF$hexColor', radix: 16));
-      } else if (hexColor.length == 8) {
-        return Color(int.parse(hexColor, radix: 16));
-      }
-    } catch (_) {}
-    return fallback ?? Colors.grey;
-  }
-
-  TextAlign _getTextAlign(NovelTextAlign textAlign) {
-    switch (textAlign) {
-      case NovelTextAlign.left:
-        return TextAlign.left;
-      case NovelTextAlign.center:
-        return TextAlign.center;
-      case NovelTextAlign.right:
-        return TextAlign.right;
-      case NovelTextAlign.block:
-        return TextAlign.justify;
-    }
-  }
-
-  Widget _buildNovelHtmlWidget({
-    required BuildContext context,
-    required String htmlData,
-    required String? fontFamily,
-    required int fontSize,
-    required double lineHeight,
-    required int padding,
-    required TextAlign textAlign,
-    required bool removeExtraSpacing,
-    required Color textColor,
-    required Color backgroundColor,
-    required bool showTts,
-    required ({int paragraph, int wordStart, int wordEnd}) tts,
-  }) {
-    return Html(
-      data: htmlData,
-      style: {
-        "body": Style(
-          fontFamily: fontFamily,
-          fontSize: FontSize(fontSize.toDouble()),
-          color: textColor,
-          backgroundColor: backgroundColor,
-          margin: Margins.zero,
-          padding: HtmlPaddings.all(padding.toDouble()),
-          lineHeight: LineHeight(lineHeight),
-          textAlign: textAlign,
-        ),
-        "p": Style(
-          fontFamily: fontFamily,
-          margin: removeExtraSpacing
-              ? Margins.only(bottom: 4)
-              : Margins.only(bottom: 8),
-          fontSize: FontSize(fontSize.toDouble()),
-          lineHeight: LineHeight(lineHeight),
-          textAlign: textAlign,
-        ),
-        "div": Style(
-          fontFamily: fontFamily,
-          fontSize: FontSize(fontSize.toDouble()),
-          lineHeight: LineHeight(lineHeight),
-          textAlign: textAlign,
-        ),
-        "span": Style(
-          fontFamily: fontFamily,
-          fontSize: FontSize(fontSize.toDouble()),
-          lineHeight: LineHeight(lineHeight),
-        ),
-        "h1, h2, h3, h4, h5, h6": Style(
-          fontFamily: fontFamily,
-          color: textColor,
-          lineHeight: LineHeight(lineHeight),
-          textAlign: textAlign,
-        ),
-        "a": Style(
-          color: Colors.blue,
-          textDecoration: TextDecoration.underline,
-        ),
-        "img": Style(width: Width(100, Unit.percent), height: Height.auto()),
-        "table": Style(
-          border: Border.all(color: Colors.grey, width: 1),
-          margin: Margins.symmetric(vertical: 10),
-        ),
-        "td, th": Style(
-          border: Border.all(color: Colors.grey, width: 0.5),
-          padding: HtmlPaddings.all(8),
-        ),
-        "th": Style(
-          fontWeight: FontWeight.bold,
-          backgroundColor: Colors.grey.withValues(alpha: 0.2),
-        ),
-        "blockquote": Style(
-          border: Border(left: BorderSide(color: Colors.grey, width: 4)),
-          padding: HtmlPaddings.only(left: 15),
-          margin: Margins.symmetric(vertical: 10),
-          fontStyle: FontStyle.italic,
-        ),
-        "pre, code": Style(
-          backgroundColor: Colors.grey.withValues(alpha: 0.2),
-          padding: HtmlPaddings.all(8),
-          fontFamily: 'monospace',
-        ),
-        "hr": Style(margin: Margins.symmetric(vertical: 20)),
-        if (showTts && tts.paragraph >= 0)
-          "[data-tts-active]": Style(
-            backgroundColor: Theme.of(context).colorScheme.primary
-                .withValues(alpha: 0.10),
-            border: Border(
-              left: BorderSide(
-                color: Theme.of(context).colorScheme.primary,
-                width: 3,
-              ),
-            ),
-            padding: HtmlPaddings.only(left: 8),
-          ),
-        if (showTts && tts.paragraph >= 0)
-          "[data-tts-word]": Style(
-            backgroundColor: Theme.of(context).colorScheme.primary
-                .withValues(alpha: 0.35),
-            textDecoration: TextDecoration.underline,
-            textDecorationColor: Theme.of(context).colorScheme.primary,
-          ),
-      },
-      extensions: [
-        TagExtension(
-          tagsToExtend: {"img", "source"},
-          builder: (extensionContext) {
-            final element = extensionContext.node as dom.Element;
-            final customWidget = _buildCustomWidgets(element);
-            if (customWidget != null) {
-              return customWidget;
-            }
-            return const SizedBox.shrink();
-          },
-        ),
-      ],
-      onLinkTap: (url, attributes, element) {
-        if (url != null) {
-          context.push("/mangawebview", extra: {'url': url, 'title': url});
-        }
-      },
-    );
-  }
-
-  Widget? _buildCustomWidgets(dom.Element element) {
-    if (epubBook == null) return null;
-
-    if (element.localName == "img" && element.getSrc != null) {
-      final src = element.getSrc!;
-      final fileName = src.split("/").last;
-      final image = epubBook!.images
-          .firstWhereOrNull(
-            (img) =>
-                img.name.endsWith(fileName) ||
-                img.name.contains(fileName.replaceAll('%20', ' ')),
-          )
-          ?.content;
-
-      if (image != null) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: widgets.Image(
-            errorBuilder: (context, error, stackTrace) => Container(
-              padding: const EdgeInsets.all(8),
-              color: Colors.red.withValues(alpha: 0.1),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.broken_image, color: Colors.red),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      'Image not loaded: $fileName',
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            fit: BoxFit.contain,
-            image: MemoryImage(image) as ImageProvider,
-          ),
-        );
-      }
-    }
-
-    return null;
   }
 }

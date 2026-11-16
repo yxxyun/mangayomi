@@ -1,17 +1,17 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/repositories/download_repository.dart';
 import 'package:mangayomi/repositories/track_repository.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/track.dart';
-import 'package:mangayomi/modules/manga/detail/providers/track_state_providers.dart';
-import 'package:mangayomi/modules/library/providers/file_scanner.dart';
-import 'package:mangayomi/modules/manga/reader/providers/push_router.dart';
+import 'package:mangayomi/providers/track_state_providers.dart';
+import 'package:mangayomi/services/local_folders.dart';
+import 'package:mangayomi/router/push_router.dart';
 import 'package:mangayomi/utils/extensions/manga_extensions.dart';
-import 'package:mangayomi/modules/more/settings/track/providers/track_providers.dart';
+import 'package:mangayomi/providers/track_providers.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
 import 'package:mangayomi/services/download_manager/download_isolate_pool.dart';
 import 'package:mangayomi/services/download_manager/m_downloader.dart';
@@ -35,8 +35,13 @@ extension ChapterExtension on Chapter {
         }
         if (exist && !filteredChap.isRead!) {
           await pushMangaReaderView(context: context, chapter: filteredChap);
-          break;
+          return;
         }
+      }
+      // Nothing unread after it (the last chapter, all read, or hidden by
+      // the filters): open this one again rather than do nothing.
+      if (context.mounted) {
+        await pushMangaReaderView(context: context, chapter: this);
       }
     }
   }
@@ -69,7 +74,10 @@ extension ChapterExtension on Chapter {
       if (folderPath == null || folderPath.isEmpty) continue;
       mangaDirList.add(
         Directory(
-          p.join(folderPath, manga.value!.name!.replaceForbiddenCharacters('_')),
+          p.join(
+            folderPath,
+            manga.value!.name!.replaceForbiddenCharacters('_'),
+          ),
         ),
       );
     }
@@ -133,15 +141,9 @@ extension ChapterExtension on Chapter {
             }
           }
         }
-        ref
-            .read(
-              trackStateProvider(
-                track: track,
-                itemType: manga.itemType,
-                widgetRef: ref,
-              ).notifier,
-            )
-            .updateManga();
+        // Not on this ref: the reader or player it may belong to can close
+        // before the tracker answers.
+        ref.read(trackerSyncProvider.notifier).update(track, manga.itemType);
       }
     }
   }

@@ -152,9 +152,9 @@ class QrLoginFlow {
       );
       // ignore: avoid_print
       _qrDiag('_checkQuarkStatus /account/info status=${cookieRes.statusCode} set-cookie=${cookieRes.headers['set-cookie']?.substring(0, (cookieRes.headers['set-cookie']?.length ?? 200).clamp(0, 200))}');
-      print('[QR_COOKIE] /account/info status=${cookieRes.statusCode} set-cookie=${cookieRes.headers['set-cookie']?.substring(0, (cookieRes.headers['set-cookie']?.length ?? 200).clamp(0, 200))}');
       final exchangeCookies = _extractSetCookie(cookieRes.headers);
-      _qrDiag('_checkQuarkStatus exchangeCookies=${exchangeCookies?.substring(0, exchangeCookies?.length.clamp(0, 100) ?? 0)}');
+      _qrDiag('_checkQuarkStatus exchangeCookies='
+          '${exchangeCookies == null ? "null" : exchangeCookies.substring(0, exchangeCookies.length.clamp(0, 100))}');
       if (exchangeCookies != null) combinedCookie.write(exchangeCookies);
       // Second request to get drive-specific cookies
       _qrDiag('_checkQuarkStatus fetching drive cookies from drive-pc.quark.cn...');
@@ -172,11 +172,8 @@ class QrLoginFlow {
       );
       // ignore: avoid_print
       _qrDiag('_checkQuarkStatus drive sort status=${driveRes.statusCode} set-cookie=${driveRes.headers['set-cookie']?.substring(0, (driveRes.headers['set-cookie']?.length ?? 200).clamp(0, 200))}');
-      print('[QR_COOKIE] drive sort status=${driveRes.statusCode} set-cookie=${driveRes.headers['set-cookie']?.substring(0, (driveRes.headers['set-cookie']?.length ?? 200).clamp(0, 200))}');
       final driveCookies = _extractSetCookie(driveRes.headers);
       if (driveCookies != null) combinedCookie.write('; $driveCookies');
-      // ignore: avoid_print
-      print('[QR_COOKIE] final cookie length=${combinedCookie.length} value=${combinedCookie.length > 200 ? combinedCookie.toString().substring(0, 200) : combinedCookie.toString()}');
       return QrLoginResult(cookie: combinedCookie.toString(), status: 'CONFIRMED');
     } else if (status == 50004002) {
       return const QrLoginResult(status: 'EXPIRED');

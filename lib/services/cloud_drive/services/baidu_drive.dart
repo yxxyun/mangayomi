@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:http_interceptor/http_interceptor.dart';
@@ -33,7 +32,7 @@ import 'package:mangayomi/services/cloud_drive/auth/cookie_manager.dart';
 /// the in-memory share-token cache. The cache is populated during
 /// [getShareToken] / [getFilesByShareUrl].
 class BaiduDriveService implements CloudDriveService {
-  // 鈹€鈹€ Constants 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Constants ───────────────────────────────────────────────────────
 
   static const String _apiBase = 'https://pan.baidu.com/';
   static const String _userAgent =
@@ -81,7 +80,7 @@ class BaiduDriveService implements CloudDriveService {
     '.m2v',
   ];
 
-  // 鈹€鈹€ State 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── State ──────────────────────────────────────────────────────────
 
   CloudDriveAccount _account = CloudDriveAccount(
     type: CloudDriveType.baidu,
@@ -110,7 +109,7 @@ class BaiduDriveService implements CloudDriveService {
   /// bypassing the dead save-to-personal-drive (api/create) path.
   final Map<String, String> _dlinkCache = {};
 
-  // 鈹€鈹€ Interface: getters 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Interface: getters ─────────────────────────────────────────────
 
   @override
   CloudDriveType get type => CloudDriveType.baidu;
@@ -121,7 +120,7 @@ class BaiduDriveService implements CloudDriveService {
   @override
   bool get isLoggedIn => _account.isLoggedIn;
 
-  // 鈹€鈹€ Interface: lifecycle 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Interface: lifecycle ───────────────────────────────────────────
 
   @override
   Future<void> initialize() async {
@@ -189,7 +188,7 @@ class BaiduDriveService implements CloudDriveService {
     _fileNameCache.clear();
   }
 
-  // 鈹€鈹€ Interface: share parsing & token 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Interface: share parsing & token ───────────────────────────────
 
   @override
   ShareData? parseShareUrl(String url) {
@@ -279,7 +278,7 @@ class BaiduDriveService implements CloudDriveService {
     }
   }
 
-  // 鈹€鈹€ Interface: file listing 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Interface: file listing ────────────────────────────────────────
 
   @override
   Future<List<CloudDriveFile>> getFilesByShareUrl(String url) async {
@@ -329,7 +328,7 @@ class BaiduDriveService implements CloudDriveService {
     return videos;
   }
 
-  // 鈹€鈹€ Interface: save to drive 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Interface: save to drive ───────────────────────────────────────
 
   @override
   Future<String?> saveToDrive({
@@ -344,7 +343,7 @@ class BaiduDriveService implements CloudDriveService {
     return _saveDirId;
   }
 
-  // 鈹€鈹€ Interface: transcoding / download 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Interface: transcoding / download ──────────────────────────────
 
   @override
   Future<List<QualityOption>> getLiveTranscoding({
@@ -379,7 +378,7 @@ class BaiduDriveService implements CloudDriveService {
     return _fetchDownloadLink(shareId, fileId, filename);
   }
 
-  // 鈹€鈹€ Interface: videos 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Interface: videos ──────────────────────────────────────────────
 
   @override
   Future<List<Video>> getVideos(String encodedUrl) async {
@@ -464,7 +463,7 @@ class BaiduDriveService implements CloudDriveService {
     return videos;
   }
 
-  // 鈹€鈹€ Interface: auth refresh 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Interface: auth refresh ────────────────────────────────────────
 
   @override
   Future<bool> refreshAuth() async {
@@ -491,7 +490,7 @@ class BaiduDriveService implements CloudDriveService {
     }
   }
 
-  // 鈹€鈹€ Internal: sign 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Internal: sign ─────────────────────────────────────────────────
 
   /// Obtain a `sign` token from the Baidu tplconfig endpoint.
   ///
@@ -517,7 +516,7 @@ class BaiduDriveService implements CloudDriveService {
     return 't=${DateTime.now().millisecondsSinceEpoch}';
   }
 
-  // 鈹€鈹€ Internal: verify & share data 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Internal: verify & share data ──────────────────────────────────
 
   /// Update the stored cookie so `BDCLND` is set to [randsk].
   ///
@@ -540,7 +539,7 @@ class BaiduDriveService implements CloudDriveService {
     _account.cookie = current;
   }
 
-  // 鈹€鈹€ Internal: recursive file listing 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Internal: recursive file listing ───────────────────────────────
 
   /// Walk the share tree via the weixin-channel `share/wxlist` API.
   ///
@@ -750,7 +749,7 @@ class BaiduDriveService implements CloudDriveService {
     }
   }
 
-  // 鈹€鈹€ Internal: save dir 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Internal: save dir ─────────────────────────────────────────────
 
   /// Fetch the `bdstoken` CSRF token required by personal-drive POST
   /// operations (api/create, api/delete, share/transfer). Mirrors
@@ -768,9 +767,10 @@ class BaiduDriveService implements CloudDriveService {
       final bd = result['result'];
       if (bd is Map && bd['bdstoken'] != null) {
         _bdstoken = bd['bdstoken'].toString();
-      } else {
       }
+      // No bdstoken in the reply: keep the last one we have.
     } catch (e) {
+      // Token refresh is best-effort; save calls re-probe on the next 892.
     }
   }
 
@@ -834,7 +834,7 @@ class BaiduDriveService implements CloudDriveService {
     }
   }
 
-  // 鈹€鈹€ Internal: transfer (save to drive) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Internal: transfer (save to drive) ─────────────────────────────
 
   /// Transfer (save) a shared file identified by [fileFsId] into the
   /// user's `/drpy` directory.
@@ -892,7 +892,7 @@ class BaiduDriveService implements CloudDriveService {
     }
   }
 
-  // 鈹€鈹€ Internal: download link 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Internal: download link ────────────────────────────────────────
 
   /// Fetch a downloadable `dlink` for a file that has already been saved
   /// to the user's personal drive.
@@ -955,7 +955,7 @@ class BaiduDriveService implements CloudDriveService {
     return null;
   }
 
-  // 鈹€鈹€ Internal: cookie helpers 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Internal: cookie helpers ───────────────────────────────────────
 
   bool _hasCookie() =>
       _getCurrentCookie().isNotEmpty;
@@ -989,7 +989,7 @@ class BaiduDriveService implements CloudDriveService {
     };
   }
 
-  // 鈹€鈹€ Internal: HTTP client 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Internal: HTTP client ──────────────────────────────────────────
 
   /// Build a query-string from [data]. Null/empty values are skipped.
   String _toQueryString(Map<String, dynamic> data) {
@@ -1057,7 +1057,7 @@ class BaiduDriveService implements CloudDriveService {
     return jsonDecode(resp.body) as Map<String, dynamic>;
   }
 
-  // 鈹€鈹€ Internal: string helpers 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Internal: string helpers ───────────────────────────────────────
 
   String _getExt(String text) {
     final dot = text.lastIndexOf('.');

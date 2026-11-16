@@ -1,11 +1,14 @@
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:mangayomi/modules/manga/reader/utils/reader_motion.dart';
+import 'package:mangayomi/modules/manga/reader/utils/webtoon_scroll_physics.dart';
+import 'package:shiori/shiori.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/modules/manga/reader/widgets/double_page_view.dart';
 import 'package:mangayomi/modules/manga/reader/image_view_vertical.dart';
 import 'package:mangayomi/modules/manga/reader/u_chap_data_preload.dart';
 import 'package:mangayomi/modules/manga/reader/widgets/transition_view_vertical.dart';
-import 'package:mangayomi/modules/more/settings/reader/providers/reader_state_provider.dart';
+import 'package:mangayomi/providers/reader_state_provider.dart';
 import 'package:mangayomi/modules/manga/reader/utils/reader_page_index_math.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
@@ -153,6 +156,7 @@ class _ImageViewWebtoonState extends ConsumerState<ImageViewWebtoon>
   double _animTargetScale = 1.0;
   Offset _animStartOffset = Offset.zero;
   Offset _animTargetOffset = Offset.zero;
+  Curve _animCurve = Curves.decelerate;
 
   Offset _doubleTapPosition = Offset.zero;
 
@@ -196,11 +200,11 @@ class _ImageViewWebtoonState extends ConsumerState<ImageViewWebtoon>
     );
     _zoomAnimationController = AnimationController(
       vsync: this,
-      duration: _durationForSpeed(doubleTapAnimationValue),
+      duration: ReaderMotion.stripDoubleTapZoom(doubleTapAnimationValue),
     );
     _zoomAnimationController.addListener(() {
       final t = _zoomAnimationController.value;
-      final curveVal = Curves.easeOutCubic.transform(t);
+      final curveVal = _animCurve.transform(t);
       _scale =
           _animStartScale + (_animTargetScale - _animStartScale) * curveVal;
       _offset =
@@ -214,25 +218,17 @@ class _ImageViewWebtoonState extends ConsumerState<ImageViewWebtoon>
       ..setTranslationRaw(_offset.dx, _offset.dy, 0.0);
   }
 
-  Duration _durationForSpeed(int speed) {
-    return switch (speed) {
-      0 => const Duration(milliseconds: 10),
-      1 => const Duration(milliseconds: 800),
-      _ => const Duration(milliseconds: 200),
-    };
-  }
+  Duration _doubleTapAnimationDuration() => ReaderMotion.stripDoubleTapZoom(
+    ref.read(doubleTapAnimationSpeedStateProvider),
+  );
 
-  Duration _doubleTapAnimationDuration() {
-    final doubleTapAnimationValue = ref.read(
-      doubleTapAnimationSpeedStateProvider,
-    );
-    return _durationForSpeed(doubleTapAnimationValue);
-  }
-
+  /// Decelerating by default, as a double tap and a fling do: the strip
+  /// leaves at the speed it was given.
   void _animateTo(
     double targetScale,
     Offset targetOffset, {
     Duration? duration,
+    Curve curve = Curves.decelerate,
   }) {
     if (_zoomAnimationController.isAnimating) {
       _zoomAnimationController.stop();
@@ -241,6 +237,7 @@ class _ImageViewWebtoonState extends ConsumerState<ImageViewWebtoon>
     _animTargetScale = targetScale;
     _animStartOffset = _offset;
     _animTargetOffset = targetOffset;
+    _animCurve = curve;
 
     _zoomAnimationController.duration =
         duration ?? _doubleTapAnimationDuration();
@@ -387,11 +384,18 @@ class _ImageViewWebtoonState extends ConsumerState<ImageViewWebtoon>
   }
 
   void _handleScaleEnd(ScaleEndDetails details) {
+    // A one-finger pan, not the end of a pinch or a double-tap-drag zoom.
+    final wasPanning = _previousPointerCount == 1 && !_isQuickScaling;
     _isQuickScaling = false;
 
     // 1. Rebound spring if zoomed out below 1.0
     if (_scale < 1.0) {
-      _animateTo(1.0, Offset.zero, duration: const Duration(milliseconds: 250));
+      _animateTo(
+        1.0,
+        Offset.zero,
+        duration: ShioriMotion.standard,
+        curve: Curves.easeOutCubic,
+      );
       return;
     }
 
@@ -406,15 +410,31 @@ class _ImageViewWebtoonState extends ConsumerState<ImageViewWebtoon>
         final maxDy =
             (screenHeight * (_scale - 1).clamp(0.0, double.infinity)) / 2;
 
-        final targetDx = (_offset.dx + velocity.dx * 0.2).clamp(-maxDx, maxDx);
-        final targetDy = (_offset.dy + velocity.dy * 0.2).clamp(-maxDy, maxDy);
+        final targetDx = (_offset.dx + velocity.dx * ReaderMotion.flingTravel)
+            .clamp(-maxDx, maxDx);
+        final targetDy = (_offset.dy + velocity.dy * ReaderMotion.flingTravel)
+            .clamp(-maxDy, maxDy);
 
         if ((Offset(targetDx, targetDy) - _offset).distance > 8) {
           _animateTo(
             _scale,
             Offset(targetDx, targetDy),
-            duration: const Duration(seconds: 1),
+            duration: ReaderMotion.flingDuration,
           );
+        }
+
+        // The drag scrolled the strip once the page met its edge; the
+        // fling carries on the same way instead of stopping there.
+        if (wasPanning) {
+          final isVertical = widget.scrollDirection == Axis.vertical;
+          final stripVelocity = stripFlingVelocity(
+            offset: isVertical ? _offset.dy : _offset.dx,
+            maxOffset: isVertical ? maxDy : maxDx,
+            velocity: isVertical ? velocity.dy : velocity.dx,
+          );
+          if (stripVelocity != 0) {
+            glideStrip(widget.scrollController, stripVelocity);
+          }
         }
       }
     }
@@ -598,8 +618,8 @@ class _ImageViewWebtoonState extends ConsumerState<ImageViewWebtoon>
         index < itemCount - 1) {
       item = Padding(
         padding: widget.isHorizontalContinuous
-            ? const EdgeInsets.only(right: 6)
-            : const EdgeInsets.only(bottom: 6),
+            ? const EdgeInsets.only(right: ShioriSpace.s8)
+            : const EdgeInsets.only(bottom: ShioriSpace.s8),
         child: item,
       );
     }

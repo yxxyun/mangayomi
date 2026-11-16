@@ -7,9 +7,9 @@ import 'package:mangayomi/eval/model/m_bridge.dart';
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:mangayomi/eval/model/m_source.dart';
-import 'package:mangayomi/main.dart';
 import 'package:mangayomi/repositories/settings_repository.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart'
     as flutter_inappwebview;
@@ -22,8 +22,13 @@ import 'package:mangayomi/services/http/doh/doh_resolver.dart';
 import 'package:mangayomi/services/http/doh/doh_providers.dart';
 import 'package:mangayomi/services/http/doh/doh_custom_store.dart';
 import 'package:mangayomi/services/http/cf_proxy_store.dart';
+import 'package:mangayomi/services/remote_webview/remote_webview_host.dart';
 import 'package:mangayomi/utils/localized_message.dart';
 import 'package:mangayomi/utils/constant.dart';
+import 'package:mangayomi/utils/error_toast.dart';
+
+flutter_inappwebview.WebViewEnvironment? webViewEnvironment;
+String? customDns;
 
 class MClient {
   MClient();
@@ -527,7 +532,8 @@ class ResolveCloudFlareChallenge extends RetryPolicy {
             }
             return false;
           });
-    } catch (e) {
+    } catch (e, stackTrace) {
+      recordError(e, stack: stackTrace, source: 'm_client');
       return false;
     }
   }
@@ -579,16 +585,34 @@ Future<bool> solveWithCfProxy(String proxyUrl, String targetUrl) async {
 }
 
 int cfPort = 0;
+
+/// Secret the extension server presents to drive WebViews over
+/// [RemoteWebViewHost.path]; regenerated every time the server starts.
+String webviewBridgeToken = '';
 HttpServer? _cfServer;
+
+String _newWebviewBridgeToken() {
+  final random = Random.secure();
+  return List.generate(
+    32,
+    (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+  ).join();
+}
 
 /// Cloudflare Resolution Webview Server
 Future<void> webviewServer() async {
   try {
     _cfServer = await HttpServer.bind(InternetAddress.loopbackIPv4, cfPort);
     cfPort = _cfServer!.port;
+    webviewBridgeToken = _newWebviewBridgeToken();
     _cfServer!.listen(
       (HttpRequest request) {
-        if (request.method == 'POST' && request.uri.path == '/resolve_cf') {
+        if (request.uri.path == RemoteWebViewHost.path) {
+          unawaited(
+            RemoteWebViewHost.accept(request, token: webviewBridgeToken),
+          );
+        } else if (request.method == 'POST' &&
+            request.uri.path == '/resolve_cf') {
           _handleResolveCf(request);
         } else if (request.method == 'POST' &&
             request.uri.path == '/evaluateJavascriptViaWebview') {
@@ -629,10 +653,11 @@ Future<void> stopwebviewServer() async {
   } finally {
     _cfServer = null;
     cfPort = 0;
+    webviewBridgeToken = '';
   }
 }
 
-void _handleResolveCf(HttpRequest request) async {
+Future<void> _handleResolveCf(HttpRequest request) async {
   int time = 0;
   bool timeOut = false;
   bool solved = false;

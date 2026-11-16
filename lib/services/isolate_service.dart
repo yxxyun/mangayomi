@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:mangayomi/eval/lib.dart';
-import 'package:mangayomi/main.dart';
+import 'package:mangayomi/repositories/db.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
 import 'package:mangayomi/services/http/m_client.dart';
@@ -127,6 +127,8 @@ class GetIsolateService {
                 final serviceType = message['serviceType'] as String?;
                 final useLoggerValue = message['useLogger'] as bool?;
                 cfPort = message['cfPort'] as int;
+                webviewBridgeToken =
+                    message['webviewBridgeToken'] as String? ?? '';
                 if (useLoggerValue != null) {
                   useLogger = useLoggerValue;
                 }
@@ -275,6 +277,7 @@ class GetIsolateService {
         'responsePort': responsePort.sendPort,
         'useLogger': ?useLogger,
         'cfPort': cfPort,
+        'webviewBridgeToken': webviewBridgeToken,
       });
     } catch (e) {
       timer.cancel();

@@ -2,6 +2,14 @@ import 'dart:io';
 import 'package:mangayomi/services/cloud_drive/cloud_drive_service.dart';
 import 'package:mangayomi/services/cloud_drive/models/cloud_drive_file.dart';
 import 'package:mangayomi/services/cloud_drive/models/cloud_drive_type.dart';
+import 'package:mangayomi/services/cloud_drive/services/ali_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/baidu_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/cloud189_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/pan123_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/quark_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/uc_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/xunlei_drive.dart';
+import 'package:mangayomi/services/cloud_drive/services/yun139_drive.dart';
 
 /// Singleton central manager for all cloud drive services.
 ///
@@ -20,10 +28,31 @@ class CloudDriveManager {
 
   static final CloudDriveManager _instance = CloudDriveManager._();
 
-  /// Global singleton instance.
-  static CloudDriveManager get instance => _instance;
-
   static final Map<CloudDriveType, CloudDriveService> _services = {};
+
+  /// Built-in registrations, done once per isolate on first use.
+  ///
+  /// Every consumer (wogg/yydsys playback, the drives screens, the JS bridge
+  /// in a worker isolate) reaches the manager through [instance], and an
+  /// isolate that never ran the launch path starts with an empty registry.
+  /// Self-registering here — rather than a call at some UI entry point —
+  /// keeps `get()` working everywhere; services load their cookies lazily
+  /// from the cookie store, so no initialize pass is needed to read them.
+  static bool _builtInsRegistered = false;
+  static CloudDriveManager get instance {
+    if (!_builtInsRegistered) {
+      _builtInsRegistered = true;
+      _instance.register(QuarkDriveService());
+      _instance.register(UCDriveService());
+      _instance.register(AliDriveService());
+      _instance.register(BaiduDriveService());
+      _instance.register(Pan123DriveService());
+      _instance.register(Cloud189DriveService());
+      _instance.register(Yun139DriveService());
+      _instance.register(XunleiDriveService());
+    }
+    return _instance;
+  }
 
   /// Register a [CloudDriveService] implementation.
   ///

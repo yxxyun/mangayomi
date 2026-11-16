@@ -1,76 +1,54 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:shiori/shiori.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 
+/// A labelled part of the novel reader's settings: the label where a
+/// Shiori settings group puts it, the controls under it. [inset] lines a
+/// hand-built control up with the label; rows (sliders, switches) bring
+/// their own margins and leave it off.
 class NovelSettingSection extends StatelessWidget {
   final String title;
   final Widget child;
+  final bool inset;
 
   const NovelSettingSection({
     super.key,
     required this.title,
     required this.child,
+    this.inset = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 2, bottom: 6),
-          child: Row(
-            children: [
-              Container(
-                width: 3,
-                height: 14,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).textTheme.titleLarge?.color,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
+          padding: const EdgeInsets.fromLTRB(
+            ShioriSpace.s16,
+            ShioriSpace.s16,
+            ShioriSpace.s16,
+            ShioriSpace.s8,
           ),
+          child: ShioriGroupLabel(title, maxLines: 2),
         ),
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).primaryColor.withValues(alpha: 0.04),
-                Colors.transparent,
-              ],
-            ),
-            border: Border.all(
-              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-              width: 1,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        if (inset)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: ShioriSpace.s16),
             child: child,
-          ),
-        ),
+          )
+        else
+          child,
       ],
     );
   }
 }
 
+/// A switch in the novel reader's settings.
 class NovelSwitchSetting extends StatelessWidget {
   final String title;
   final bool value;
-  final Widget? secondary;
+  final IconData? icon;
   final ValueChanged<bool> onChanged;
 
   const NovelSwitchSetting({
@@ -78,27 +56,16 @@ class NovelSwitchSetting extends StatelessWidget {
     required this.title,
     required this.value,
     required this.onChanged,
-    this.secondary,
+    this.icon,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return SwitchListTile(
-      dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-      secondary: secondary,
-      title: Text(
-        title,
-        style: TextStyle(
-          color: Theme.of(context).textTheme.bodyLarge!.color!
-              .withValues(alpha: 0.9),
-          fontSize: 13,
-        ),
-      ),
-      value: value,
-      onChanged: onChanged,
-    );
-  }
+  Widget build(BuildContext context) => ShioriSwitchRow(
+    icon: icon,
+    title: title,
+    value: value,
+    onChanged: onChanged,
+  );
 }
 
 class NovelThemeButton extends StatelessWidget {
@@ -124,42 +91,26 @@ class NovelThemeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).primaryColor;
+    final primaryColor = context.shiori.color.accent;
     final bg = _parseColor(backgroundColor);
     final txt = _parseColor(textColor);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          height: 52,
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected
-                  ? primaryColor
-                  : Colors.grey.withValues(alpha: 0.25),
-              width: isSelected ? 2 : 1,
-            ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: primaryColor.withValues(alpha: 0.35),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 3,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-          ),
+    return AnimatedContainer(
+      duration: ShioriMotion.standard,
+      height: 52,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(ShioriShape.card),
+        border: Border.all(
+          color: isSelected ? primaryColor : context.shiori.color.hairline,
+          width: isSelected ? 2 : 1,
+        ),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(ShioriShape.card),
           child: Stack(
             children: [
               Center(
@@ -170,7 +121,7 @@ class NovelThemeButton extends StatelessWidget {
                       'Aa',
                       style: TextStyle(
                         color: txt,
-                        fontSize: 15,
+                        fontSize: context.shiori.text.body.fontSize,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.3,
                       ),
@@ -184,7 +135,7 @@ class NovelThemeButton extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: txt.withValues(alpha: 0.9),
-                          fontSize: 10,
+                          fontSize: context.shiori.text.badge.fontSize,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -203,7 +154,8 @@ class NovelThemeButton extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                      Icons.check,
+                      Symbols.check_rounded,
+                      fill: 1,
                       size: 9,
                       color: Colors.white,
                     ),
@@ -244,8 +196,8 @@ class NovelColorPicker extends StatelessWidget {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(context.l10n.select_label_color(label)),
+        return ShioriDialog(
+          title: context.l10n.select_label_color(label),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -254,43 +206,97 @@ class NovelColorPicker extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 6,
                   children: [
-                    _colorOption(context, Colors.white, selectedColor),
-                    _colorOption(context, Colors.black, selectedColor),
                     _colorOption(
                       context,
+                      Colors.white,
+                      selectedColor,
+                      context.l10n.page_color_white,
+                    ),
+                    _colorOption(
+                      context,
+                      Colors.black,
+                      selectedColor,
+                      context.l10n.page_color_black,
+                    ),
+                    _colorOption(
+                      context,
+                      // shiori: a page colour the reader picks; it styles the book, not the interface
                       const Color(0xFF292832),
                       selectedColor,
+                      context.l10n.page_color_night,
                     ),
                     _colorOption(
                       context,
+                      // shiori: a page colour the reader picks; it styles the book, not the interface
                       const Color(0xFFF5E6D3),
                       selectedColor,
+                      context.l10n.page_color_sepia,
                     ),
                     _colorOption(
                       context,
+                      // shiori: a page colour the reader picks; it styles the book, not the interface
                       const Color(0xFF5F4B32),
                       selectedColor,
+                      context.l10n.page_color_coffee,
                     ),
                     _colorOption(
                       context,
+                      // shiori: a page colour the reader picks; it styles the book, not the interface
                       const Color(0xFFCCCCCC),
                       selectedColor,
+                      context.l10n.page_color_silver,
                     ),
-                    _colorOption(context, Colors.grey[800]!, selectedColor),
-                    _colorOption(context, Colors.grey[300]!, selectedColor),
-                    _colorOption(context, Colors.brown[100]!, selectedColor),
-                    _colorOption(context, Colors.blue[100]!, selectedColor),
-                    _colorOption(context, Colors.green[100]!, selectedColor),
-                    _colorOption(context, Colors.amber[100]!, selectedColor),
+                    _colorOption(
+                      context,
+                      // shiori: a page colour the reader picks; it styles the book, not the interface
+                      Colors.grey[800]!,
+                      selectedColor,
+                      context.l10n.page_color_graphite,
+                    ),
+                    _colorOption(
+                      context,
+                      // shiori: a page colour the reader picks; it styles the book, not the interface
+                      Colors.grey[300]!,
+                      selectedColor,
+                      context.l10n.page_color_mist,
+                    ),
+                    _colorOption(
+                      context,
+                      // shiori: a page colour the reader picks; it styles the book, not the interface
+                      Colors.brown[100]!,
+                      selectedColor,
+                      context.l10n.page_color_paper,
+                    ),
+                    _colorOption(
+                      context,
+                      // shiori: a page colour the reader picks; it styles the book, not the interface
+                      Colors.blue[100]!,
+                      selectedColor,
+                      context.l10n.page_color_sky,
+                    ),
+                    _colorOption(
+                      context,
+                      // shiori: a page colour the reader picks; it styles the book, not the interface
+                      Colors.green[100]!,
+                      selectedColor,
+                      context.l10n.page_color_mint,
+                    ),
+                    _colorOption(
+                      context,
+                      // shiori: a page colour the reader picks; it styles the book, not the interface
+                      Colors.amber[100]!,
+                      selectedColor,
+                      context.l10n.page_color_honey,
+                    ),
                   ],
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(
+            ShioriButton.quiet(
+              label: context.l10n.cancel,
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(context.l10n.cancel),
             ),
           ],
         );
@@ -302,45 +308,54 @@ class NovelColorPicker extends StatelessWidget {
     BuildContext context,
     Color optionColor,
     Color selectedColor,
+    String name,
   ) {
     final isSelected = optionColor.toARGB32() == selectedColor.toARGB32();
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          onColorChanged(_colorToHex(optionColor));
-          Navigator.of(context).pop();
-        },
-        borderRadius: BorderRadius.circular(8),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: optionColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
-              width: isSelected ? 2.5 : 1,
-            ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: Theme.of(context).primaryColor
-                          .withValues(alpha: 0.4),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
-          ),
+    // A swatch alone says nothing to a screen reader, and little to anyone
+    // choosing between two greys.
+    return Tooltip(
+      message: name,
+      child: Semantics(
+        button: true,
+        selected: isSelected,
+        label: name,
+        child: _swatch(context, optionColor, isSelected),
+      ),
+    );
+  }
+
+  Widget _swatch(BuildContext context, Color optionColor, bool isSelected) {
+    return AnimatedContainer(
+      duration: ShioriMotion.standard,
+      width: 48,
+      height: 48,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: optionColor,
+        borderRadius: BorderRadius.circular(ShioriShape.cover),
+        border: Border.all(
+          color: isSelected
+              ? context.shiori.color.accentInk
+              : context.shiori.color.fgMuted,
+          width: isSelected ? 2.5 : 1,
+        ),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: () {
+            onColorChanged(_colorToHex(optionColor));
+            Navigator.of(context).pop();
+          },
+          borderRadius: BorderRadius.circular(ShioriShape.cover),
           child: isSelected
-              ? Icon(
-                  Icons.check_circle_rounded,
-                  size: 22,
-                  color: optionColor.computeLuminance() > 0.5
-                      ? Colors.black
-                      : Colors.white,
+              ? Center(
+                  child: Icon(
+                    Symbols.check_circle_rounded,
+                    fill: 1,
+                    size: 22,
+                    color: ShioriColors.onFill(optionColor),
+                  ),
                 )
               : null,
         ),
@@ -350,80 +365,70 @@ class NovelColorPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _showColorPickerDialog(context),
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: Colors.grey.withValues(alpha: 0.25),
-              width: 1,
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        border: Border.all(color: context.shiori.color.hairline, width: 1),
+        borderRadius: BorderRadius.circular(ShioriShape.card),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: () => _showColorPickerDialog(context),
+          borderRadius: BorderRadius.circular(ShioriShape.card),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: ShioriSpace.s12,
+              vertical: ShioriSpace.s8,
             ),
-            borderRadius: BorderRadius.circular(10),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).primaryColor.withValues(alpha: 0.03),
-                Colors.transparent,
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: _parseColor(color),
+                    borderRadius: BorderRadius.circular(ShioriShape.cover),
+                    border: Border.all(
+                      color: context.shiori.color.hairline,
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: ShioriSpace.s8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: context.shiori.text.badge.fontSize,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        color,
+                        style: TextStyle(
+                          fontSize: context.shiori.text.badge.fontSize,
+                          color: context.shiori.color.fgMuted,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Symbols.palette_rounded,
+                  color: context.shiori.color.accent.withValues(
+                    alpha: Alphas.accentTint,
+                  ),
+                  size: 16,
+                ),
               ],
             ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: _parseColor(color),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: Colors.grey.withValues(alpha: 0.5),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 3,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      color,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.palette_outlined,
-                color: Theme.of(context).primaryColor.withValues(alpha: 0.7),
-                size: 16,
-              ),
-            ],
           ),
         ),
       ),
@@ -445,32 +450,35 @@ class NovelAlignButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          height: 36,
-          decoration: BoxDecoration(
-            color: isSelected
-                ? Theme.of(context).primaryColor.withValues(alpha: 0.15)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
+    return AnimatedContainer(
+      duration: ShioriMotion.standard,
+      height: 36,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: isSelected
+            ? context.shiori.color.accent.withValues(alpha: Alphas.accentTint)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(ShioriShape.cover),
+        border: Border.all(
+          color: isSelected
+              ? context.shiori.color.accent
+              : context.shiori.color.hairline,
+          width: isSelected ? 1.5 : 1,
+        ),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(ShioriShape.cover),
+          child: Center(
+            child: Icon(
+              icon,
+              size: 18,
               color: isSelected
-                  ? Theme.of(context).primaryColor
-                  : Colors.grey.withValues(alpha: 0.2),
-              width: isSelected ? 1.5 : 1,
+                  ? context.shiori.color.accent
+                  : context.shiori.color.fg,
             ),
-          ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: isSelected
-                ? Theme.of(context).primaryColor
-                : Theme.of(context).iconTheme.color,
           ),
         ),
       ),
@@ -494,56 +502,58 @@ class NovelModeChipButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).primaryColor;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? primaryColor.withValues(alpha: 0.15)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected
-                  ? primaryColor
-                  : Colors.grey.withValues(alpha: 0.25),
-              width: isSelected ? 1.5 : 1,
+    final primaryColor = context.shiori.color.accent;
+    return AnimatedContainer(
+      duration: ShioriMotion.standard,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: isSelected
+            ? primaryColor.withValues(alpha: Alphas.accentTint)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(ShioriShape.card),
+        border: Border.all(
+          color: isSelected ? primaryColor : context.shiori.color.hairline,
+          width: isSelected ? 1.5 : 1,
+        ),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(ShioriShape.card),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: ShioriSpace.s8,
+              vertical: ShioriSpace.s8,
             ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Icon(
-                icon,
-                size: 17,
-                color: isSelected
-                    ? primaryColor
-                    : Theme.of(context).iconTheme.color,
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isSelected
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                    color: isSelected
-                        ? primaryColor
-                        : Theme.of(context).textTheme.bodyMedium?.color,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Icon(
+                  icon,
+                  size: 17,
+                  color: isSelected ? primaryColor : context.shiori.color.fg,
+                ),
+                const SizedBox(width: ShioriSpace.s8),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: context.shiori.text.meta.fontSize,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: isSelected
+                          ? primaryColor
+                          : context.shiori.color.fg,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

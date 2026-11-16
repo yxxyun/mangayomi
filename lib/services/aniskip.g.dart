@@ -40,13 +40,13 @@ final class AniSkipProvider extends $NotifierProvider<AniSkip, void> {
   }
 }
 
-String _$aniSkipHash() => r'2e5d19b025a2207ff64da7bf7908450ea9e5ff8c';
+String _$aniSkipHash() => r'cc2a5785c07a18fb8f9126fcb7664d9f743f726e';
 
 abstract class _$AniSkip extends $Notifier<void> {
   void build();
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<void, void>;
     final element =
         ref.element
@@ -56,6 +56,6 @@ abstract class _$AniSkip extends $Notifier<void> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    return element.handleCreate(ref, build);
   }
 }

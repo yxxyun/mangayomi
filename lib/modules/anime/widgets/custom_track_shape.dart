@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:shiori/shiori.dart';
 
 /// Material Design 3 Slider Track Shape with support for buffer progress and chapter mark ticks.
 class CustomTrackShape extends SliderTrackShape {
@@ -8,6 +9,10 @@ class CustomTrackShape extends SliderTrackShape {
   final double bufferPosition;
   final List<(String, int)> chapterMarks;
   final double chapterMarkWidth;
+
+  /// Stretches of the video to mark on the track, in milliseconds: the
+  /// opening and the ending AniSkip knows.
+  final List<(int, int)> highlights;
   double trackWidth;
 
   CustomTrackShape({
@@ -18,6 +23,7 @@ class CustomTrackShape extends SliderTrackShape {
     required this.chapterMarks,
     this.chapterMarkWidth = 3,
     this.trackWidth = 5,
+    this.highlights = const [],
   });
 
   @override
@@ -28,7 +34,8 @@ class CustomTrackShape extends SliderTrackShape {
     bool? isEnabled,
     bool? isDiscrete,
   }) {
-    final double thumbWidth = sliderTheme.thumbShape
+    final double thumbWidth =
+        sliderTheme.thumbShape
             ?.getPreferredSize(isEnabled ?? true, isDiscrete ?? false)
             .width ??
         12.0;
@@ -64,8 +71,12 @@ class CustomTrackShape extends SliderTrackShape {
       isDiscrete: isDiscrete,
     );
 
-    final double activeFraction = maxValue > 0 ? (currentPosition / maxValue).clamp(0.0, 1.0) : 0.0;
-    final double bufferFraction = maxValue > 0 ? (bufferPosition / maxValue).clamp(0.0, 1.0) : 0.0;
+    final double activeFraction = maxValue > 0
+        ? (currentPosition / maxValue).clamp(0.0, 1.0)
+        : 0.0;
+    final double bufferFraction = maxValue > 0
+        ? (bufferPosition / maxValue).clamp(0.0, 1.0)
+        : 0.0;
 
     final double currentPositionWidth = trackWidth * activeFraction;
     final double bufferPositionWidth = trackWidth * bufferFraction;
@@ -75,7 +86,9 @@ class CustomTrackShape extends SliderTrackShape {
 
     // 1. Inactive full track (M3 base)
     final inactivePaint = Paint()
-      ..color = sliderTheme.inactiveTrackColor ?? const Color(0x33FFFFFF)
+      ..color =
+          sliderTheme.inactiveTrackColor ??
+          Colors.white.withValues(alpha: Alphas.hairline)
       ..style = PaintingStyle.fill;
     canvas.drawRRect(
       RRect.fromRectAndRadius(trackRect, trackRadius),
@@ -87,11 +100,16 @@ class CustomTrackShape extends SliderTrackShape {
       final bufferRect = Rect.fromLTRB(
         trackRect.left,
         trackRect.top,
-        (trackRect.left + bufferPositionWidth).clamp(trackRect.left, trackRect.right),
+        (trackRect.left + bufferPositionWidth).clamp(
+          trackRect.left,
+          trackRect.right,
+        ),
         trackRect.bottom,
       );
       final bufferPaint = Paint()
-        ..color = sliderTheme.secondaryActiveTrackColor ?? const Color(0x66FFFFFF)
+        ..color =
+            sliderTheme.secondaryActiveTrackColor ??
+            Colors.white.withValues(alpha: Alphas.disabled)
         ..style = PaintingStyle.fill;
       canvas.drawRRect(
         RRect.fromRectAndRadius(bufferRect, trackRadius),
@@ -104,11 +122,14 @@ class CustomTrackShape extends SliderTrackShape {
       final activeRect = Rect.fromLTRB(
         trackRect.left,
         trackRect.top,
-        (trackRect.left + currentPositionWidth).clamp(trackRect.left, trackRect.right),
+        (trackRect.left + currentPositionWidth).clamp(
+          trackRect.left,
+          trackRect.right,
+        ),
         trackRect.bottom,
       );
       final activePaint = Paint()
-        ..color = sliderTheme.activeTrackColor ?? const Color(0xFFFFFFFF)
+        ..color = sliderTheme.activeTrackColor ?? Colors.white
         ..style = PaintingStyle.fill;
       canvas.drawRRect(
         RRect.fromRectAndRadius(activeRect, trackRadius),
@@ -116,7 +137,32 @@ class CustomTrackShape extends SliderTrackShape {
       );
     }
 
-    // 4. Chapter Marks / Ticks
+    // 4. Marked stretches (opening, ending): lighter over the track, so
+    // they read ahead of the play head and behind it alike.
+    if (highlights.isNotEmpty && maxValue > 0) {
+      final highlightPaint = Paint()
+        ..color = Colors.white.withValues(alpha: Alphas.disabled)
+        ..style = PaintingStyle.fill;
+      for (final (start, end) in highlights) {
+        final from = (start / maxValue).clamp(0.0, 1.0);
+        final to = (end / maxValue).clamp(0.0, 1.0);
+        if (to <= from) continue;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTRB(
+              trackRect.left + trackWidth * from,
+              trackRect.top,
+              trackRect.left + trackWidth * to,
+              trackRect.bottom,
+            ),
+            trackRadius,
+          ),
+          highlightPaint,
+        );
+      }
+    }
+
+    // 5. Chapter Marks / Ticks
     if (chapterMarks.isNotEmpty && maxValue > 0) {
       final markPaint = Paint()
         ..color = Colors.white.withValues(alpha: 0.70)
@@ -132,7 +178,7 @@ class CustomTrackShape extends SliderTrackShape {
             chapterMarkWidth,
             trackRect.height + 3.0,
           ),
-          const Radius.circular(2),
+          const Radius.circular(ShioriShape.badge),
         );
         canvas.drawRRect(markRect, markPaint);
       }

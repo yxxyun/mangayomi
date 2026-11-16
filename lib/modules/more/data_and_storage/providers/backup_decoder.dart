@@ -2,9 +2,11 @@
 // handling AES-encrypted backups. Kept apart from restore.dart: this only
 // reads and decrypts a file, it never touches Isar.
 import 'dart:convert';
+import 'dart:io';
+import 'dart:isolate';
 
 import 'package:archive/archive_io.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mangayomi/modules/more/data_and_storage/widgets/backup_encryption_password_dialog.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/backup_password_storage.dart';
@@ -34,25 +36,38 @@ Future<Map<String, dynamic>> decodeMangayomiBackup(
   final l10n = l10nLocalizations(context)!;
 
   while (true) {
-    final stream = InputFileStream(path);
     try {
-      final archive = ZipDecoder().decodeStream(
-        stream,
-        password: passwordToTry,
-      );
-      // decodeStream() only parses headers and buffers raw compressed
-      // bytes - it doesn't verify/decrypt content (and so won't throw on a
-      // wrong password) until the content is actually read, hence forcing
-      // that access here rather than after returning.
-      final bytes = archive.files.first.content as List<int>;
-      final backup = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+      final backup = await Isolate.run(() {
+        final stream = InputFileStream(path);
+        try {
+          final archive = ZipDecoder().decodeStream(
+            stream,
+            password: passwordToTry,
+          );
+          // decodeStream() only parses headers and buffers raw compressed
+          // bytes - it doesn't verify/decrypt content (and so won't throw on a
+          // wrong password) until the content is actually read, hence forcing
+          // that access here rather than after returning.
+          final jsonFile = archive.files.where((f) => f.isFile).firstOrNull;
+          if (jsonFile == null) {
+            throw const FormatException('Empty backup archive');
+          }
+          final bytes = jsonFile.content as List<int>;
+          return jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+        } finally {
+          stream.close();
+        }
+      });
 
       final embeddedPassword = backup['backupEncryptionPassword'] as String?;
       if (embeddedPassword != null && context.mounted) {
         await persistResolvedPassword(embeddedPassword, context);
       }
       return backup;
-    } catch (_) {
+    } catch (error) {
+      if (!isBackupPasswordError(error, triedPassword: passwordToTry != null)) {
+        rethrow;
+      }
       if (!triedStoredPassword) {
         triedStoredPassword = true;
         final stored = await BackupPasswordStorage.get();
@@ -71,8 +86,19 @@ Future<Map<String, dynamic>> decodeMangayomiBackup(
       }
       passwordToTry = entered;
       wasIncorrect = true;
-    } finally {
-      stream.close();
     }
   }
+}
+
+/// Whether [error], from reading a backup, means its password is missing or
+/// wrong, as opposed to the file being unreadable: a corrupt or empty file
+/// is reported as it is instead of asking for a password over and over.
+bool isBackupPasswordError(Object error, {required bool triedPassword}) {
+  if (error is FileSystemException) return false;
+  if (error is ArchiveException && error.message.contains('password')) {
+    return true;
+  }
+  // ZipCrypto's only password check lets one wrong password in 256 through,
+  // and the entry then fails to inflate or decode like a corrupt one.
+  return triedPassword;
 }

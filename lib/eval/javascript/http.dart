@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter_qjs/flutter_qjs.dart';
 import 'package:http_interceptor/http_interceptor.dart';
 import 'package:mangayomi/eval/http_response_extensions.dart';
-import 'package:mangayomi/services/http/m_client.dart';
 import 'package:http/http.dart' as http;
 
 void _diag(String msg) {
@@ -75,7 +74,7 @@ class Client {
     async put(url, headers, body) {
         headers = headers;
         const result = await sendMessage(
-            "http_post",
+            "http_put",
             JSON.stringify([null, this.reqcopyWith, url, headers, body])
         );
         return JSON.parse(result);
@@ -83,7 +82,7 @@ class Client {
     async delete(url, headers, body) {
         headers = headers;
         const result = await sendMessage(
-            "http_post",
+            "http_delete",
             JSON.stringify([null, this.reqcopyWith, url, headers, body])
         );
         return JSON.parse(result);
@@ -91,7 +90,7 @@ class Client {
     async patch(url, headers, body) {
         headers = headers;
         const result = await sendMessage(
-            "http_post",
+            "http_patch",
             JSON.stringify([null, this.reqcopyWith, url, headers, body])
         );
         return JSON.parse(result);

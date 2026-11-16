@@ -1,5 +1,6 @@
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mangayomi/repositories/settings_repository.dart';
+import 'package:mangayomi/utils/log/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'app_font_family.g.dart';
 
@@ -14,7 +15,11 @@ class AppFontFamily extends _$AppFontFamily {
     if (fontFamily == null || fontFamily.isEmpty) return null;
     try {
       return GoogleFonts.getFont(fontFamily).fontFamily;
-    } catch (_) {
+    } catch (error) {
+      AppLogger.log(
+        'Could not resolve the app font "$fontFamily": $error',
+        logLevel: LogLevel.warning,
+      );
       return fontFamily;
     }
   }

@@ -56,7 +56,7 @@ final class AppFontFamilyProvider
   }
 }
 
-String _$appFontFamilyHash() => r'0ec01471b2f54563146e49a1d104a9ac2420bb02';
+String _$appFontFamilyHash() => r'a594c821120d786ef76b08ae845bf48c53458884';
 
 /// Provides both the raw and resolved font family.
 ///
@@ -68,7 +68,7 @@ abstract class _$AppFontFamily extends $Notifier<(String?, String?)> {
   (String?, String?) build();
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<(String?, String?), (String?, String?)>;
     final element =
         ref.element
@@ -78,6 +78,6 @@ abstract class _$AppFontFamily extends $Notifier<(String?, String?)> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    return element.handleCreate(ref, build);
   }
 }

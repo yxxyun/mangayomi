@@ -56,3 +56,7 @@ libisar.dylib
 libisar.so
 isar.dll
 libisar.dll
+
+# Merge scratch (3-way copies, arb merger, build logs) and tool exports.
+.merge/
+.cortexkit-export/

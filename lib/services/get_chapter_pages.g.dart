@@ -70,7 +70,7 @@ final class GetChapterPagesProvider
   }
 }
 
-String _$getChapterPagesHash() => r'e53341d18b96c779c9894c565a1b2ba8b0522407';
+String _$getChapterPagesHash() => r'a09148a2d58680994546d83e606599e186e553d9';
 
 final class GetChapterPagesFamily extends $Family
     with
