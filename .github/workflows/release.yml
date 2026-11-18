@@ -162,9 +162,12 @@ jobs:
   build-and-release-ios-ipa:
     permissions:
       contents: write
-    runs-on: macos-26
+    # macos-26 is the pool GitHub is currently shortest on: the job sat queued
+    # and was cancelled with "not acquired by Runner of type hosted" four
+    # times running. macos-15 is the same image ci.yml already builds iOS on.
+    runs-on: macos-15
     env:
-      # Rust 1.100 makes Xcode 26.6's linker crash on the release build
+      # Rust 1.100 makes the Xcode linker crash on the release build
       # (Segmentation fault: 11); 1.99.1 links. Cargokit builds with this
       # one too. Move up once a newer Rust or Xcode links again.
       CARGOKIT_TOOLCHAIN: "1.99.1"
@@ -228,13 +231,20 @@ jobs:
             ./zsign -f -k ./certificate.p12 -p "$P12_PASSWORD" -m ./profile.mobileprovision ./build/ios/iphoneos/Payload/Runner.app
           fi
           cd build/ios/iphoneos
-          zip -r Mangayomi-${{ github.ref_name }}-ios.ipa Payload
+          # Name the file for what it is: an unsigned package the user signs
+          # with their own certificate before installing.
+          if [ "$SIGNED" = "1" ]; then
+            zip -r Mangayomi-${{ github.ref_name }}-ios.ipa Payload
+          else
+            zip -r Mangayomi-${{ github.ref_name }}-ios-unsigned.ipa Payload
+          fi
 
       - name: Upload artifact iOS IPA
         uses: actions/upload-artifact@v4.6.2
         with:
           name: Mangayomi-${{ github.ref_name }}-ios
           path: "build/ios/iphoneos/Mangayomi-*.ipa"
+          if-no-files-found: error
 
   build-and-release-macos-dmg:
     permissions:
