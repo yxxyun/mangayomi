@@ -74,7 +74,10 @@ android {
    }
    buildTypes {
        release {
-           signingConfig signingConfigs.release
+           // A fork without the signing secrets still has to produce an
+           // installable build: fall back to the debug key rather than failing
+           // the package step with "missing required property storeFile".
+           signingConfig keystoreProperties['storeFile'] ? signingConfigs.release : signingConfigs.debug
        }
    }
    repositories {

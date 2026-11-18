@@ -48,9 +48,21 @@ jobs:
           echo "org.gradle.daemon=false" >> android/gradle.properties
 
       - name: Setup Android keystore
+        env:
+          KEY_STORE: ${{ secrets.SIGNING_KEY_STORE_BASE64 }}
+          KEY_PROPERTIES: ${{ secrets.SIGNING_KEY_PROPERTIES }}
         run: |
-          echo "${{ secrets.SIGNING_KEY_STORE_BASE64 }}" | base64 -di > android/app/upload-keystore.jks
-          echo "${{ secrets.SIGNING_KEY_PROPERTIES }}" > android/key.properties
+          # Without the secrets the keystore would be an empty file and Gradle
+          # would stop at packaging with "missing required property storeFile".
+          # Leave both out instead, so the release build signs with the debug
+          # key and the artifact is still installable.
+          if [ -n "$KEY_STORE" ] && [ -n "$KEY_PROPERTIES" ]; then
+            echo "$KEY_STORE" | base64 -di > android/app/upload-keystore.jks
+            echo "$KEY_PROPERTIES" > android/key.properties
+            echo "Signing with the release keystore."
+          else
+            echo "::warning title=Unsigned release::SIGNING_KEY_STORE_BASE64/SIGNING_KEY_PROPERTIES are empty; packaging with the debug key."
+          fi
 
       - name: flutter pub get
         run: flutter pub get
@@ -191,11 +203,17 @@ jobs:
           P12_BASE64: ${{ secrets.P12_CERTIFICATE }}
           PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE }}
         run: |
-          echo "$P12_BASE64" | base64 -d > certificate.p12
-          echo "$PROVISIONING_PROFILE_BASE64" | base64 -d > profile.mobileprovision
-          curl -L -o zsign.zip "https://github.com/zhlynn/zsign/releases/download/v${{ env.ZSIGN_VERSION }}/zsign-v${{ env.ZSIGN_VERSION }}-macos-x64.zip"
-          unzip zsign.zip
-          chmod +x zsign || chmod +x zsign-*
+          if [ -n "$P12_BASE64" ] && [ -n "$PROVISIONING_PROFILE_BASE64" ]; then
+            echo "$P12_BASE64" | base64 -d > certificate.p12
+            echo "$PROVISIONING_PROFILE_BASE64" | base64 -d > profile.mobileprovision
+            curl -L -o zsign.zip "https://github.com/zhlynn/zsign/releases/download/v${{ env.ZSIGN_VERSION }}/zsign-v${{ env.ZSIGN_VERSION }}-macos-x64.zip"
+            unzip zsign.zip
+            chmod +x zsign || chmod +x zsign-*
+            echo "SIGNED=1" >> "$GITHUB_ENV"
+          else
+            echo "::warning title=Unsigned iOS build::P12_CERTIFICATE/PROVISIONING_PROFILE are empty; producing an unsigned .ipa."
+            echo "SIGNED=0" >> "$GITHUB_ENV"
+          fi
 
       - name: Build iOS
         env:
@@ -204,7 +222,11 @@ jobs:
           flutter build ios --release --no-codesign
           mkdir -p build/ios/iphoneos/Payload
           mv build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
-          ./zsign -f -k ./certificate.p12 -p "$P12_PASSWORD" -m ./profile.mobileprovision ./build/ios/iphoneos/Payload/Runner.app
+          # An unsigned build still packages: the .ipa only installs on a
+          # device after the user signs it themselves.
+          if [ "$SIGNED" = "1" ]; then
+            ./zsign -f -k ./certificate.p12 -p "$P12_PASSWORD" -m ./profile.mobileprovision ./build/ios/iphoneos/Payload/Runner.app
+          fi
           cd build/ios/iphoneos
           zip -r Mangayomi-${{ github.ref_name }}-ios.ipa Payload
 
@@ -542,6 +564,9 @@ jobs:
       - build-and-release-windows-exe_zip
       - build-and-release-linux-zip_AppImage_RPM
       - build-and-release-linux-deb
+    # Publish whatever did build. A platform that fails (a runner outage, a
+    # fork without signing secrets) must not withhold the other artifacts.
+    if: ${{ !cancelled() }}
     steps:
       - name: Download all build artifacts
         uses: actions/download-artifact@v4.3.0
