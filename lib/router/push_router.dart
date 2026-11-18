@@ -4,8 +4,9 @@ import 'package:mangayomi/eval/model/m_bridge.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/source.dart';
-import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/built_in_sources.dart';
+import 'package:mangayomi/providers/l10n_providers.dart';
+
 import 'package:mangayomi/repositories/source_repository.dart';
 import 'package:shiori/shiori.dart';
 

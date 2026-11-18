@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:mangayomi/services/reader/u_chap_data_preload.dart';
 import 'package:mangayomi/providers/browse_state_provider.dart';
-import 'package:mangayomi/services/built_in_extension_service.dart';
+
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/services/chapter_cache.dart';
 import 'package:mangayomi/utils/downloaded_page_file.dart';
@@ -15,6 +15,7 @@ import 'package:mangayomi/providers/storage_provider.dart';
 import 'package:mangayomi/services/downloaded_chapter.dart';
 import 'package:mangayomi/utils/utils.dart';
 import 'package:mangayomi/providers/incognito_mode_state_provider.dart';
+import 'package:mangayomi/services/built_in_extension_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'get_chapter_pages.g.dart';
 

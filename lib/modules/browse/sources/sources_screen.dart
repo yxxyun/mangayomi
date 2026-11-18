@@ -139,6 +139,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
                         ),
                     ],
                   ),
+
                 ShioriSectionHeader(title: l10n.other, overline: true),
                 SourceListTile(
                   source: Source(
@@ -171,7 +172,6 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
                   const SliverToBoxAdapter(
                     child: ExtensionServerWarningBanner(),
                   ),
-                // Built-in sources section (at the top).
                 if (BuiltInSources.all.any((s) => s.itemType == widget.itemType))
                   SliverToBoxAdapter(
                     child: Column(
@@ -190,6 +190,7 @@ class _SourcesScreenState extends ConsumerState<SourcesScreen> {
                       ],
                     ),
                   ),
+
                 CustomSliverGroupedListView<Source, String>(
                   elements: lastUsedEntries,
                   groupBy: (element) => "",

@@ -8,12 +8,15 @@ import 'package:mangayomi/services/built_in_extension_service.dart';
 /// them, then open and say why it gives nothing, rather than failing to
 /// build.
 List<dynamic> getFilterList({required Source source}) {
+  // Built-in sources have no sourceCode, so no runtime can produce their
+  // filters; ask the facade instead.
   final builtIn = builtInServiceFor(source);
   if (builtIn != null) {
     final f = builtIn.getFilterList().filters;
     builtIn.dispose();
     return f;
   }
+
   try {
     final filters = getCachedExtensionService(
       source,

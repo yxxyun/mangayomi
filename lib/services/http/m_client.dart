@@ -160,7 +160,14 @@ class MClient {
 
   /// Async version — safe for worker isolates where getSync may block.
   static Future<Map<String, String>> getCookiesPrefAsync(String url) async {
-    final settings = await settingsRepository.currentAsync;
+    final Settings? settings;
+    try {
+      settings = await settingsRepository.currentAsync;
+    } catch (_) {
+      // No Isar yet (worker isolate starting up, or a unit test without a
+      // database): there are no cookies to add.
+      return {};
+    }
     final cookiesList = settings?.cookiesList ?? [];
     if (cookiesList.isEmpty) return {};
     final host = Uri.parse(url).host;
@@ -259,9 +266,13 @@ class MCookieManager extends InterceptorContract {
 
   @override
   Future<BaseRequest> interceptRequest({required BaseRequest request}) async {
-    // Use async Isar reads — sync getSync/currentOrNull block the event loop
-    // in worker isolates (fork-side fix, kept across upstream refactor).
-    final settings = await settingsRepository.currentAsync;
+    // Async Isar reads: the sync getSync/currentOrNull calls block the event
+    // loop in worker isolates. A store that is not open yet (worker start-up,
+    // unit test) has no settings and no cookies, not an error.
+    Settings? settings;
+    try {
+      settings = await settingsRepository.currentAsync;
+    } catch (_) {}
     final cookie = await MClient.getCookiesPrefAsync(request.url.toString());
     applyStoredRequestHeaders(
       request,

@@ -142,9 +142,10 @@ Future<dynamic> updateMangaDetail(
 
       if (chaps == null || chaps.isEmpty) return;
 
-      // For built-in sources: delete all old chapters first (URL encodes
-      // ephemeral tokens — duplicates are created on every refresh).
-      // But preserve playback progress by name.
+      // Built-in sources encode an expiring cloud-drive token in every
+      // episode URL, so each refresh would otherwise add a parallel copy of
+      // every chapter. Drop the previous generation first and carry the
+      // playback progress over by name below.
       final Map<String, Chapter> oldByName = {};
       final isBuiltIn = _isBuiltInManga(current);
       if (isBuiltIn) {
@@ -157,9 +158,8 @@ Future<dynamic> updateMangaDetail(
         }
       }
 
-      final existingChapters = isBuiltIn
-          ? const <Chapter>[]
-          : consolidated.chapters;
+      final existingChapters =
+          isBuiltIn ? const <Chapter>[] : consolidated.chapters;
       final recognition = ChapterRecognition();
 
       // Season and episode together, never the episode alone. The episode
@@ -269,7 +269,8 @@ Future<dynamic> updateMangaDetail(
             newChapter.lastPageRead = "1";
           }
 
-          // For built-in sources: carry over playback progress by name.
+          // Built-in sources rebuilt their chapters; keep the progress the
+          // user had by name.
           if (isBuiltIn && chap.name != null) {
             final old = oldByName[chap.name!];
             if (old != null) {

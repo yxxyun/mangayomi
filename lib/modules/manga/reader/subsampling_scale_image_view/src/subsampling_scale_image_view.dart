@@ -77,6 +77,39 @@ class SubsamplingScaleImageViewController extends ChangeNotifier {
     );
   }
 
+  // ── Commands ───────────────────────────────────────────────────────────────
+
+  /// Resets scale and center to initial state.
+  void resetScaleAndCenter() => _state?._reset();
+
+  /// Sets scale and translation directly (without animation).
+  void setScaleAndTranslation(double scale, ui.Offset translation) {
+    _state?._setScaleAndTranslation(scale, translation);
+  }
+
+  /// Sets scale and centers the view on a source point (without animation).
+  void setScaleAndCenter(double scale, ui.Offset sCenter) {
+    _state?._setScaleAndCenter(scale, sCenter);
+  }
+
+  /// Animates to a scale and source center.
+  void animateScaleAndCenter(
+    double targetScale,
+    ui.Offset sCenter, {
+    Duration duration = ShioriMotion.enter,
+  }) {
+    _state?._animateScaleAndCenter(targetScale, sCenter, duration);
+  }
+
+  /// Animates to a scale and translation.
+  void animateScaleAndTranslation(
+    double targetScale,
+    ui.Offset targetTranslate, {
+    Duration duration = ShioriMotion.enter,
+  }) {
+    _state?._animateScaleAndTranslation(targetScale, targetTranslate, duration);
+  }
+
   // ── Coordinate Conversion ────────────────────────────────────────────────
 
   /// Converts a view (screen) point to image source coordinates.
@@ -121,39 +154,6 @@ class SubsamplingScaleImageViewController extends ChangeNotifier {
       ui.Offset(s._viewSize.width, s._viewSize.height),
     );
     return ui.Rect.fromPoints(topLeft, bottomRight);
-  }
-
-  // ── Commands ───────────────────────────────────────────────────────────────
-
-  /// Resets scale and center to initial state.
-  void resetScaleAndCenter() => _state?._reset();
-
-  /// Sets scale and translation directly (without animation).
-  void setScaleAndTranslation(double scale, ui.Offset translation) {
-    _state?._setScaleAndTranslation(scale, translation);
-  }
-
-  /// Sets scale and centers the view on a source point (without animation).
-  void setScaleAndCenter(double scale, ui.Offset sCenter) {
-    _state?._setScaleAndCenter(scale, sCenter);
-  }
-
-  /// Animates to a scale and source center.
-  void animateScaleAndCenter(
-    double targetScale,
-    ui.Offset sCenter, {
-    Duration duration = ShioriMotion.enter,
-  }) {
-    _state?._animateScaleAndCenter(targetScale, sCenter, duration);
-  }
-
-  /// Animates to a scale and translation.
-  void animateScaleAndTranslation(
-    double targetScale,
-    ui.Offset targetTranslate, {
-    Duration duration = ShioriMotion.enter,
-  }) {
-    _state?._animateScaleAndTranslation(targetScale, targetTranslate, duration);
   }
 }
 
@@ -327,13 +327,6 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
   late TilingEngine _tilingEngine;
   bool _isInitialized = false;
   bool _rebuildScheduled = false;
-  /// Tile-loading helpers live in the tile-loading part (extension on this
-  /// class); extensions are outside the State class, so protected setState
-  /// is reached through this shim.
-  void rebuildTiles() => setState(() {});
-  /// Full-image RGBA bytes cache for the fallback tile path; owned by the
-  /// class because extensions cannot declare instance fields.
-  Uint8List? fallbackBytes;
   int _sWidth = 0;
   int _sHeight = 0;
 
@@ -347,10 +340,20 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
   ImageChunkEvent? _loadingProgress;
   String? _resolvedFilePath;
   ImageStream? _activeImageStream;
-  ImageStreamListener? _activeImageStreamListener;
-  /// Fallback ui.Image from ImageStream, used when the FFI decoder
-  /// cannot decode the cached file format (e.g. WebP on Windows).
+
+  /// Full-image RGBA bytes for the fallback tile path; owned by the class
+  /// because extensions cannot declare instance fields.
+  Uint8List? fallbackBytes;
+
+  /// Fallback ui.Image from ImageStream, used when the FFI decoder cannot
+  /// decode the cached file format (WebP on Windows) or the image had to be
+  /// descrambled (JM), which no on-disk copy represents.
   ui.Image? _fallbackImage;
+
+  /// setState from outside the class: the tile-loading part is an extension,
+  /// where setState is not visible.
+  void rebuildTiles() => setState(() {});
+  ImageStreamListener? _activeImageStreamListener;
 
   // Gestures
   double _scaleStart = 1.0;
@@ -412,7 +415,6 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     widget.controller?._detach(this);
     _animationController.dispose();
     _tilingEngine.dispose();
-    _fallbackImage?.dispose();
     super.dispose();
   }
 
@@ -475,105 +477,6 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
     }
   }
 
-  void _loadTile(Tile tile) {
-    if (_resolvedFilePath == null) return;
-    tile.loading = true;
-
-    // When the ImageStream path already decoded the image (e.g. WebP that the
-    // FFI decoder can't handle, or JM scrambled images that were restored),
-    // load tiles directly from the decoded [_fallbackImage].
-    if (_fallbackImage != null) {
-      tile.loading = false;
-      _loadTileFromFallback(tile);
-      return;
-    }
-
-    final transformer = CoordinateTransformer(
-      scale: _scale,
-      vTranslate: _vTranslate,
-      rotation: widget.rotation,
-      sWidth: _sWidth,
-      sHeight: _sHeight,
-    );
-
-    var fileRect = transformer.fileSRect(tile.sRect);
-    if (widget.srcRect != null) {
-      fileRect = fileRect.translate(widget.srcRect!.left, widget.srcRect!.top);
-    }
-
-    final params = DecodeParams(
-      filePath: _resolvedFilePath!,
-      left: fileRect.left.toInt(),
-      top: fileRect.top.toInt(),
-      right: fileRect.right.toInt(),
-      bottom: fileRect.bottom.toInt(),
-      sampleSize: tile.sampleSize,
-      cropBorders: widget.cropBorders,
-    );
-    ffiImageDecoder.decodeRegionAsync(params, cancelToken: tile).then((result) {
-      if (result == null) return;
-      if (result.pointerAddress != null) {
-        final int left = fileRect.left.toInt();
-        final int top = fileRect.top.toInt();
-        final int right = fileRect.right.toInt();
-        final int bottom = fileRect.bottom.toInt();
-        final int destWidth = (right - left) ~/ tile.sampleSize;
-        final int destHeight = (bottom - top) ~/ tile.sampleSize;
-
-        final pointer = Pointer<Uint8>.fromAddress(result.pointerAddress!);
-        final bytes = pointer.asTypedList(destWidth * destHeight * 4);
-
-        if (!mounted) {
-          calloc.free(pointer);
-          return;
-        }
-
-        try {
-          ui.decodeImageFromPixels(
-            bytes,
-            destWidth,
-            destHeight,
-            ui.PixelFormat.rgba8888,
-            (ui.Image img) {
-              calloc.free(pointer);
-              if (!mounted) {
-                img.dispose();
-                return;
-              }
-              tile.image = img;
-              tile.loading = false;
-              if (_loadState != LoadState.completed) {
-                _loadState = LoadState.completed;
-                _notifyStateChanged();
-                widget.onReady?.call();
-                widget.onImageLoaded?.call(_sWidth, _sHeight);
-              }
-              _scheduleBatchRebuild();
-            },
-          );
-        } catch (e) {
-          calloc.free(pointer);
-          tile.loading = false;
-          if (mounted) {
-            setState(() {});
-          }
-        }
-      } else if (_fallbackImage != null) {
-        // FFI decoder failed. Use the fallback ImageStream image.
-        tile.loading = false;
-        _loadTileFromFallback(tile);
-      } else {
-        tile.loading = false;
-        final msg = result.error ?? 'Unknown error';
-        if (msg != 'Cancelled') {
-          if (kDebugMode) {
-            debugPrint('SubsamplingScaleImageView: Tile decoding failed: $msg');
-          }
-          widget.onTileError?.call(msg);
-        }
-      }
-    });
-  }
   // ── ImageProvider Resolution ──────────────────────────────────────────
 
   void _cancelImageStream() {
@@ -586,17 +489,6 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
 
   Future<void> _loadFromProvider({bool evictCache = false}) async {
     _cancelImageStream();
-
-    // Early network URL detection: JM images are scrambled and MUST go through
-    // the ImageStream path so they can be restored before tiling.
-    String? networkUrl;
-    String? cacheFolderName;
-    try {
-      final dynamic dynProvider = widget.image;
-      networkUrl = dynProvider.url;
-      cacheFolderName = dynProvider.imageCacheFolderName;
-    } catch (_) {}
-    final bool isJm = networkUrl?.contains('jmapiproxy') ?? false;
 
     if (mounted) {
       setState(() {
@@ -615,28 +507,23 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
 
     if (widget.resolvedFilePath != null) {
       _resolvedFilePath = widget.resolvedFilePath;
-      if (!isJm && await _tryInitImage()) return;
-      // JM images fall through to the ImageStream restore path.
+      await _initImage();
+      return;
     }
 
     final provider = widget.image;
+    final (fastPath, networkUrl, cacheFolderName) =
+        await tryResolveFastPathProvider(provider);
 
-    // 1-3. Fast paths (file / memory / cached network) live in the shared
-    // resolver. JM URLs stay scrambled on disk and in every cache, so the
-    // fast paths only apply to non-JM images; JM always takes the
-    // ImageStream path and gets unscrambled before tiling.
-    if (!isJm) {
-      final (fastPath, fastUrl, fastFolder) =
-          await tryResolveFastPathProvider(provider);
-      networkUrl ??= fastUrl;
-      cacheFolderName ??= fastFolder;
-      if (fastPath != null) {
-        _resolvedFilePath = fastPath;
-        if (await _tryInitImage()) return;
-        // The FFI decoder choked on the cached file (WebP on some
-        // platforms); fall through to the ImageStream path, whose
-        // fallback tiles from the decoded ui.Image instead.
-      }
+    // JM pages carry a horizontal strip scramble, in the cache and on disk
+    // alike, so a file read would tile the scrambled bytes. They always take
+    // the ImageStream path, where the decoded image gets restored.
+    final bool isJm = networkUrl?.contains('jmapiproxy') ?? false;
+
+    if (fastPath != null && !isJm) {
+      _resolvedFilePath = fastPath;
+      await _initImage();
+      return;
     }
 
     // 4. General path: resolution via ImageStream
@@ -668,32 +555,23 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
 
     try {
       final ui.Image loadedImage = await completer.future;
-      // Restore JM scrambled images (horizontal strip reorder) before tiling.
+      // Restore the strip order on a scrambled (JM) page before anything
+      // tiles or measures it.
       ui.Image displayImage = loadedImage;
       if (isJm) {
         final restored = await JmImageUnscrambler.restoreIfNeeded(
           loadedImage,
           networkUrl ?? '',
         );
-        if (restored != null) {
-          displayImage = restored;
-        }
+        if (restored != null) displayImage = restored;
       }
-      _fallbackImage = displayImage;
-      fallbackBytes = null;
       _cancelImageStream();
 
       if (!mounted) return;
 
-      // Initialise tile dimensions from the decoded ImageStream result.
-      _sWidth = widget.srcRect != null
-          ? widget.srcRect!.width.toInt()
-          : displayImage.width;
-      _sHeight = widget.srcRect != null
-          ? widget.srcRect!.height.toInt()
-          : displayImage.height;
-
-      // Try the fast file-based init first (supports JPEG already cached).
+      // If it was a network provider, it probably wrote the image to disk during loading.
+      // We re-check the cache before doing the heavy re-encoding fallback.
+      // A JM page's cache entry holds the scrambled bytes, so it is not usable.
       if (networkUrl != null && !isJm) {
         final cachedFile = await findCachedImageFile(
           networkUrl,
@@ -701,18 +579,40 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
         );
         if (cachedFile != null) {
           _resolvedFilePath = cachedFile.path;
-          if (await _tryInitImage()) return;
-          // FFI decoder failed on cached WebP. Tile loading will fall
-          // back to [_fallbackImage].
+          await _initImage();
+          return;
         }
       }
 
-// Initialise the tile engine directly from ImageStream dimensions.
-      // (FFI decoder cannot decode WebP on Windows, so skip the PNG-encode
-      // path and use the Dart-decoded image directly.)
-      if (mounted && _viewSize.width > 0 && _viewSize.height > 0) {
+      if (isJm) {
+        // Nothing on disk represents what we just decoded (the restore is
+        // in memory), so tile straight from it.
+        _fallbackImage = displayImage;
+        fallbackBytes = null;
+        _sWidth = widget.srcRect != null
+            ? widget.srcRect!.width.toInt()
+            : displayImage.width;
+        _sHeight = widget.srcRect != null
+            ? widget.srcRect!.height.toInt()
+            : displayImage.height;
         _setupInitialViewState();
         if (mounted) setState(() => _loadState = LoadState.completed);
+        widget.onReady?.call();
+        widget.onImageLoaded?.call(_sWidth, _sHeight);
+        return;
+      }
+
+      // Fallback: Encode the image to PNG to save it to disk
+      // (we control the encode, so the .png extension is exact)
+      final tempFile = await encodeLoadedUiImageToTempFile(
+        displayImage,
+        provider.hashCode.abs(),
+      );
+
+      _resolvedFilePath = tempFile.path;
+
+      if (mounted) {
+        await _initImage();
       }
     } catch (e, st) {
       if (kDebugMode) {
@@ -875,35 +775,6 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
 
   // ── Initialization ──────────────────────────────────────────────────────────
 
-  /// Tries to initialize using the FFI decoder.
-  /// Returns `true` on success, `false` if the file format is unsupported (e.g. WebP).
-  Future<bool> _tryInitImage() async {
-    final path = _resolvedFilePath;
-    if (path == null) return false;
-    try {
-      final outSize = await ffiImageDecoder.getImageDimensionsAsync(
-        path,
-        cropBorders: widget.cropBorders,
-      );
-      if (outSize == null || outSize[0] == 0 || outSize[1] == 0) {
-        return false;
-      }
-      _sWidth = widget.srcRect != null
-          ? widget.srcRect!.width.toInt()
-          : outSize[0];
-      _sHeight = widget.srcRect != null
-          ? widget.srcRect!.height.toInt()
-          : outSize[1];
-      if (mounted && _viewSize.width > 0 && _viewSize.height > 0) {
-        _setupInitialViewState();
-        if (mounted) setState(() => _loadState = LoadState.completed);
-      }
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
   Future<void> _initImage() async {
     var path = _resolvedFilePath;
     if (path == null) return;
@@ -959,9 +830,12 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
         ? widget.srcRect!.height.toInt()
         : outSize[1];
 
+    if (widget.preloadData != null) {
+      widget.preloadData!.resolvedFilePath = path;
+    }
+
     if (mounted && _viewSize.width > 0 && _viewSize.height > 0) {
       _setupInitialViewState();
-      if (mounted) setState(() => _loadState = LoadState.completed);
     }
   }
 
@@ -1084,6 +958,117 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
         if (load) _loadTile(tile);
       },
     );
+  }
+
+  void _loadTile(Tile tile) {
+    // A restored (JM) page or a cache the FFI decoder cannot read has no
+    // usable file behind it; tile from the decoded image instead.
+    if (_resolvedFilePath == null || _fallbackImage != null) {
+      if (_fallbackImage != null) {
+        _loadTileFromFallback(tile);
+        return;
+      }
+      return;
+    }
+    tile.loading = true;
+
+    final transformer = CoordinateTransformer(
+      scale: _scale,
+      vTranslate: _vTranslate,
+      rotation: widget.rotation,
+      sWidth: _sWidth,
+      sHeight: _sHeight,
+    );
+
+    var fileRect = transformer.fileSRect(tile.sRect);
+    if (widget.srcRect != null) {
+      fileRect = fileRect.translate(widget.srcRect!.left, widget.srcRect!.top);
+    }
+
+    final params = DecodeParams(
+      filePath: _resolvedFilePath!,
+      left: fileRect.left.toInt(),
+      top: fileRect.top.toInt(),
+      right: fileRect.right.toInt(),
+      bottom: fileRect.bottom.toInt(),
+      sampleSize: tile.sampleSize,
+      cropBorders: widget.cropBorders,
+    );
+    ffiImageDecoder.decodeRegionAsync(params, cancelToken: tile).then((result) {
+      if (result == null) return;
+      if (result.pointerAddress != null) {
+        final int left = fileRect.left.toInt();
+        final int top = fileRect.top.toInt();
+        final int right = fileRect.right.toInt();
+        final int bottom = fileRect.bottom.toInt();
+        final int destWidth = (right - left) ~/ tile.sampleSize;
+        final int destHeight = (bottom - top) ~/ tile.sampleSize;
+
+        final pointer = Pointer<Uint8>.fromAddress(result.pointerAddress!);
+        final bytes = pointer.asTypedList(destWidth * destHeight * 4);
+
+        if (!mounted) {
+          calloc.free(pointer);
+          return;
+        }
+
+        try {
+          ui.decodeImageFromPixels(
+            bytes,
+            destWidth,
+            destHeight,
+            ui.PixelFormat.rgba8888,
+            (ui.Image img) {
+              calloc.free(pointer);
+              if (!mounted) {
+                img.dispose();
+                return;
+              }
+              tile.image = img;
+              tile.loading = false;
+              if (_loadState != LoadState.completed) {
+                _loadState = LoadState.completed;
+                _notifyStateChanged();
+                widget.onReady?.call();
+                widget.onImageLoaded?.call(_sWidth, _sHeight);
+              }
+              _scheduleBatchRebuild();
+            },
+          );
+        } catch (e) {
+          calloc.free(pointer);
+          tile.loading = false;
+          if (mounted) {
+            setState(() {});
+          }
+        }
+      } else {
+        tile.loading = false;
+        final msg = result.error ?? 'Unknown error';
+        if (msg != 'Cancelled') {
+          if (kDebugMode) {
+            debugPrint('SubsamplingScaleImageView: Tile decoding failed: $msg');
+          }
+          widget.onTileError?.call(msg);
+        }
+      }
+    });
+  }
+  // ── Batch Rebuild ──────────────────────────────────────────────────────────
+
+  /// Coalesces multiple tile-completion setState calls into a single rebuild
+  /// per microtask frame. Prevents cascading rebuilds when several tiles
+  /// finish decoding within the same event loop iteration.
+  void _scheduleBatchRebuild() {
+    if (!_rebuildScheduled) {
+      _rebuildScheduled = true;
+      Future.microtask(() {
+        if (!mounted) return;
+        _rebuildScheduled = false;
+        setState(() {});
+        _refreshTiles(load: true);
+      });
+    }
   }
 
   // ── Gesture handlers ─────────────────────────────────────────────────────────
@@ -1313,12 +1298,7 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
             if (_sWidth > 0 && _sHeight > 0) {
               _setupInitialViewState();
             } else if (_resolvedFilePath != null) {
-              _tryInitImage().then((ok) {
-                if (mounted && !ok) {
-                  // FFI decoder failed (e.g. WebP). Reload via ImageProvider.
-                  _loadFromProvider();
-                }
-              });
+              _initImage();
             }
           } else {
             _resizeTimer?.cancel();

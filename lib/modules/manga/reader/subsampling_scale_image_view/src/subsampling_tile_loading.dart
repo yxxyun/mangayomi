@@ -10,23 +10,6 @@ part of 'subsampling_scale_image_view.dart';
 // protected inside the State class itself, and extensions are outside it).
 
 extension _SubsamplingTileLoading on _SubsamplingScaleImageViewState {
-    // ── Batch Rebuild ──────────────────────────────────────────────────────────
-
-    /// Coalesces multiple tile-completion setState calls into a single rebuild
-    /// per microtask frame. Prevents cascading rebuilds when several tiles
-    /// finish decoding within the same event loop iteration.
-    void _scheduleBatchRebuild() {
-      if (!_rebuildScheduled) {
-        _rebuildScheduled = true;
-        Future.microtask(() {
-          if (!mounted) return;
-          _rebuildScheduled = false;
-          rebuildTiles();
-          _refreshTiles(load: true);
-        });
-      }
-    }
-
     /// Loads a tile region from [_fallbackImage] when the FFI decoder
     /// cannot handle the cached file format (e.g. WebP).
     Future<void> _loadTileFromFallback(Tile tile) async {

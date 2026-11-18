@@ -6,8 +6,9 @@ import 'package:mangayomi/eval/lib.dart';
 import 'package:mangayomi/providers/general_state_provider.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/services/source_code_errors.dart';
-import 'package:mangayomi/services/built_in_extension_service.dart';
+
 import 'package:mangayomi/utils/utils.dart';
+import 'package:mangayomi/services/built_in_extension_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'headers.g.dart';

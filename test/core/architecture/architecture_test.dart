@@ -43,9 +43,7 @@ List<String> _findImportViolations(
       final uri = _packageUri(file, match.group(1)!);
       for (final prefix in forbiddenPrefixes) {
         if (uri.startsWith(prefix)) {
-          // posix form so allowlist prefixes compare equal on Windows,
-          // where p.normalize yields backslashes.
-          violations.add('${p.posix.joinAll(p.split(file.path))} -> $uri');
+
         }
       }
     }

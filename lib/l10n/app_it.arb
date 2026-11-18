@@ -2150,5 +2150,4 @@
   "@cloud_drive_qr_retry": {
     "description": "Retry button text for QR login",
     "value": "Retry"
-  }
-}
+  }}
