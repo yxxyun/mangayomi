@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mangayomi/modules/main_view/nav_groups.dart';
 import 'package:mangayomi/models/manga.dart';
-import 'package:mangayomi/services/cloud_drive/models/cloud_drive_type.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/models/track.dart';
@@ -35,9 +34,9 @@ import 'package:mangayomi/modules/more/settings/player/player_advanced_screen.da
 import 'package:mangayomi/modules/more/settings/player/player_audio_screen.dart';
 import 'package:mangayomi/modules/more/settings/player/player_decoder_screen.dart';
 import 'package:mangayomi/modules/more/settings/player/player_overview_screen.dart';
+import 'package:mangayomi/providers/reader_state_provider.dart';
 import 'package:mangayomi/modules/more/statistics/statistics_screen.dart';
 import 'package:mangayomi/modules/novel/novel_reader_view.dart';
-import 'package:mangayomi/providers/reader_state_provider.dart';
 import 'package:mangayomi/modules/tracker_library/tracker_library_screen.dart';
 import 'package:mangayomi/modules/updates/updates_screen.dart';
 import 'package:mangayomi/modules/more/categories/categories_screen.dart';
@@ -49,11 +48,13 @@ import 'package:mangayomi/modules/more/settings/track/track.dart';
 import 'package:mangayomi/modules/more/settings/track/manage_trackers/manage_trackers.dart';
 import 'package:mangayomi/modules/more/settings/track/manage_trackers/tracking_detail.dart';
 import 'package:mangayomi/modules/webview/webview.dart';
+import 'package:mangayomi/modules/browse/browse_screen.dart';
 import 'package:mangayomi/modules/browse/extension/extension_lang.dart';
 import 'package:mangayomi/modules/browse/global_search/global_search_screen.dart';
 import 'package:mangayomi/modules/main_view/main_screen.dart';
 import 'package:mangayomi/modules/history/history_screen.dart';
 import 'package:mangayomi/modules/library/library_screen.dart';
+import 'package:mangayomi/services/cloud_drive/models/cloud_drive_type.dart';
 import 'package:mangayomi/services/cloud_drive/ui/cloud_drive_list_screen.dart';
 import 'package:mangayomi/services/cloud_drive/ui/cloud_drive_detail_screen.dart';
 import 'package:mangayomi/services/cloud_drive/ui/cloud_file_browser_screen.dart';
@@ -107,7 +108,7 @@ GoRouter router(Ref ref) {
     refreshListenable: router,
     routes: router._routes,
     navigatorKey: navigatorKey,
-    onException: (context, state, r) => r.go(initLocation),
+    onException: (context, state, router) => router.go(initLocation),
   );
 }
 
@@ -216,19 +217,18 @@ class RouterNotifier extends ChangeNotifier {
                 LibraryScreen(itemType: ItemType.novel, search: search),
           ),
         ),
-        StatefulShellBranch(
-          routes: [
-            _genericRoute(name: "more", child: const MoreScreen()),
-          ],
+        _branch(
+          _genericRoute<String?>(
+            name: "trackerLibrary",
+            builder: (id) => TrackerLibraryScreen(presetInput: id),
+          ),
         ),
+        _branch(_genericRoute(name: "history", child: const HistoryScreen())),
+        _branch(_genericRoute(name: "updates", child: const UpdatesScreen())),
+        _branch(_genericRoute(name: "browse", child: const BrowseScreen())),
+        _branch(_genericRoute(name: "more", child: const MoreScreen())),
       ],
     ),
-    _genericRoute<String?>(
-      name: "trackerLibrary",
-      builder: (id) => TrackerLibraryScreen(presetInput: id),
-    ),
-    _genericRoute(name: "history", child: const HistoryScreen()),
-    _genericRoute(name: "updates", child: const UpdatesScreen()),
     _genericRoute<(Source?, bool)>(
       name: "mangaHome",
       builder: (id) => MangaHomeScreen(source: id.$1!, isLatest: id.$2),
@@ -393,7 +393,7 @@ class RouterNotifier extends ChangeNotifier {
       name: "watchOrder",
       builder: (data) => WatchOrderScreen(media: data.$1, track: data.$2),
     ),
-    // Cloud drive management
+    // Cloud drive management (ours).
     _genericRoute(name: "cloudDrives", child: const CloudDriveListScreen()),
     _genericRoute<CloudDriveType>(
       name: "cloudDriveDetail",

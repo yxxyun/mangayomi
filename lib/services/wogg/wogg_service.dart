@@ -130,13 +130,6 @@ class WoggService {
     }
   }
 
-  void _diag(String msg) {
-    try {
-      final f = File('${Directory.systemTemp.path}/mangayomi_wogg.log');
-      f.writeAsStringSync('${DateTime.now()}: $msg\n', mode: FileMode.append);
-    } catch (_) {}
-  }
-
   /// HTTP GET with timeout — uses dart:io HttpClient for better control.
   Future<String> _get(String url) async {
     final client = HttpClient()
@@ -190,17 +183,13 @@ class WoggService {
 
   /// List popular content from wogg.
   Future<List<Map<String, String>>> getPopular() async {
-    _diag('getPopular: $baseUrl');
     try {
       final body = await _get(baseUrl);
-      _diag('getPopular: body length ${body.length}');
 
       final doc = html_parser.parse(body);
       final items = _parseItemList(doc, 'div.module-item');
-      _diag('getPopular: found ${items.length} items');
       return items;
     } catch (e) {
-      _diag('getPopular: ERROR $e');
       return [];
     }
   }
@@ -209,10 +198,6 @@ class WoggService {
   List<Map<String, String>> _parseItemList(dynamic doc, String selector) {
     final items = <Map<String, String>>[];
     final elements = doc.querySelectorAll(selector);
-    if (elements.isNotEmpty) {
-      final first = elements.first;
-      _diag('HTML sample: ${first.outerHtml.substring(0, first.outerHtml.length.clamp(0, 500))}');
-    }
 
     for (final element in elements) {
       final name = element.querySelector('.module-item-cover .module-item-pic a')?.attributes['title'];
@@ -231,7 +216,6 @@ class WoggService {
       }
     }
 
-    _diag('parsed ${items.length} items, first imageUrl: ${items.isNotEmpty ? items[0]['imageUrl'] : "none"}');
     return items;
   }
 

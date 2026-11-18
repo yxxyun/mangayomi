@@ -5,6 +5,7 @@ import 'package:d4rt/d4rt.dart';
 import 'package:flutter_qjs/flutter_qjs.dart';
 import 'package:http_interceptor/http_interceptor.dart';
 import 'package:mangayomi/eval/http_response_extensions.dart';
+import 'package:mangayomi/services/http/m_client.dart';
 import 'package:http/http.dart' as http;
 
 class JsHttpClient {
@@ -12,8 +13,9 @@ class JsHttpClient {
   JsHttpClient(this.runtime);
 
   void init() {
-    // Use plain http.Client to avoid MClient/MCookieManager/Isar blocking
-    http.Client client() => http.Client();
+    InterceptedClient client() {
+      return MClient.init();
+    }
 
     runtime.onMessage('http_head', (dynamic args) async {
       return await _toHttpResponse(client(), "HEAD", args);

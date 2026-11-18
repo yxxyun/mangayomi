@@ -23,10 +23,14 @@ import 'package:mangayomi/utils/language.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/app_ui_scale_state_provider.dart';
 
 final navigationItems = {
-  "/anime": "Anime",
-  "/manga": "Manga",
-  "/novel": "Novel",
+  "/MangaLibrary": "Manga",
+  "/AnimeLibrary": "Anime",
+  "/NovelLibrary": "Novel",
+  "/updates": "Updates",
+  "/history": "History",
+  "/browse": "Browse",
   "/more": "More",
+  "/trackerLibrary": "Tracking",
 };
 
 class AppearanceScreen extends ConsumerWidget {

@@ -184,10 +184,14 @@ class FullScreenReaderState extends _$FullScreenReaderState {
 @riverpod
 class NavigationOrderState extends _$NavigationOrderState {
   final items = [
-    '/anime',
-    '/manga',
-    '/novel',
+    '/MangaLibrary',
+    '/AnimeLibrary',
+    '/NovelLibrary',
+    '/updates',
+    '/history',
+    '/browse',
     '/more',
+    '/trackerLibrary',
   ];
 
   @override
@@ -198,10 +202,6 @@ class NavigationOrderState extends _$NavigationOrderState {
   }
 
   List<String> _checkMissingItems(List<String> navigationOrder) {
-    // Remove any routes not in the canonical items list
-    // (handles stale Isar data from upstream versions with different routes).
-    navigationOrder.removeWhere((e) => !items.contains(e));
-    // Add any new items that aren't already present
     navigationOrder.addAll(
       items.where((e) => !navigationOrder.contains(e)).toList(),
     );

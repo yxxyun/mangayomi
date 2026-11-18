@@ -8,7 +8,6 @@ import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/widgets/entry_badge_chip.dart';
 import 'package:mangayomi/modules/widgets/tv_row_button.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
-import 'package:mangayomi/services/built_in_sources.dart';
 import 'package:mangayomi/utils/cached_network.dart';
 import 'package:mangayomi/utils/item_type_localization.dart';
 import 'package:mangayomi/utils/language.dart';
@@ -18,7 +17,6 @@ class SourceListTile extends StatelessWidget {
   final Source source;
 
   bool get isLocal => source.name == "local" && source.lang == "";
-  bool get isBuiltin => isLocal || BuiltInSources.isBuiltIn(source);
 
   const SourceListTile({
     super.key,
@@ -31,7 +29,7 @@ class SourceListTile extends StatelessWidget {
     return Consumer(
       builder: (context, ref, child) => ListTile(
         onTap: () {
-          if (!isBuiltin && !isLocal) {
+          if (!isLocal) {
             sourceRepository.markLastUsed(itemType, source.id);
           }
           context.push('/mangaHome', extra: (source, false));

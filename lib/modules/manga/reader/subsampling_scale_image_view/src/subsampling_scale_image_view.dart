@@ -77,6 +77,52 @@ class SubsamplingScaleImageViewController extends ChangeNotifier {
     );
   }
 
+  // ── Coordinate Conversion ────────────────────────────────────────────────
+
+  /// Converts a view (screen) point to image source coordinates.
+  ui.Offset? viewToSourceCoord(ui.Offset viewPoint) {
+    final s = _state;
+    if (s == null || !s._isInitialized) return null;
+    return CoordinateTransformer(
+      scale: s._scale,
+      vTranslate: s._vTranslate,
+      rotation: s.widget.rotation,
+      sWidth: s._sWidth,
+      sHeight: s._sHeight,
+    ).vCoordToSCoord(viewPoint);
+  }
+
+  /// Converts an image source point to view (screen) coordinates.
+  ui.Offset? sourceToViewCoord(ui.Offset sourcePoint) {
+    final s = _state;
+    if (s == null || !s._isInitialized) return null;
+    return CoordinateTransformer(
+      scale: s._scale,
+      vTranslate: s._vTranslate,
+      rotation: s.widget.rotation,
+      sWidth: s._sWidth,
+      sHeight: s._sHeight,
+    ).sCoordToVCoord(sourcePoint);
+  }
+
+  /// Returns the visible rectangle of the source (in source coordinates).
+  ui.Rect? visibleSourceRect() {
+    final s = _state;
+    if (s == null || !s._isInitialized) return null;
+    final transformer = CoordinateTransformer(
+      scale: s._scale,
+      vTranslate: s._vTranslate,
+      rotation: s.widget.rotation,
+      sWidth: s._sWidth,
+      sHeight: s._sHeight,
+    );
+    final topLeft = transformer.vCoordToSCoord(ui.Offset.zero);
+    final bottomRight = transformer.vCoordToSCoord(
+      ui.Offset(s._viewSize.width, s._viewSize.height),
+    );
+    return ui.Rect.fromPoints(topLeft, bottomRight);
+  }
+
   // ── Commands ───────────────────────────────────────────────────────────────
 
   /// Resets scale and center to initial state.

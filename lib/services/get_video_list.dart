@@ -24,13 +24,6 @@ import '../models/source.dart';
 import 'package:mangayomi/utils/error_toast.dart';
 part 'get_video_list.g.dart';
 
-void _diag(String msg) {
-  try {
-    final f = File('${Directory.systemTemp.path}/mangayomi_diag.log');
-    f.writeAsStringSync('${DateTime.now()}: $msg\n', mode: FileMode.append);
-  } catch (_) {}
-}
-
 @riverpod
 Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
   Ref ref, {
@@ -103,14 +96,12 @@ Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
         mpvDirectory,
       );
     }
-    _diag('getVideoList: mangaId=${episode.mangaId}, manga=${episode.manga.value?.name}, source=${episode.manga.value?.source}, lang=${episode.manga.value?.lang}');
     final source = getSource(
       episode.manga.value!.lang!,
       episode.manga.value!.source!,
       episode.manga.value!.sourceId,
       installedOnly: true,
     );
-    _diag('getVideoList: resolved source=${source?.name}, isBuiltIn=${builtInServiceFor(source) != null}');
 
     // Built-in sources have no sourceCode, so no isolate can run them.
     final builtIn = builtInServiceFor(source);

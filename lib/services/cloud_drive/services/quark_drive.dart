@@ -14,13 +14,6 @@ import 'package:mangayomi/services/cloud_drive/models/quality_option.dart';
 import 'package:mangayomi/services/cloud_drive/auth/cookie_manager.dart';
 import 'package:mangayomi/services/cloud_drive/lcs_utils.dart';
 
-void _diag(String msg) {
-  try {
-    final f = File('${Directory.systemTemp.path}/mangayomi_diag.log');
-    f.writeAsStringSync('${DateTime.now()}: $msg\n', mode: FileMode.append);
-  } catch (_) {}
-}
-
 class QuarkDriveService implements CloudDriveService {
   // ── Constants ──────────────────────────────────────────────────────
 
@@ -208,7 +201,6 @@ class QuarkDriveService implements CloudDriveService {
 
   @override
   Future<List<CloudDriveFile>> getFilesByShareUrl(String url) async {
-    _diag('QUARK_getFiles: $url');
     // Clear stale caches — the save dir will be rebuilt for this share.
     _saveFileIdCache.clear();
     _saveDirId = null;
@@ -272,10 +264,8 @@ class QuarkDriveService implements CloudDriveService {
     required String fileId,
     required String fileToken,
   }) async {
-    _diag('getLiveTranscoding: fileId=$fileId, shareId=$shareId');
     // Always save — cached file IDs may be stale (files were deleted by a previous clean:true).
     final savedId = await _save(shareId, stoken, fileId, fileToken, true);
-    _diag('getLiveTranscoding: _save returned ${savedId ?? "NULL"}');
     if (savedId == null) return [];
     _saveFileIdCache[fileId] = savedId;
 
@@ -289,15 +279,12 @@ class QuarkDriveService implements CloudDriveService {
       'post',
     );
 
-    _diag('getLiveTranscoding: result keys=${result.keys}, data=${result["data"] != null ? "exists" : "null"}');
 
     if (result['data'] == null || result['data']['video_list'] == null) {
-      _diag('getLiveTranscoding: video_list is null or empty');
       return [];
     }
 
     final list = result['data']['video_list'] as List;
-    _diag('getLiveTranscoding: video_list has ${list.length} items');
     return list.map((v) {
       final info = v['video_info'] as Map<String, dynamic>;
       return QualityOption(
@@ -410,7 +397,6 @@ class QuarkDriveService implements CloudDriveService {
 
   @override
   Future<List<Video>> getVideos(String encodedUrl) async {
-    _diag('QUARK_getVideos: ${encodedUrl.substring(0, encodedUrl.length.clamp(0, 80))}');
     // Format: [quark] displayName$quark++fileId++shareFileToken++shareId++shareToken[+subtitleInfo]
     final parts = encodedUrl.split('++');
     if (parts.length < 5) return [];
@@ -443,7 +429,6 @@ class QuarkDriveService implements CloudDriveService {
 
     if (qualityOptions.isNotEmpty) {
       final originalUrl = qualityOptions.first.url;
-      _diag('getVideos: qualityOptions=${qualityOptions.length}, first URL=${originalUrl.substring(0, originalUrl.length.clamp(0, 100))}');
 
       for (final q in qualityOptions) {
         videos.add(Video(
@@ -740,7 +725,6 @@ class QuarkDriveService implements CloudDriveService {
 
     // Retry with fresh token if first attempt failed.
     if (saveResult['data'] == null || saveResult['data']['task_id'] == null) {
-      _diag('_save: first attempt failed, retrying with fresh token');
       _shareTokenCache.remove(shareId);
       await getShareToken(ShareData(shareId: shareId));
       effectiveStoken = _shareTokenCache[shareId]?['stoken'] ?? '';
@@ -828,7 +812,6 @@ class QuarkDriveService implements CloudDriveService {
     String baseUrl = _apiBase,
     int timeoutSeconds = 10,
   }) async {
-    _diag('QUARK_API $method $url');
     final client = http.Client();
 
     try {
@@ -846,7 +829,6 @@ class QuarkDriveService implements CloudDriveService {
             .timeout(Duration(seconds: timeoutSeconds));
       }
 
-      _diag('QUARK_API response: ${resp.statusCode} for $url');
 
       // Handle set-cookie: refresh __puus (update both Hive and Isar).
       final setCookie = resp.headers['set-cookie'];
@@ -876,13 +858,10 @@ class QuarkDriveService implements CloudDriveService {
       final decoded = jsonDecode(resp.body);
       return decoded is Map<String, dynamic> ? decoded : {};
     } on TimeoutException {
-      _diag('QUARK_API TIMEOUT after ${timeoutSeconds}s: $url');
       return {};
-    } on SocketException catch (e) {
-      _diag('QUARK_API SOCKET_ERROR: $url → ${e.message}');
+    } on SocketException {
       return {};
-    } catch (e) {
-      _diag('QUARK_API ERROR: $url → ${e.runtimeType}: $e');
+    } catch (_) {
       return {};
     } finally {
       client.close();

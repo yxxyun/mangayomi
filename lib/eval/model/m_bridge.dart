@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:bot_toast/bot_toast.dart';
@@ -48,13 +47,6 @@ import 'package:mangayomi/services/cloud_drive/services/quark_drive.dart';
 import 'package:mangayomi/services/cloud_drive/services/uc_drive.dart';
 import 'package:mangayomi/services/cloud_drive/services/xunlei_drive.dart';
 import 'package:mangayomi/services/cloud_drive/services/yun139_drive.dart';
-
-void _diag(String msg) {
-  try {
-    final f = File('${Directory.systemTemp.path}/mangayomi_diag.log');
-    f.writeAsStringSync('${DateTime.now()}: $msg\n', mode: FileMode.append);
-  } catch (_) {}
-}
 
 class WordSet {
   final List<String> words;
@@ -311,7 +303,6 @@ class MBridge {
   static Future<List<Map<String, String>>> cloudDriveFilesExtractor(
     List<String> shareUrls,
   ) async {
-    _diag('CLOUD_FILES called with ${shareUrls.length} urls');
     if (shareUrls.isEmpty) return [];
 
     // Group URLs by detected drive type — a single list may contain
@@ -350,7 +341,6 @@ class MBridge {
   /// Unified video list: parses encoded URL and gets videos from the correct drive.
   /// The encoded URL format is: [prefix] name$type++fileId++...
   static Future<List<Video>> cloudDriveVideosExtractor(String url) async {
-    _diag('CLOUD_VIDEOS called with url=${url.substring(0, url.length.clamp(0, 100))}');
     // Extract drive type from the encoded URL: [quark] or [uc] or [ali] etc.
     final typeMatch = RegExp(r'\[(\w+)\]').firstMatch(url);
     if (typeMatch == null) return [];
