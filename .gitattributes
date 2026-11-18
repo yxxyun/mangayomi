@@ -31,7 +31,42 @@ Podfile text eol=lf
 *.storyboard text eol=lf
 *.xib text eol=lf
 *.entitlements text eol=lf
+# linuxdeploy parses the desktop entry itself and rejects a trailing \r.
+*.desktop text eol=lf
+# Source the runners compile: MSVC and clang both accept CRLF, but gofmt,
+# the Go toolchain and the Rust build tool assume LF.
+*.go text eol=lf
+go.mod text eol=lf
+go.sum text eol=lf
+*.rs text eol=lf
+*.c text eol=lf
+*.h text eol=lf
+*.cpp text eol=lf
+*.hpp text eol=lf
+*.kt text eol=lf
+*.swift text eol=lf
+*.java text eol=lf
+*.m text eol=lf
+*.mm text eol=lf
+*.txt text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+# Remaining Xcode project files and Linux runner sources.
+*.xcworkspacedata text eol=lf
+*.xcsettings text eol=lf
+*.xcscheme text eol=lf
+*.modulemap text eol=lf
+LICENSE text eol=lf
+lib/services/http/rhttp/LICENSE text eol=lf
 *.mobileprovision binary
+*.cc text eol=lf
+*.proto text eol=lf
+PKGBUILD text eol=lf
+README text eol=lf
+*.podspec text eol=lf
+*.rc text eol=lf
+*.manifest text eol=lf
+*.7z binary
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
