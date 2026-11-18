@@ -14,6 +14,24 @@
 *.xml text eol=lf
 *.gradle text eol=lf
 *.properties text eol=lf
+# Shell scripts must stay LF: a CRLF shebang makes the kernel look for
+# "bash\r", which the runner answers with exit 127 and no message.
+*.sh text eol=lf
+*.bash text eol=lf
+configure text eol=lf
+# CMake and Python run on the Linux/macOS runners too.
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+*.py text eol=lf
+# Xcode reads these as text; CRLF breaks the project and CocoaPods scripts.
+*.pbxproj text eol=lf
+Podfile text eol=lf
+*.xcconfig text eol=lf
+*.plist text eol=lf
+*.storyboard text eol=lf
+*.xib text eol=lf
+*.entitlements text eol=lf
+*.mobileprovision binary
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
