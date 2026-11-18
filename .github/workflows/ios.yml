@@ -27,7 +27,8 @@ jobs:
     # macos-26 is the pool GitHub is shortest on; jobs sat queued and were
     # cancelled with "not acquired by Runner of type hosted". ci.yml has been
     # building iOS on macos-15 all along, so use that image here.
-    runs-on: macos-15
+    # Try the Intel pool: the arm64 pool has been out of capacity for hours.
+    runs-on: macos-13
     env:
       # Rust 1.100 makes the Xcode linker crash on the release build
       # (Segmentation fault: 11); 1.99.1 links. Cargokit builds with this one
