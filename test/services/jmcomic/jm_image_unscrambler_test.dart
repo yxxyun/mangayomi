@@ -59,6 +59,33 @@ void main() {
     });
   });
 
+  group('deciding whether a page needs restoring', () {
+    const url =
+        'https://cdn-msp.jmapiproxy1.cc/media/photos/1491637/00001.webp';
+
+    test('leaves a page that was never cut up alone', () async {
+      final image = await _page(width: 64, height: 200, scrambledInto: 0);
+      final restored = await JmImageUnscrambler.restoreIfNeeded(image, url);
+      expect(restored, isNull);
+    });
+
+    test('restores a page cut into ten strips', () async {
+      final image = await _page(width: 64, height: 200, scrambledInto: 10);
+      final restored = await JmImageUnscrambler.restoreIfNeeded(image, url);
+      expect(restored, isNotNull);
+      expect(restored!.height, 200);
+    });
+
+    test('ignores an image that is not a jm photo', () async {
+      final image = await _page(width: 64, height: 200, scrambledInto: 10);
+      final restored = await JmImageUnscrambler.restoreIfNeeded(
+        image,
+        'https://cdn-msp.jmapiproxy1.cc/media/albums/1490238_3x4.jpg',
+      );
+      expect(restored, isNull);
+    });
+  });
+
   test('restoring a scrambled page gives the original back', () async {
     const int width = 40;
     const int height = 200;
@@ -99,6 +126,43 @@ void main() {
     expect(restored.height, height);
     expect(bytes!.buffer.asUint8List(), equals(pixels));
   });
+}
+
+/// A page whose rows carry a slowly varying pattern, so neighbouring rows look
+/// alike and a wrongly joined strip shows up as a hard edge. When
+/// [scrambledInto] is above zero the strips are reordered the way JM ships
+/// them.
+Future<ui.Image> _page({
+  required int width,
+  required int height,
+  required int scrambledInto,
+}) async {
+  final pixels = Uint8List(width * height * 4);
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
+      final int i = (y * width + x) * 4;
+      // Smooth down the page, patterned across it.
+      pixels[i] = (y * 255 ~/ height);
+      pixels[i + 1] = ((x * 255 ~/ width) + (y * 3)) % 256;
+      pixels[i + 2] = (y * 255 ~/ height + x) % 256;
+      pixels[i + 3] = 255;
+    }
+  }
+  if (scrambledInto <= 1) return _imageFrom(pixels, width, height);
+
+  final int strip = height ~/ scrambledInto;
+  final scrambled = Uint8List(width * height * 4);
+  for (var i = 0; i < scrambledInto; i++) {
+    final int srcY = strip * i;
+    final int dstY = strip * (scrambledInto - 1 - i);
+    scrambled.setRange(
+      dstY * width * 4,
+      (dstY + strip) * width * 4,
+      pixels,
+      srcY * width * 4,
+    );
+  }
+  return _imageFrom(scrambled, width, height);
 }
 
 Future<ui.Image> _imageFrom(Uint8List pixels, int width, int height) {

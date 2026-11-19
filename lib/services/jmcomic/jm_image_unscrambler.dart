@@ -55,15 +55,106 @@ class JmImageUnscrambler {
     return (chapterId, m.group(2)!);
   }
 
-  /// Restores the image if the URL is a scrambled JM image.
-  /// Returns the restored image, or null when no restoration is needed.
+  /// Restores the image if it actually needs restoring.
+  ///
+  /// The strip count normally comes from the album's scramble_id, but the
+  /// mirrors this app talks to do not return one, and the images they serve
+  /// are not always cut up at all. Guessing either way corrupts a page that
+  /// was already fine, so the decision is made from the picture:
+  ///
+  /// Reversing strips changes nothing about the inside of a strip. Only the
+  /// num-1 junctions between them change. If the page is scrambled, those
+  /// junctions currently join unrelated rows and are sharp; after reversing
+  /// they join the rows that belong together and are smooth. If the page was
+  /// never scrambled, the opposite holds. So the arrangement with the smoother
+  /// junctions wins, and it only counts as a restoration when it also wins by
+  /// a clear margin.
   static Future<ui.Image?> restoreIfNeeded(ui.Image img, String url) async {
-    final parsed = parseUrl(url);
-    if (parsed == null) return null;
-    final (chapterId, filename) = parsed;
-    final num = getNum(chapterId, filename);
-    if (num == 0) return null;
-    return restore(img, num);
+    if (parseUrl(url) == null) return null;
+
+    final int w = img.width;
+    final int h = img.height;
+    if (h < 40 || w < 4) return null;
+
+    final ByteData? byteData =
+        await img.toByteData(format: ui.ImageByteFormat.rawRgba);
+    if (byteData == null) return null;
+    final Uint8List rgba = byteData.buffer.asUint8List();
+
+    int? bestNum;
+    double bestCost = 0;
+    double baseline = 0;
+
+    for (var num = 2; num <= 20; num += 2) {
+      final int strip = h ~/ num;
+      if (strip < 2) continue;
+      // Where the page is cut right now, and where it would be cut after
+      // reversing: both are the num-1 boundaries between strips, so the two
+      // means are comparable.
+      final double rawCost = _stripCost(rgba, w, h, num, reverse: false);
+      final double fixedCost = _stripCost(rgba, w, h, num, reverse: true);
+      if (bestNum == null || fixedCost < bestCost) {
+        bestNum = num;
+        bestCost = fixedCost;
+        baseline = rawCost;
+      }
+    }
+
+    if (bestNum == null) return null;
+    // Only when reversing clearly smooths the page; a few percent either way
+    // means the page was already whole.
+    if (bestCost >= baseline * 0.8) return null;
+    return restore(img, bestNum);
+  }
+
+  /// Mean difference across the strip boundaries a page would have with [num]
+  /// strips, taken on the page as it is ([reverse] false) or after the strips
+  /// are put back in order ([reverse] true).
+  ///
+  /// If the page is scrambled, the boundaries as they are join unrelated rows
+  /// and are sharp, while the repaired ones join the rows that belong together
+  /// and are smooth; if it was never scrambled, the reverse holds.
+  static double _stripCost(
+    Uint8List rgba,
+    int width,
+    int height,
+    int num, {
+    required bool reverse,
+  }) {
+    final int strip = height ~/ num;
+    var sum = 0.0;
+    var count = 0;
+    for (var i = 1; i < num; i++) {
+      // Rows meeting at this boundary: the last row of one strip and the first
+      // of the next, in whichever order the page currently has them.
+      final int lowerBlock = reverse ? num - i : i;
+      final int upperBlock = lowerBlock - 1;
+      final int upperRow = reverse
+          ? (height - strip * (upperBlock + 1)) + strip - 1
+          : upperBlock * strip + strip - 1;
+      final int lowerRow = reverse
+          ? height - strip * lowerBlock
+          : lowerBlock * strip;
+      if (upperRow < 0 || lowerRow < 0 || lowerRow >= height) continue;
+      sum += _rowDiff(rgba, width, upperRow, lowerRow);
+      count++;
+    }
+    return count == 0 ? 0 : sum / count;
+  }
+
+  /// How different two rows are, sampling across the width.
+  static double _rowDiff(Uint8List rgba, int width, int rowA, int rowB) {
+    final int a = rowA * width * 4;
+    final int b = rowB * width * 4;
+    var sum = 0.0;
+    for (var x = 0; x < width; x += 4) {
+      final int ia = a + x * 4;
+      final int ib = b + x * 4;
+      sum += (rgba[ia] - rgba[ib]).abs() +
+          (rgba[ia + 1] - rgba[ib + 1]).abs() +
+          (rgba[ia + 2] - rgba[ib + 2]).abs();
+    }
+    return sum;
   }
 
   /// Splits [img] into [num] horizontal strips and pastes them in reversed
