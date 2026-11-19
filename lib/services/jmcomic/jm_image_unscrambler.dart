@@ -21,15 +21,22 @@ class JmImageUnscrambler {
 
   /// Number of horizontal strips this image was split into.
   /// Returns 0 when the image is NOT scrambled.
+  ///
+  /// [aid] is the photo id from the image URL. [scrambleId] is the album's
+  /// scramble_id; the mirrors this app talks to do not return it, so it stays
+  /// at the default, which the reference implementation maps to a fixed 10
+  /// strips. The id in the URL is only an input to the md5, never a threshold:
+  /// comparing it instead reported two strips for images cut into ten, and the
+  /// "restored" page came out shredded.
   static int getNum(
-    int chapterId,
+    int aid,
     String filename, {
     int scrambleId = _scrambleDefault,
   }) {
-    if (chapterId < scrambleId) return 0;
-    if (chapterId < _scramble268850) return 10;
-    final int x = chapterId < _scramble421926 ? 10 : 8;
-    final String s = '$chapterId$filename';
+    if (scrambleId < _scrambleDefault) return 0;
+    if (scrambleId < _scramble268850) return 10;
+    final int x = scrambleId < _scramble421926 ? 10 : 8;
+    final String s = '$aid$filename';
     final String md5Hex = md5.convert(utf8.encode(s)).toString();
     final String last = md5Hex[md5Hex.length - 1];
     final int n = last.codeUnitAt(0) % x;
