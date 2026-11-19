@@ -595,7 +595,13 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
         _sHeight = widget.srcRect != null
             ? widget.srcRect!.height.toInt()
             : displayImage.height;
-        _setupInitialViewState();
+        // The decode can finish before the first layout. Building the tile map
+        // against a zero-size viewport yields degenerate tiles, so wait for the
+        // layout pass when there is no viewport yet: it calls
+        // _setupInitialViewState() as soon as _sWidth/_sHeight are known.
+        if (mounted && _viewSize.width > 0 && _viewSize.height > 0) {
+          _setupInitialViewState();
+        }
         if (mounted) setState(() => _loadState = LoadState.completed);
         widget.onReady?.call();
         widget.onImageLoaded?.call(_sWidth, _sHeight);
@@ -922,7 +928,10 @@ class _SubsamplingScaleImageViewState extends State<SubsamplingScaleImageView>
   // ── Tile loading ─────────────────────────────────────────────────────────────
 
   void _refreshTiles({required bool load}) {
-    if (!_isInitialized || _resolvedFilePath == null) return;
+    // A restored (JM) page has no file behind it: it tiles from
+    // _fallbackImage, so the path check must not gate that case out.
+    if (!_isInitialized) return;
+    if (_resolvedFilePath == null && _fallbackImage == null) return;
 
     final transformer = CoordinateTransformer(
       scale: _scale,
