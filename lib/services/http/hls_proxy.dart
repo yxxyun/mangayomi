@@ -192,8 +192,14 @@ class HlsProxyService {
       final upstreamRequest = http.Request(request.method, upstream);
       _copyRequestHeaders(session.headers, upstreamRequest.headers);
       upstreamRequest.headers[HttpHeaders.acceptEncodingHeader] = 'identity';
+      // A playlist is text that is rewritten wholesale, and some players probe
+      // it with a range. Passing that range on lets the server return a slice
+      // of the playlist, which looks to the player like a stream that is only
+      // a few seconds long. Segments keep their range: players seek in them.
+      final bool isPlaylistRequest =
+          segments.length >= 2 && segments[1].endsWith('.m3u8');
       final range = request.headers.value(HttpHeaders.rangeHeader);
-      if (range != null) {
+      if (range != null && !isPlaylistRequest) {
         upstreamRequest.headers[HttpHeaders.rangeHeader] = range;
       }
 
